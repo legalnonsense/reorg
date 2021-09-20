@@ -1,48 +1,23 @@
 ;;; -*- lexical-binding: t; -*-
 
-(setq reorg--transclusion-log nil)
-(defun reorg--transclusion-logger (overlay postp beg end &optional length)
-  (push (list :postp postp :beg beg :end end :length length) reorg--transclusion-log))
 
-(defvar reorg-current-heading-overlay nil
-  "overlay for view buffer.")
 
-(defface reorg-current-heading-face '((t (:background "orchid" :foreground "black")))
-  "Face of current headline in tree.")
-
-(defun reorg--initialize-overlay ()
-  (setq reorg-current-heading-overlay
-	(make-overlay 1 2))
-  (overlay-put reorg-current-heading-overlay
-	       'face
-	       'reorg-current-heading-face)
-  (overlay-put reorg-current-heading-overlay 'insert-behind-hooks '(reorg--transclusion-logger
-								       reorg-view--update-highlight-overlay
-								       reorg--modification-hook-func))
-  (overlay-put reorg-current-heading-overlay 'insert-in-front-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-  (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-  (delete-overlay reorg-current-heading-overlay))
-
-(defun reorg-view--update-highlight-overlay (&optional &rest _args)
-  (delete-overlay reorg-current-heading-overlay)
-  (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
-
-(defun reorg-open-view (name &optional source)
-  "NAME is the name of the view.  SOURCE is the source buffer."
-  (interactive)
-  (let ((data (reorg--iterate-over-source-buffer name)))
-    (reorg--insert-all-headings-into-view data)
-    (reorg--open-in-side-window)))
+;; (defun reorg-open-view (name &optional source) "NAME is the name of
+;;   the view.  SOURCE is the source buffer."
+;;   (interactive)
+;;   (let ((data (reorg--iterate-over-source-buffer name)))
+;;     (reorg--insert-all-headings-into-view data)
+;;     (reorg--open-in-side-window)))
 
 ;;; view buffer functions
 
 (defun reorg-view--update-view-headline ()
   "Goto source buffer, re-parse, update."
   (let ((props (reorg--with-point-at-orig-entry
-		(reorg--headline-parser)))
+		 (reorg--headline-parser)))
 	(inhibit-modification-hooks t))
     (reorg-props 'headline :val (propertize (plist-get props :headline)
-					       reorg--data-property-name props))))
+					    reorg--data-property-name props))))
 
 (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
@@ -115,8 +90,6 @@ the point and return nil."
     (reorg-view--source--narrow-to-heading)
     t)
   nil)
-
-
 
 (defun reorg--move-to-next-entry-follow ()
   (interactive)

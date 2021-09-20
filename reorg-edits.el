@@ -1,7 +1,5 @@
 ;;; -*- lexical-binding: t; -*-
 
-;;;;;
-
 (defmacro reorg--with-point-at-orig-entry (&rest body)
   "Execute BODY with point at the heading with ID at point."
   (declare (indent defun))
@@ -106,6 +104,10 @@ invoked.")
 
 (defun reorg-edits--post-field-navigation-function ()
   "Tell the user what field they are on."
+  (reorg-edits--update-box-overlay))
+
+(defun reorg-edits--update-box-overlay ()
+  "Tell the user what field they are on."
   (when-let ((field (get-text-property (point) reorg--field-property-name)))
     (move-overlay reorg-edits--current-field-overlay
 		  (car (reorg-edits--get-field-bounds))
@@ -126,9 +128,15 @@ invoked.")
 				      (if previous 
 					  (org-entry-beginning-position)
 					(org-entry-end-position))))
-	   until (get-text-property point reorg--field-property-name)
-	   finally (goto-char point))
-  (reorg-edits--post-field-navigation-function))
+	   until (or (get-text-property point reorg--field-property-name)
+		     (= point (if previous
+				  (org-entry-beginning-position)
+				(org-entry-end-position))))
+	   finally (unless (= point (if previous
+					(org-entry-beginning-position)
+				      (org-entry-end-position)))
+		     (goto-char point)
+		     (reorg-edits--post-field-navigation-function))))
 
 (defun reorg-edits-move-to-previous-field ()
   "Move to the next field at the current heading."
@@ -256,3 +264,6 @@ returns the correct positions."
 		  cursor-type nil))))
 
 (provide 'reorg-edits)
+
+;;; testing
+
