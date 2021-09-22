@@ -12,6 +12,7 @@
   "When setting a face, use this text property.")
 (defconst reorg--data-property-name 'reorg-data)
 (defconst reorg--field-property-name 'reorg-field-type)
+(defconst reorg--id-property-name 'reorg-id)
 
 (defvar reorg-headline-format '(:stars :headline)
   "Headline format.")
@@ -523,7 +524,8 @@ that is called with DATA as an argument."
 		(concat
 		 results
 		 "\n")
-		reorg--data-property-name data)))))
+		reorg--data-property-name data
+		reorg--id-property-name (plist-get data :id))))))
 
 ;;; Creating the tree buffer
 

@@ -163,7 +163,16 @@ the point and return nil."
   (reorg-view--update-highlight-overlay)
   (reorg-edits--post-field-navigation-hook))
 
-
+(defmacro reorg--map-id (id &rest body)
+  "Execute BODY at each entry that matches
+ID."
+  `(save-excursion
+     (goto-char (point-min))
+     (while (text-property-search-forward
+	     reorg--id-property-name
+	     ,id
+	     nil)
+       ,@body)))
 
 ;;;;; Major mode
 
