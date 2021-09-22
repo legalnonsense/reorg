@@ -1,9 +1,9 @@
 ;;; -*- lexical-binding: t; -*-
 
-(defmacro reorg--with-point-at-orig-entry (&rest body)
+(defmacro reorg--with-point-at-orig-entry (id &rest body)
   "Execute BODY with point at the heading with ID at point."
   (declare (indent defun))
-  `(let ((id (reorg--get-view-prop :id))
+  `(let ((id (or id (reorg--get-view-prop :id)))
 	 (marker (reorg--get-view-prop :marker))
 	 (buffer (reorg--get-view-prop :buffer)))
      (with-current-buffer buffer
@@ -35,27 +35,23 @@
 			   0)))
 	(cond
 	 ((and (= beg end) (> length 0))
-	  (reorg--with-point-at-orig-entry
+	  (reorg--with-point-at-orig-entry nil
 	    (reorg--goto-headline-start)
 	    (forward-char relative-beg)
-	    (delete-region (point) (+ (point) length))))
-
-	 
+	    (delete-region (point) (+ (point) length))))	 
 	 ((and (/= beg end) (> length 0))
 	  (let ((s (buffer-substring-no-properties (+ overlay-beg
 						      relative-beg) end)))
 	    (message s)
-	    (reorg--with-point-at-orig-entry
+	    (reorg--with-point-at-orig-entry nil
 	      (reorg--goto-headline-start)
 	      (forward-char relative-beg)
 	      (delete-region (point) (+ (point)
 					(+ length adjustment)))
-	      (insert s))))
-
-	 
+	      (insert s))))	 
 	 ((or (= length 0) (/= beg end))
 	  (let ((s (buffer-substring-no-properties beg end)))
-	    (reorg--with-point-at-orig-entry
+	    (reorg--with-point-at-orig-entry nil
 	      (reorg--goto-headline-start)
 	      (forward-char relative-beg)
 	      (insert s)))))))))
@@ -95,48 +91,48 @@ invoked.")
 
 (defvar reorg-edits--current-field-overlay
   (let ((overlay (make-overlay 1 2)))
-    (overlay-put overlay 'face '(:box t))
+    (overlay-put overlay 'face '(:box (:line-width -1)))
     (overlay-put overlay 'priority 1000)
     overlay)
   "Overlay for field at point.")
 
 ;;;;;;;;;;;;;;;;;;;
 
-(defun reorg-edits--post-field-navigation-function ()
+(defun reorg-edits--post-field-navigation-hook ()
   "Tell the user what field they are on."
-  (reorg-edits--update-box-overlay))
+  (reorg-edits--update-box-overlay)
+  (setf (point) (car 
+		 (reorg-edits--get-field-bounds))))
 
 (defun reorg-edits--update-box-overlay ()
   "Tell the user what field they are on."
   (when-let ((field (get-text-property (point) reorg--field-property-name)))
+    (delete-overlay reorg-edits--current-field-overlay)
     (move-overlay reorg-edits--current-field-overlay
 		  (car (reorg-edits--get-field-bounds))
-		  (cdr (reorg-edits--get-field-bounds)))
+		  (if (eq field 'stars)
+		      (point-at-eol)
+		    (cdr (reorg-edits--get-field-bounds))))
     (message "You are on the field for the heading's %s"
 	     (get-text-property (point) reorg--field-property-name))))
 
 (defun reorg-edits-move-to-next-field (&optional previous)
   "Move to the next field at the current heading."
   (interactive)
-  (cl-loop with point = (point)
-	   while (setq point (funcall (if previous
-					  #'previous-single-property-change
-					#'next-single-property-change)
-				      point
-				      reorg--field-property-name
-				      nil
-				      (if previous 
-					  (org-entry-beginning-position)
-					(org-entry-end-position))))
-	   until (or (get-text-property point reorg--field-property-name)
-		     (= point (if previous
-				  (org-entry-beginning-position)
-				(org-entry-end-position))))
-	   finally (unless (= point (if previous
-					(org-entry-beginning-position)
-				      (org-entry-end-position)))
-		     (goto-char point)
-		     (reorg-edits--post-field-navigation-function))))
+  (let ((current-field (reorg-edits--get-field-at-point)))
+    (unless (if previous (= (point) (org-entry-beginning-position))
+	      (= (point) (org-entry-end-position)))
+      (cl-loop with point = (point)
+	       do (if previous (cl-decf point) (cl-incf point))
+	       when (and (reorg-edits--get-field-at-point point)
+			 (not (equal (reorg-edits--get-field-at-point point)
+				     current-field)))
+	       return (prog1 (setf (point) point)
+			(reorg-edits--post-field-navigation-hook))
+	       when (if previous (= point (org-entry-beginning-position))
+		      (= point (org-entry-end-position)))
+	       return nil)
+      (reorg-edits--post-field-navigation-hook))))
 
 (defun reorg-edits-move-to-previous-field ()
   "Move to the next field at the current heading."
@@ -145,8 +141,22 @@ invoked.")
 
 (defun reorg-edit-field--replace-field (field val)
   "Replace FIELD with VAL."
-  ;;; TODO
+  nil
   )
+
+(defun reorg--lock-buffer (&optional remove)
+  "Make everything read-only except the current
+modification."
+  (let ((inhibit-read-only t)
+	(bounds (reorg-edits--get-field-bounds)))
+    (if remove
+	(remove-text-properties (point-min) (point-max) '(read-only))
+      (put-text-property (point-min) (car bounds) 'read-only t)
+      (put-text-property (cdr bounds) (point-max) 'read-only t))))
+
+(defun reorg--unlock-buffer ()
+  "Unlock the buffer."
+  (reorg--lock-buffer 'remove))
 
 (defun reorg-edits--keep-point-in-range (&optional start end)
   "Temporary post-command-hook to keep the point between
@@ -165,57 +175,77 @@ nil if there is no value."
     (when (and start end)
       (buffer-substring-no-properties start end))))
 
-;; (defun reorg-edits--commit-edit ()
-;;   "Discard the current edit and restore the node
-;; to its previous state, and turn off the minor mode."
-;;   (interactive)
-;;   (reorg-edit-field--replace-field field val)
-;;   (reorg-edits-mode -1))
+(defun reorg-edits--commit-edit ()
+  "Discard the current edit and restore the node
+to its previous state, and turn off the minor mode."
+  (interactive)
+  (reorg--with-point-at-orig-entry  nil
+    (reorg-get-set-props (reorg-edits--get-field-value)
+			 :val (reorg-edits--get-field-value)))
+  (reorg-edits-mode -1))
 
-;; (defun reorg-edits--discard-edit ()
-;;   "Discard the current edit and restore the node
-;; to its previous state, and turn off the minor mode."
-;;   (interactive)
-;;   (reorg-edit-field--replace-field
-;;    reorg-edits--restore-state)
-;;   (setq reorg-edits--restore-state nil)
-;;   (reorg-edits-mode -1)
-;;   (message "Discarded edit."))
+(defun reorg-edits--sync-field-with-source ()
+  "Set SOURCE to the value of the current field."
+  (let ((field (reorg-edits--get-field-at-point))
+	(val (reorg-edits--get-field-value)))
+    (reorg--with-point-at-orig-entry nil
+      (reorg-get-set-props field
+			   :val val ))))
+
+(defun reorg-edits--discard-edit ()
+  "Discard the current edit and restore the node
+to its previous state, and turn off the minor mode."
+  (interactive)
+  (reorg-edit-field--replace-field
+   reorg-edits--restore-state)
+  (setq reorg-edits--restore-state nil)
+  (reorg-edits-mode -1)
+  (message "Discarded edit."))
 
 (defun reorg-edits--start-edit ()
   "Start editing the headline at point."
   (interactive)
   (reorg-edits-mode 1))
 
-(defun reorg-edits--at-editable-field-p ()
-  "Is the point at an editable field?"
-  (get-text-property (point) reorg--field-property-name))
-
 (defun reorg-edits--move-into-field ()
   "If the point is at the border of a field, then 
 move it into the field.  This ensures that `reorg-edits--get-field-bounds'
 returns the correct positions."
   (cond ((and (get-text-property (point) reorg--field-property-name)
-	      (not (get-text-property (1- (point)) reorg--field-property-name)))
+	      (not (get-text-property (1- (point)) reorg--field-property-name))
+	      (get-text-property (+ 1 (point)) reorg--field-property-name))
 	 (forward-char 1))
 	((and (get-text-property (point) reorg--field-property-name)
 	      (not (get-text-property (1+ (point)) reorg--field-property-name)))
 	 (forward-char -1))))
 
-(defun reorg-edits--get-field-bounds () 
-  "Return the bounds of the field at point as a cons cell
-(start . end). If the point is not at a field, return nil."
-  (when (reorg-edits--at-editable-field-p)
-    (save-excursion 
-      (reorg-edits--move-into-field)
-      (cons (previous-single-property-change (point)
-					     reorg--field-property-name
-					     nil
-					     (org-entry-beginning-position))
-	    (next-single-property-change (point)
-					 reorg--field-property-name
-					 nil
-					 (org-entry-end-position))))))
+(defun reorg-edits--get-field-at-point (&optional point)
+  "Get the `reorg--field-property-name' at point."
+  (get-text-property (or point (point)) reorg--field-property-name))
+
+(defun reorg-edits--kill-line ()
+  "Kill up to the end of the end point."
+  (interactive)
+  (pcase-let ((`(,start . ,end) (reorg-edits--get-field-bounds)))
+    (delete-region start end)))
+
+(defun reorg-edits--get-field-bounds ()
+  "Get the bounds of the field at point."
+  (when-let ((field (reorg-edits--get-field-at-point)))
+    (cons
+     (save-excursion 
+       (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				  field)
+			   (not (bobp)))
+		do (forward-char -1)
+		finally return (1+ (point))))
+     (save-excursion 
+       (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				  field)
+			   (not (eobp)))
+		
+		do (forward-char 1)
+		finally return (point))))))
 
 (defvar reorg-edits-field-mode-map
   (let ((map (copy-keymap org-mode-map)))
@@ -228,42 +258,49 @@ returns the correct positions."
     map)
   "keymap.")
 
+(defun reorg-edits--move-selection-overlay ()
+  (if-let ((bounds (reorg-edits--get-field-bounds)))
+      (move-overlay reorg-edits--current-field-overlay
+		    (car bounds)
+		    (cdr bounds))
+    (delete-overlay reorg-edits--current-field-overlay)))
+
 (define-minor-mode reorg-edits-mode
   "Minor mode to edit headlines."
-  :init-value nil
-  :lighter " EDITING HEADLINE"
-  :keymap reorg-edits-field-mode-map
-  :body (if reorg-edits-mode
-	    ;; on
-	    (when-let* ((prop (get-text-property (point) reorg--field-property-name))
-			(start (previous-single-property-change (point) reorg--field-property-name))
-			(end (next-single-property-change (point) reorg--field-property-name))
-			(val (buffer-substring start end)))
-	      (goto-char (org-meta--goto-start))
-	      (add-hook 'post-command-hook #'org-meta-view--keep-point-in-range nil t)		 
-	      (setq cursor-type 'bar
-		    reorg-edits--previous-header-line header-line-format
-		    header-line-format reorg-edits--header-line
-		    reorg-edits--restore-state
-		    reorg-edit-field--start-marker (set-marker (make-marker) start)
-		    reorg-edit-field--end-marker (set-marker (make-marker) end)
-		    overriding-local-map reorg-edits-field-mode-map))
-	  (when-let* ((prop (get-text-property (point) reorg--field-property-name))
-		      (start (previous-single-property-change (point) reorg--field-property-name))
-		      (end (next-single-property-change (point) reorg--field-property-name))
-		      (val (buffer-substring start end)))
-	    (reorg-edit-field--set-field prop val)
-	    (remove-hook 'post-command-hook #'org-meta-view--keep-point-in-range t)
-	    (delete-overlay reorg-edits--current-field-overlay)
-	    (setq header-line-format org-meta--previous-header-line
-		  reorg-edits--previous-header-line nil
-		  reorg-edit-field--start-marker nil
-		  reorg-edit-field--end-marker nil
-		  reorg-edits--restore-state nil
-		  overriding-local-map nil
-		  cursor-type nil))))
+  nil
+  " EDITING HEADLINE"
+  reorg-edits-field-mode-map
+  (when-let* ((prop (get-text-property (point) reorg--field-property-name))
+	      (start (previous-single-property-change (point) reorg--field-property-name))
+	      (end (next-single-property-change (point) reorg--field-property-name))
+	      (val (buffer-substring start end)))
+    ;; on
+    (if reorg-edits-mode
+	(progn		
+	  (add-hook 'post-command-hook #'reorg-edits--keep-point-in-range nil t)
+	  (reorg--lock-buffer)
+	  (setq cursor-type 'bar
+		reorg-edits--previous-header-line header-line-format
+		header-line-format reorg-edits--header-line
+		reorg-edits--restore-state (reorg-edits--get-field-value)
+		reorg-edit-field--start-marker (set-marker (make-marker) start)
+		reorg-edit-field--end-marker (set-marker (make-marker) end)
+		overriding-local-map reorg-edits-field-mode-map))
+      ;; off
+      (reorg--unlock-buffer)
+      (remove-hook 'post-command-hook #'reorg-edits--keep-point-in-range t)
+      (delete-overlay reorg-edits--current-field-overlay)
+      (setq header-line-format reorg-edits--previous-header-line
+	    reorg-edits--previous-header-line nil
+	    reorg-edit-field--start-marker nil
+	    reorg-edit-field--end-marker nil
+	    reorg-edits--restore-state nil
+	    overriding-local-map nil
+	    cursor-type nil))))
 
 (provide 'reorg-edits)
+
+
 
 ;;; testing
 
