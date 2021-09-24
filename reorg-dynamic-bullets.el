@@ -142,7 +142,7 @@ to be refreshed. Two options are:
 (defun reorg-dynamic-bullets--body-p ()
   "Use org-element to get all elements after the property drawers."
   (when (reorg--get-view-prop)
-    (reorg--with-point-at-orig-entry
+    (reorg--with-point-at-orig-entry nil
       (org-element--parse-elements (save-excursion (org-back-to-heading)
 						   (org-end-of-meta-data t)
 						   (point))

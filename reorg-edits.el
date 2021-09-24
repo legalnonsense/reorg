@@ -1,11 +1,9 @@
 ;;; -*- lexical-binding: t; -*-
 
-(defmacro reorg--with-point-at-orig-entry (id &rest body)
+(defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
   "Execute BODY with point at the heading with ID at point."
   (declare (indent defun))
-  `(let ((id (or id (reorg--get-view-prop :id)))
-	 (marker (reorg--get-view-prop :marker))
-	 (buffer (reorg--get-view-prop :buffer)))
+  `(when-let ((buffer (or ,buffer (reorg--get-view-prop :buffer))))
      (with-current-buffer buffer
        (org-with-wide-buffer 
 	(goto-char (point-min))
@@ -13,13 +11,12 @@
 	;;       buffer open after the edit.  Getting the buffer
 	;;       and searching for the ID should ensure the buffer
 	;;       stays hidden.
-	(if reorg-parser-use-id-p 
-	    (if (save-match-data (re-search-forward id nil t))
-		(progn 
-		  ,@body)
-	      (error "Heading with ID %s not found." id))
-	  (goto-char (marker-position marker))
-	  ,@body)))))
+	(if (save-match-data (re-search-forward ,(or id
+						     (reorg--get-view-prop :id))
+						nil t))
+	    (progn 
+	      ,@body)
+	  (error "Heading with ID %s not found." id))))))
 
 (defun reorg--modification-hook-func (overlay postp beg end &optional length)
   "overlay post change hook."
@@ -91,7 +88,8 @@ invoked.")
 
 (defvar reorg-edits--current-field-overlay
   (let ((overlay (make-overlay 1 2)))
-    (overlay-put overlay 'face '(:box (:line-width -1)))
+    (overlay-put overlay 'face '( :box (:line-width -1)
+				  :foreground "cornsilk"))    
     (overlay-put overlay 'priority 1000)
     overlay)
   "Overlay for field at point.")
@@ -114,7 +112,11 @@ invoked.")
 		      (point-at-eol)
 		    (cdr (reorg-edits--get-field-bounds))))
     (message "You are on the field for the heading's %s"
-	     (get-text-property (point) reorg--field-property-name))))
+	     (reorg-edits--get-field-type))))
+
+(defun reorg-edits--get-field-type ()
+  "Get the field type at point, if any."
+  (get-text-property (point) reorg--field-property-name))
 
 (defun reorg-edits-move-to-next-field (&optional previous)
   "Move to the next field at the current heading."
@@ -219,6 +221,20 @@ returns the correct positions."
 	      (not (get-text-property (1+ (point)) reorg--field-property-name)))
 	 (forward-char -1))))
 
+(defun reorg-edit-heading (id prop val)
+  "Update the hashtable at ID by setting PROP to VAL.
+Update the applicable heading in the orgmode document. 
+Update the headings in the view buffer."
+  (plist-put (gethash id reorg-hash-table) prop
+	     (reorg--with-point-at-orig-entry id
+	       (plist-get (gethash id reorg-hash-table) :buffer)
+	       (reorg-get-set-props prop :val val)
+	       (reorg-parser--headline-parser)))
+  (reorg--select-tree-window)
+  (reorg--map-id id
+		 (reorg-views--replace-heading
+		  (gethash id reorg-hash-table))))
+
 (defun reorg-edits--get-field-at-point (&optional point)
   "Get the `reorg--field-property-name' at point."
   (get-text-property (or point (point)) reorg--field-property-name))
@@ -278,7 +294,7 @@ returns the correct positions."
     (if reorg-edits-mode
 	(progn		
 	  (add-hook 'post-command-hook #'reorg-edits--keep-point-in-range nil t)
-	  (reorg--lock-buffer)
+	  ;;(reorg--lock-buffer)
 	  (setq cursor-type 'bar
 		reorg-edits--previous-header-line header-line-format
 		header-line-format reorg-edits--header-line
@@ -287,7 +303,7 @@ returns the correct positions."
 		reorg-edit-field--end-marker (set-marker (make-marker) end)
 		overriding-local-map reorg-edits-field-mode-map))
       ;; off
-      (reorg--unlock-buffer)
+      ;;(reorg--unlock-buffer)
       (remove-hook 'post-command-hook #'reorg-edits--keep-point-in-range t)
       (delete-overlay reorg-edits--current-field-overlay)
       (setq header-line-format reorg-edits--previous-header-line

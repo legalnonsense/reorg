@@ -134,8 +134,7 @@ the point and return nil."
   (reorg-edits--post-field-navigation-hook)
   (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
-  (reorg--select-tree-window)
-  )
+  (reorg--select-tree-window))
 
 (defun reorg--move-to-previous-entry-no-follow ()
   (interactive)
@@ -163,6 +162,8 @@ the point and return nil."
   (reorg-view--update-highlight-overlay)
   (reorg-edits--post-field-navigation-hook))
 
+;;; updating the tree
+
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches
 ID."
@@ -174,6 +175,43 @@ ID."
 	     nil)
        ,@body)))
 
+(cl-defun reorg--update-hash (id prop val &rest keys)
+  "Set PROP and VAL of entry ID, and then replace the 
+current view entry."
+  (let (new)
+    (reorg--with-point-at-orig-entry id
+      (apply reorg-get-set-props prop :val val keys)
+      (setq new (reorg-parser--headline-parser)))
+    (puthash id new reorg-hash-table)
+    (reorg--create-headline-string
+     new
+     reorg-headline-format
+     (reorg-outline-level))))
+
+(defun reorg--shift-up (arg)
+  "Shift priority or timestamp."
+  (interactive "P")
+  (pcase (reorg-edits--get-field-type)
+    ((or 'deadline
+	 'scheduled
+	 'timestamp
+	 'timestamp-ia)
+     (org-timestamp-up arg))
+    (`priority
+     (org-priority-up))))
+
+(defun reorg--shift-down (arg)
+  "Shift priority or timestamp."
+  (interactive "P")
+  (pcase (reorg-edits--get-field-type)
+    ((or 'deadline
+	 'scheduled
+	 'timestamp
+	 'timestamp-ia)
+     (org-timestamp-down arg))
+    (`priority
+     (org-priority-down))))
+
 ;;;;; Major mode
 
 (defvar reorg-view-mode-map 
@@ -182,6 +220,8 @@ ID."
     (define-key map (kbd "e") #'reorg-edits--start-edit)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "f") #'reorg-edits-move-to-next-field)
+    (define-key map (kbd "S-<up>") #'reorg--shift-up)
+    (define-key map (kbd "S-<down>") #'reorg--shift-down)
     (define-key map (kbd "b") #'reorg-edits-move-to-previous-field)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
     (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
@@ -199,7 +239,24 @@ ID."
   (org-visual-indent-mode)
   (use-local-map reorg-view-mode-map))
 
+(defmacro reorg-view--make-change-in-org-buffer-and-sync-clones (&rest body)
+  "asdf"
+  `(let (data)
+     (reorg--with-point-at-orig-entry nil
+       ,@body
+       (setq data (reorg-parser--headline-parser)))
+     (reorg--map-id (plist-get data :id)
+		    (reorg-views--replace-heading data))))
 
-
+(defun reorg-views--replace-heading (data)
+  "Replace the heading at point with NEW."
+  (let ((level (reorg-outline-level)))
+    (outline-back-to-heading)
+    (delete-region (point)
+		   (save-excursion (outline-next-heading) (point)))
+    (insert (reorg--create-headline-string data
+					   reorg-headline-format
+					   level))))
 
 (provide 'reorg-views)
+

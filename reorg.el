@@ -2,6 +2,7 @@
 
 (require 'reorg-views)
 (require 'reorg-edits)
+(require 'reorg-dynamic-bullets)
 
 (defcustom reorg-parser-use-id-p t "use id or markers?")
 (defcustom reorg-buffer-name "*REORG*"
@@ -16,9 +17,28 @@
 
 (defvar reorg-headline-format '(:stars :headline)
   "Headline format.")
-
+(defvar reorg-hash-table (make-hash-table
+			  :weakness nil
+			  :test #'equal
+			  :size 65
+			  :rehash-size 5)
+  "Hash table of org entries.")
 
 ;;; Utilities
+
+(defun reorg--reset-hash-table ()
+  "Reset the hash table."
+  (setq reorg-hash-table (make-hash-table
+			  :weakness nil
+			  :test #'equal
+			  :size 65
+			  :rehash-size 5)))
+
+(defun reorg-outline-level ()
+  "Get the outline level of the heading at point."
+  (outline-back-to-heading)
+  (re-search-forward "^*+ " (point-at-eol))
+  (1- (length (match-string 0))))
 
 (defun reorg--plist-p (data)
   "Is DATA a plist based on:
@@ -100,19 +120,14 @@ then return PROP with no colon prefix."
   "alist where keyword will be stored as the value
 of the data and value is a function to call at point." )
 
-;; (defun reorg-parser--run-org-ql (&optional buffer name query)
-;;   "run org-ql"
-;;   (setq org-ql-cache (make-hash-table :weakness 'key))
-;;   (org-ql-select buffer query
-;;     :action #'reorg-parser--headline-parser))
-
 (defun reorg-parser--map-entries (&optional match scope &rest skip)
-  "Run the parser at each heading in the current buffer."
+  "Run the parser at each heading in the current buffer.
+See `org-map-entries' for explanation of the parameters."
+  (reorg--reset-hash-table)
   (unless scope
     (org-with-wide-buffer 
      (org-map-entries
       #'reorg-parser--headline-parser match scope skip))))
-     
 
 (defun reorg-parser--org-entry-properties ()
   "Convert keys from strings to symbols."
@@ -179,6 +194,7 @@ RANGE is non-nil, only look for timestamp ranges."
 			   (intern (downcase (string-replace "_" "-" key))))
 			  value))))
 
+
 (defun reorg-parser--headline-parser ()
   "Runs at each org heading and returns a plist of 
 relevant properties to be inserted into the calendar buffer."
@@ -192,8 +208,11 @@ relevant properties to be inserted into the calendar buffer."
 				 (tag-string . ,(propertize (org-get-tags-string) reorg-face-text-prop 'org-tag))
 				 (tag-inherit . ,(reorg-parser--get-tags 'inherited))				 
 				 (headline . ,(org-get-heading))
+				 (scheduled . ,(reorg-get-set-props 'scheduled))
 				 (deadline . ,(reorg-get-set-props 'deadline))
 				 (headline-only . ,(org-no-properties (org-get-heading t t t t)))
+				 (priority . ,(propertize (concat "[#" (reorg-get-set-props 'priority) "]")
+							  reorg-face-text-prop 'org-priority))
 				 (level . ,(org-current-level))
 				 (todo . ,(reorg-get-set-props 'todo))
 				 (tags-all . ,(reorg-parser--get-tags 'all))				 
@@ -223,7 +242,11 @@ relevant properties to be inserted into the calendar buffer."
 				 (buffer-name . ,(buffer-name))
 				 (buffer . ,(current-buffer)))
 	   do (plist-put data (reorg-parser--add-remove-prop-colon prop) (reorg-parser--to-string val))
-	   finally return data))
+	   finally return (progn
+			    (puthash (plist-get data :id)
+				     data
+				     reorg-hash-table)
+			    data)))
 
 (cl-defun reorg-get-set-props (prop &key
 				    (val nil valp)
@@ -261,30 +284,29 @@ and new value as the `cdr'."
 				   ,set
 				   (cons old-val ,get))))))
     (pcase prop
-      ;;(org-insert-time-stamp (org-read-date t t "2021-01-01"))
-      ((or `deadline
-	   `scheduled)
-       (get-or-set :get (when-let ((date (org-entry-get (point) (if (eq prop 'deadline)
-								    "DEADLINE" "SCHEDULED")
-							inherit literal-nil)))
+      ((or :deadline
+	   :scheduled)
+       (get-or-set :get (when-let* ((type (if (eq prop :deadline)
+					      "DEADLINE" "SCHEDULED"))
+				    (date (org-entry-get (point) type
+							 inherit literal-nil)))
 			  (concat
 			   (when include-date-prefix
 			     (propertize 
-			      (if (eq prop 'deadline) "DEADLINE: " "SCHEDULED: ")
+			      (concat type ": ")
 			      reorg-face-text-prop 'org-special-keyword))
 			   (propertize date reorg-face-text-prop 'org-date)))
-		   :set (let ((func (if (eq prop 'deadline)
-					#'org-deadline #'org-scheduled)))
+		   :set (let ((func (if (eq prop :deadline)
+					#'org-deadline #'org-schedule)))
 			  (if (null val)
 			      (funcall func '(4))
 			    (funcall func nil val)))))
-
-      (`comment
+      (:comment
        (get-or-set :get (org-in-commented-heading-p)
 		   :set (when (not (xor (not val)
 					(org-in-commented-heading-p)))
 			  (org-toggle-comment))))
-      (`tags
+      (:tags
        (get-or-set :get (org-get-tags (point) (not inherit))
 		   :set (if keep
 			    (org-set-tags (if no-duplicates
@@ -293,24 +315,23 @@ and new value as the `cdr'."
 								 :test #'string=)
 					    (append old-val (-list val))))
 			  (org-set-tags val))))
-      (`headline
+      (:headline
        (get-or-set :get (org-entry-get (point) "ITEM")
-		   ;; keep the comment if it is there
 		   :set (let ((commentedp (org-in-commented-heading-p)))
 			  (org-edit-headline val)
 			  (when commentedp
-			    (reorg-get-set-props 'comment :val t)))))
-      (`todo
+			    (reorg-get-set-props :comment :val t)))))
+      (:todo
        (get-or-set :get (when-let ((todo (org-entry-get (point) "TODO")))
 			  (propertize
 			   todo
 			   reorg-face-text-prop
 			   (org-get-todo-face todo)))
 		   :set (org-todo val)))
-      ((or `timestamp
-	   `timestamp-ia)
+      ((or :timestamp
+	   :timestamp-ia)
        (get-or-set :get (when-let ((timestamp (org-entry-get (point)
-							     (if (eq 'timestamp prop)
+							     (if (eq :timestamp prop)
 								 "TIMESTAMP"
 							       "TIMESTAMP_IA"))))
 			  (propertize timestamp reorg-face-text-prop 'org-date))
@@ -322,7 +343,7 @@ and new value as the `cdr'."
 			  (delete-blank-lines)
 			  (when val 
 			    (insert (concat val "\n"))))))
-      (`body
+      (:body
        (get-or-set :get (reorg-edits--get-body-string no-text-properties)
 		   :set (error "You can't set body text (yet).")))
       ((or (pred stringp)
@@ -340,19 +361,6 @@ and new value as the `cdr'."
 					  (delete-duplicates (append old-val (-list val)) :test #'string=)
 					(append old-val (-list val)))))
 			      (t (org-entry-put (point) prop val))))))))
-
-(cl-defun reorg--update-hash (id prop val &rest keys)
-  "Set PROP and VAL of entry ID, and then replace the 
-current view entry."
-  (let (new)
-    (reorg--with-point-at-orig-entry id
-      (apply reorg-get-set-props prop :val val keys)
-      (setq new (reorg-parser--headline-parser)))
-    (puthash id new reorg-hash-table)
-    (reorg--create-headline-string
-     new
-     reorg-headline-format
-     (outline-level))))
 
 ;;; Sorting and grouping
 
@@ -421,7 +429,9 @@ CELL is destructively modified."
 								  (not (null x))))
 						 it)
 				     (if sorter
-					 (seq-sort-by (or sort-getter #'car) sorter it)
+					 (progn 
+					   (setq xxx it)
+					   (seq-sort-by (or sort-getter #'car) sorter it))
 				       it)
 				     (if post-filter
 					 (cl-loop for each in it
@@ -453,13 +463,6 @@ CELL is destructively modified."
     (cadr copy)))
 
 ;;; Convert grouped list to org headings
-
-(defun reorg--create-headline-stars (num &optional data)
-  "Create heading stars. NUM can be an integer or a function
-that is called with DATA as an argument."
-  (concat 
-
-   " "))
 
 (defun reorg--process-results (data &optional format-string)
   "Process the results of `org-group' and turn them into orgmode headings."
@@ -496,7 +499,6 @@ that is called with DATA as an argument."
 					    (funcall num data)
 					  num)
 					?*)))
-
     (if (stringp data)
 	(concat 
 	 (propertize 
@@ -509,15 +511,15 @@ that is called with DATA as an argument."
 				 (make-field-string (create-stars num data) field)
 			       (when-let ((field-val (reorg-parser--to-string (plist-get data field))))
 				 (make-field-string field-val field))))
-			    ((stringp field) field))
-	       ;; ((listp field)
-	       ;;  (concat
-	       ;;   (when-let ((field-val (reorg-parser--to-string (plist-get data (car field)))))
-	       ;; 	(make-field-string  (car field)
-	       ;; 			    (get-field-name (car field))))
-	       ;;   (propertize " "
-	       ;; 		  'display
-	       ;; 		  `(space . (:align-to ,(cadr field)))))))
+			    ((stringp field) field)
+			    ((listp field)
+			     (concat
+			      (when-let ((field-val (reorg-parser--to-string (plist-get data (car field)))))
+				(make-field-string  (car field)
+						    (get-field-name (car field))))
+			      (propertize " "
+					  'display
+					  `(space . (:align-to ,(cadr field)))))))
 	       into results
 	       finally return
 	       (propertize
@@ -554,7 +556,6 @@ switch to that buffer in the window."
    (car 
     (window-at-side-list nil reorg-buffer-side))))
 
-
 ;;; Tree buffer 
 
 (defun reorg--get-view-prop (&optional property)
@@ -565,7 +566,6 @@ switch to that buffer in the window."
       (if property 
 	  (plist-get props property)
 	props))))
-
 
 ;;; Main
 
@@ -588,10 +588,12 @@ switch to that buffer in the window."
 
 (provide 'reorg)
 
-(cl-flet (
-	  (create-stars (num &optional data)
-			(make-string (if (functionp num)
-					 (funcall num data)
-				       num)
-				     ?*)))
-  (create-stars 5 nil))
+
+
+
+
+
+
+
+
+
