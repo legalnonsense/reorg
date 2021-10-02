@@ -1,44 +1,74 @@
 ;;; -*- lexical-binding: t; -*-
 
-(require 'reorg-views)
-(require 'reorg-edits)
-(require 'reorg-dynamic-bullets)
+;;; constants
 
-(defcustom reorg-parser-use-id-p t "use id or markers?")
+(defconst reorg--data-property-name 'reorg-data)
+(defconst reorg--id-property-name 'reorg-id)
+(defconst reorg--field-property-name 'reorg-field-type)
+
+;;; customs
+
+(defcustom reorg-parser-use-id-p t
+  "use id or markers?")
 (defcustom reorg-buffer-name "*REORG*"
   "Default buffer name for tree view window.")
 (defcustom reorg-buffer-side 'left
   "Which side for the tree buffer?")
 (defcustom reorg-face-text-prop 'font-lock-face
   "When setting a face, use this text property.")
-(defconst reorg--data-property-name 'reorg-data)
-(defconst reorg--field-property-name 'reorg-field-type)
-(defconst reorg--id-property-name 'reorg-id)
-
-(defvar reorg-headline-format '(:stars :headline)
+(defcustom reorg-headline-format '(:stars :headline)
   "Headline format.")
-(defvar reorg-hash-table (make-hash-table
-			  :weakness nil
-			  :test #'equal
-			  :size 65
-			  :rehash-size 5)
-  "Hash table of org entries.")
 
-;;; Utilities
+;;; variables 
 
-(defun reorg--reset-hash-table ()
-  "Reset the hash table."
-  (setq reorg-hash-table (make-hash-table
-			  :weakness nil
-			  :test #'equal
-			  :size 65
-			  :rehash-size 5)))
+(defvar reorg-parser-list nil)
+(defvar reorg-words nil
+  "A list of `reorg-words'.")
+(defvar reorg--cache nil
+  "The results of the parsed buffer.
+For now, only for debugging purposes.")
+(defvar reorg--grouped-results nil
+  "The results of applying reorg--group-and-sort
+to parsed data.  For now, only for debugging.")
 
-(defun reorg-outline-level ()
-  "Get the outline level of the heading at point."
-  (outline-back-to-heading)
-  (re-search-forward "^*+ " (point-at-eol))
-  (1- (length (match-string 0))))
+;;; macros
+
+(defmacro reorg-set-when (var &rest body)
+  "Example:
+   (let ((x 5))
+     (reorg-set-when x
+   		     ((< x 10) (+ 10 x))
+		     ((> x 20) 'a)
+		     ((< x 100) 'b)
+		     ((eq 'b x) \"fuck you\"))
+  x)
+;; => \"fuck you\"
+"
+  `(progn
+     ,@(cl-loop for each in body
+		collect `(if ,(car each)
+			     (setf ,var ,@(cdr each))
+			   ,var))))
+
+;;; utilites
+
+(defun reorg--add-remove-colon (prop &optional remove)
+  "PROP is a symbol with or without a colon prefix.
+Returns PROP with a colon prefix. If REMOVE is t,
+then return PROP with no colon prefix."
+  (pcase `(,remove ,(keywordp prop))
+    (`(t t) (intern (substring (symbol-name prop) 1)))
+    (`(nil nil) (intern (concat ":" (symbol-name prop))))
+    (_ prop)))
+
+(defun reorg--to-string (arg)
+  "Convert ARG to a string."
+  (pcase arg
+    ((pred null) nil)
+    ((pred numberp) (number-to-string arg))
+    ((pred stringp) arg)
+    ((pred symbolp) (symbol-name arg))
+    (_ arg)))
 
 (defun reorg--plist-p (data)
   "Is DATA a plist based on:
@@ -48,6 +78,14 @@
   (and (listp data)
        (keywordp (car data))
        (evenp (length data))))
+
+(defun reorg--id-p (data)
+  "Is DATA an org-id?"
+  (and (stringp data)
+       (string-match "[[:alnum:]]+-[[:alnum:]]+-[[:alnum:]]+-[[:alnum:]]+-[[:alnum:]]+" data)))
+
+;;; parsing functions
+;;;; headlines
 
 (defun reorg--goto-headline-start ()
   (save-match-data 
@@ -59,51 +97,70 @@
 (defun reorg--get-headline-start ()
   (save-excursion (reorg--goto-headline-start)))
 
-(defun reorg--goto-headline-start ()
-  (save-match-data 
-    (goto-char (org-entry-beginning-position))
-    (re-search-forward "^\\*+[[:space:]]" nil t)
-    (backward-char 1)
-    (point)))
+;;;; body 
 
-;;; Parsing org files
 
-(defun reorg-parser--get-body-elements ()
-  "Use org-element to get all elements after the property drawers."
-  (org-element--parse-elements (save-excursion (org-back-to-heading)
-					       (org-end-of-meta-data t)
-					       (point))
-			       (or (save-excursion (outline-next-heading))
-				   (point-max))
-			       'first-section nil nil nil nil))
-
-(defun reorg-parser--get-body-string (&optional no-props)
+(defun reorg-parser--get-body-string ()
   "Parse all elements from the start of the body to the next node.
 and return the tree beginning with the section element.
 If NO-PROPS is non-nil, remove text properties."
-  (--> (reorg-parser--get-body-elements)
-       (org-element-interpret-data it)
-       (if no-props
-	   (org-no-properties it)
-	 it)))
+  (org-no-properties 
+   (org-element-interpret-data
+    (org-element--parse-elements (save-excursion (org-back-to-heading)
+						 (org-end-of-meta-data t)
+						 (point))
+				 (or (save-excursion (outline-next-heading))
+				     (point-max))
+				 'section nil nil nil nil))))
 
-(defun reorg-parser--add-remove-prop-colon (prop &optional remove)
-  "PROP is a symbol with or without a colon prefix.
-Returns PROP with a colon prefix. If REMOVE is t,
-then return PROP with no colon prefix."
-  (pcase `(,remove ,(keywordp prop))
-    (`(t t) (intern (substring (symbol-name prop) 1)))
-    (`(nil nil) (intern (concat ":" (symbol-name prop))))
-    (_ prop)))
+(defun reorg-parser--set-body-string (string)
+  "Parse all elements from the start of the body to the next node.
+and return the tree beginning with the section element.
+If NO-PROPS is non-nil, remove text properties."
+  (save-excursion 
+    (if-let* ((props (cadar 
+		      (org-element--parse-elements (save-excursion (org-back-to-heading)
+								   (org-end-of-meta-data t)
+								   (point))
+						   (or (save-excursion (outline-next-heading))
+						       (point-max))
+						   'section nil nil nil nil)))
+	      (begin (plist-get props :begin))
+	      (end (plist-get props :end)))
+	(progn 
+	  (delete-region begin end)
+	  (goto-char begin)
+	  (insert string))
+      (org-end-of-meta-data)
+      (insert string))
+    (unless (string= "\n" (substring string (1- (length string))))
+      (insert "\n"))
+    (delete-blank-lines)))
 
-(defun reorg-parser--to-string (arg)
-  "Convert ARG to a string."
-  (pcase arg
-    ((pred null) nil)
-    ((pred numberp) (number-to-string arg))
-    ((pred stringp) arg)
-    ((pred symbolp) (symbol-name arg))
-    (_ arg)))
+;;;; timestamps
+
+(defun reorg--timestamp-parser (&optional inactive range)
+  "Get the first timestamp at the current heading.  If INACTIVE
+is non-nil, get the first inactive timestamp.  If RANGE is non-nil,
+get the first active/inactive (depending on the value of INACTIVE) 
+timestamp range.  Do not include scheduled or deadline timestamps. "
+  (org-element-map
+      (org-element--parse-elements
+       (point)
+       (org-entry-end-position)
+       'section nil nil nil nil)
+      'timestamp
+    (lambda (timestamp)
+      (when (eq (plist-get (cadr timestamp) :type)
+		(pcase `(,inactive ,range)
+		  (`(t t) 'inactive-range)
+		  (`(t nil) 'inactive)
+		  (`(nil t) 'active-range)
+		  (`(nil nil) 'active)))
+	(plist-get (cadr timestamp) :raw-value)))
+    nil t))
+
+;;;; relations
 
 (defun reorg-parser--get-children-ids ()
   "Get the list of IDs of all children."
@@ -115,485 +172,1173 @@ then return PROP with no colon prefix."
 	 (push (org-id-get (point) t) ids)))
      ids)))
 
-(defcustom reorg-parser--additional-parsers
-  '((location . #'reorg-parser--location-parser))
-  "alist where keyword will be stored as the value
-of the data and value is a function to call at point." )
+;;;; tags
 
-(defun reorg-parser--map-entries (&optional match scope &rest skip)
-  "Run the parser at each heading in the current buffer.
+(defun reorg-parser--get-tags (local-all-inherited-string)
+  "Get tags for heading at point.  LOCAL-ALL-INHERITED can be:
+'local      only get local tags
+'all        get both local and inherited tags
+'inherited  get only inherited tags.
+'string     get the tag string for the heading"
+  (pcase local-all-inherited-string
+    (`string (org-get-tags-string))
+    (`local (mapcar #'org-no-properties (org-get-local-tags)))
+    (`all (mapcar #'org-no-properties (org-get-tags (point))))
+    (`inherited
+     (seq-difference
+      (mapcar #'org-no-properties (org-get-tags (point)))
+      (mapcar #'org-no-properties (org-get-local-tags))))))
+
+;;;; properties
+
+(defun reorg-parser--get-properties ()
+  "adsf"
+  (org-element-map
+      (org-element--parse-elements
+       (point)
+       (org-entry-end-position)
+       'node-property nil nil nil nil)
+      'node-property
+    (lambda (prop)
+      (list 
+       (plist-get (cadr prop) :key)
+       (plist-get (cadr prop) :value))))
+
+
+;;; data macro
+
+  (defun reorg--refresh-advice (old-fun &rest args)
+    (reorg--with-point-at-orig-entry
+     (apply old-fun args)  
+     t))
+
+  (defun reorg--modification-hook ()
+    (pcase-let* ((`(,start . ,end) (reorg--get-field-bounds))
+		 (new-val (buffer-substring-no-properties start end))
+		 (field (reorg--get-field-at-point)))
+      (delete-region start end)
+      (goto-char start)
+      (insert (reorg-action field 'display new-val))))
+
+  (defun reorg-action (type action &rest args)
+    "Call the ACTION associated with TYPE.  ACTION
+can be get, set, display, or validate.  TYPE is any
+data type defined by the `reorg-create-data-type' macro.
+ARGS are supplied to the function defined by ACTION in each 
+`reorg-create-data-type' declaration."
+    (apply
+     (plist-get 
+      (alist-get type reorg-parser-list)
+      (reorg--add-remove-colon action))
+     args))
+
+  (cl-defmacro reorg-create-data-type (&optional &key
+						 name
+						 get
+						 set
+						 parse
+						 validate
+						 get-view
+						 disabled
+						 face
+						 display
+						 keymap )
+    `(progn
+       (let ((data (list 
+		    :parse (lambda () ,parse)
+		    :get (lambda (id &rest args)			 
+			   (reorg--with-point-at-orig-entry id buffer
+							    ,get))
+		    :set  (lambda (id val &rest args)
+			    (reorg--with-point-at-orig-entry id buffer
+							     ,set))
+		    :get-view (lambda ()
+				(pcase-let ((`(,start . ,end)
+					     (reorg--get-field-bounds)))
+				  (buffer-substring start end)))
+		    :validate (lambda (val &rest args)
+				,validate)
+		    :display (lambda (val)
+			       (when ',validate
+				 (setq val (lambda (val) ,validate)))
+			       (when ',keymap 
+				 (setq val (propertize
+					    val
+					    'keymap
+					    (let ((map (make-sparse-keymap)))
+					      ,@(cl-loop
+						 for key in keymap
+						 collect `(define-key map
+							    (kbd ,(car key))
+							    ',(cdr key)))
+					      map))))
+			       (when ',face (setq val (propertize
+						       val
+						       'font-lock-face
+						       (if (functionp ',face)
+							   (funcall ',face val)
+							 ',face))))
+			       (setq val (propertize val 'reorg-field-type ',name))
+			       (when ',display
+				 (setq val ((lambda (val) ,display) val)))
+			       val))))
+	 (if ',disabled
+	     (progn 
+	       (cl-loop for (key . func) in ',keymap
+			do (advice-remove func #'reorg--refresh-advice))
+	       (setq reorg-parser-list (remq ',name reorg-parser-list)))
+	   
+	   (cl-loop for (key . func) in ',keymap
+		    do (advice-add func :around #'reorg--refresh-advice))
+	   (if (alist-get ',name reorg-parser-list)
+	       (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
+	     (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
+
+;;; data macro application 
+
+  (reorg-create-data-type :name deadline
+			  :parse (org-entry-get (point) "DEADLINE")
+			  :get (org-entry-get (point) "DEADLINE")
+			  :set (if val (org-deadline nil val)
+				 (org-deadline '(4)))
+			  :display (concat (apply #'propertize "DEADLINE: "
+						  '(font-lock-face org-special-keyword))
+					   val)
+			  :face org-date
+			  :keymap (("S-<up>" . org-timestamp-up)
+				   ("S-<down>" . org-timestamp-down))
+			  :validate (with-temp-buffer
+				      (insert val)
+				      (beginning-of-buffer)
+				      (org-timestamp-change 0 'day)
+				      (buffer-string)))
+
+  (reorg-create-data-type :name tags
+			  :parse (org-get-tags-string)
+			  :get (org-get-tags-string)
+			  :set (org-set-tags val)
+			  :face org-tag-group
+			  :display nil
+			  :keymap (("C-c C-c" . org-set-tags-command))
+			  :validate nil)
+
+
+  (reorg-create-data-type :name todo
+			  :parse (org-entry-get (point) "TODO")
+			  :get (org-entry-get (point) "TODO")
+			  :set (org-todo)
+			  :face org-get-todo-face
+			  :display nil
+			  :keymap (("C-c C-t" . org-todo)
+				   ("S-<right>" . org-shiftright)
+				   ("S-<left>" . org-shiftleft)))
+
+  (reorg-create-data-type :name scheduled
+			  :parse (org-entry-get (point) "SCHEDULED")
+			  :get (org-entry-get (point) "SCHEDULED")
+			  :set (if val (org-deadline nil val)
+				 (org-deadline '(4)))
+			  :display (concat (apply #'propertize "SCHEDULED: "
+						  '(font-lock-face org-special-keyword))
+					   val)
+			  :face org-date
+			  :keymap (("S-<up>" . org-timestamp-up)
+				   ("S-<down>" . org-timestamp-down))
+			  :validate (with-temp-buffer
+				      (insert val)
+				      (beginning-of-buffer)
+				      (org-timestamp-change 0 'day)
+				      (buffer-string)))
+
+  (reorg-create-data-type :name timestamp
+			  :parse (when (reorg--timestamp-parser)
+				   (org-no-properties (reorg--timestamp-parser)))
+			  :get (reorg--timestamp-parser)
+			  :set (if-let* ((old-val (reorg--timestamp-parser)))
+				   (when (search-forward old-val (org-entry-end-position) t)
+				     (replace-match (concat val)))
+				 (when val
+				   (org-end-of-meta-data t)
+				   (insert (concat val "\n"))
+				   (delete-blank-lines)))
+			  :face org-date
+			  :keymap (("S-<up>" . org-timestamp-up)
+				   ("S-<down>" . org-timestamp-down))
+			  :validate (with-temp-buffer
+				      (insert val)
+				      (beginning-of-buffer)
+				      (org-timestamp-change 0 'day)
+				      (buffer-string)))
+
+  (reorg-create-data-type :name timestamp-ia
+			  :parse (when (reorg--timestamp-parser t)
+				   (org-no-properties (reorg--timestamp-parser t)))
+			  :get (reorg--timestamp-parser t)
+			  :set (if-let* ((old-val (reorg--timestamp-parser t)))
+				   (when (search-forward old-val (org-entry-end-position) t)
+				     (replace-match (concat val)))
+				 (when val
+				   (org-end-of-meta-data t)
+				   (insert (concat val "\n"))
+				   (delete-blank-lines)))
+			  :face org-date
+			  :keymap (("S-<up>" . org-timestamp-up)
+				   ("S-<down>" . org-timestamp-down))
+			  :validate (with-temp-buffer
+				      (insert val)
+				      (beginning-of-buffer)
+				      (org-timestamp-change 0 'day)
+				      (buffer-string)))
+
+  (reorg-create-data-type :name timestamp-ia-range
+			  :parse (when (reorg--timestamp-parser t t)
+				   (org-no-properties (reorg--timestamp-parser t t)))
+			  :get (reorg--timestamp-parser t)
+			  :set (if-let* ((old-val (reorg--timestamp-parser t)))
+				   (when (search-forward old-val (org-entry-end-position) t)
+				     (replace-match (concat val)))
+				 (when val
+				   (org-end-of-meta-data t)
+				   (insert (concat val "\n"))
+				   (delete-blank-lines)))
+			  :face org-date
+			  :keymap (("S-<up>" . org-timestamp-up)
+				   ("S-<down>" . org-timestamp-down))
+			  :validate (with-temp-buffer
+				      (insert val)
+				      (beginning-of-buffer)
+				      (org-timestamp-change 0 'day)
+				      (buffer-string)))
+
+  (reorg-create-data-type :name timestamp-range
+			  :parse (when (reorg--timestamp-parser nil t)
+				   (org-no-properties (reorg--timestamp-parser nil t)))
+			  :get (reorg--timestamp-parser t)
+			  :set (if-let* ((old-val (reorg--timestamp-parser t)))
+				   (when (search-forward old-val (org-entry-end-position) t)
+				     (replace-match (concat val)))
+				 (when val
+				   (org-end-of-meta-data t)
+				   (insert (concat val "\n"))
+				   (delete-blank-lines)))
+			  :face org-date
+			  :keymap (("S-<up>" . org-timestamp-up)
+				   ("S-<down>" . org-timestamp-down))
+			  :validate (with-temp-buffer
+				      (insert val)
+				      (beginning-of-buffer)
+				      (org-timestamp-change 0 'day)
+				      (buffer-string)))
+
+
+;;; parsing org file
+
+  (defun reorg--parser ()
+    "Create a plist using `reorg-parser-list' for each org heading."
+    (cl-loop with result = nil
+	     for (name . func) in reorg-parser-list
+	     append (list (reorg--add-remove-colon name) (funcall func)) into result
+	     finally return result)) 
+
+  (defun reorg--map-entries (&optional match scope &rest skip)
+    "Run the parser at each heading in the current buffer.
 See `org-map-entries' for explanation of the parameters."
-  (reorg--reset-hash-table)
-  (unless scope
     (org-with-wide-buffer 
      (org-map-entries
-      #'reorg-parser--headline-parser match scope skip))))
+      #'reorg-parser match scope skip)))
 
-(defun reorg-parser--org-entry-properties ()
-  "Convert keys from strings to symbols."
-  (let ((exclusions '(alltags tags)))
-    (cl-loop for (key . value) in (org-entry-properties)
-	     unless (memq (intern (downcase key)) exclusions)
-	     append (list (reorg-parser--add-remove-prop-colon (intern (downcase key)))
-			  value))))
+;;; grouping and sorting parsed results
 
-(defun reorg-parser--get-tags (inherited)
-  "Get tags for heading at point.  INHERITED can be:
-local: only get local tags
-all: get both local and inherited tags
-inherited: get only inherited tags."
-  (let* ((all-tags (mapcar #'org-no-properties (org-get-tags (point))))
-	 (local-tags (mapcar #'org-no-properties (org-get-local-tags)))
-	 (inherited-tags (-difference all-tags local-tags)))
-    (pcase inherited
-      (`local local-tags)
-      (`all all-tags)
-      (`inherited inherited-tags))))
-
-(defun reorg-parser--get-children-ids ()
-  "Get the list of IDs of all children."
-  (org-with-wide-buffer
-   (let (ids)
-     (when (org-goto-first-child)
-       (push (org-id-get (point) t) ids)
-       (while (outline-get-next-sibling)
-	 (push (org-id-get (point) t) ids)))
-     ids)))
-
-(defun reorg-parser--timestamp-parser (&optional inactive range)
-  "Find the fist timestamp in the current heading and return it. 
-if INACTIVE is non-nil, get the first inactive timestamp.  If 
-RANGE is non-nil, only look for timestamp ranges."
-  (save-excursion
-    (when (re-search-forward
-	   (pcase `(,inactive ,range)
-	     (`(nil t)
-	      org-tr-regexp)
-	     (`(nil nil)
-	      org-ts-regexp)
-	     (`(t nil)
-	      org-ts-regexp-inactive)
-	     (`(t t)
-	      (concat 
-	       org-ts-regexp-inactive
-	       "--?-?"
-	       org-ts-regexp-inactive)))
-	   (org-entry-end-position)
-	   t)
-      (propertize 
-       (match-string 0)
-       reorg-face-text-prop
-       'org-date))))
-
-(defun reorg-parser--org-entry-properties ()
-  "Convert keys from strings to symbols."
-  (let ((exclusions '(alltags tags timestamp timestamp-ia)))
-    (cl-loop for (key . value) in (org-entry-properties)
-	     unless (memq (intern (downcase key)) exclusions)
-	     append (list (reorg-parser--add-remove-prop-colon
-			   (intern (downcase (string-replace "_" "-" key))))
-			  value))))
-
-
-(defun reorg-parser--headline-parser ()
-  "Runs at each org heading and returns a plist of 
-relevant properties to be inserted into the calendar buffer."
-  (cl-loop with data = (reorg-parser--org-entry-properties)
-	   for (prop . val) in `((id . ,(if reorg-parser-use-id-p
-					    (org-id-get-create)
-					  "nil"))
-				 (category . ,(reorg-get-set-props "CATEGORY"))
-				 (category-inherit . ,(reorg-get-set-props "CATEGORY" :inherit t))				 
-				 (tag-local . ,(reorg-parser--get-tags 'local))
-				 (tag-string . ,(propertize (org-get-tags-string) reorg-face-text-prop 'org-tag))
-				 (tag-inherit . ,(reorg-parser--get-tags 'inherited))				 
-				 (headline . ,(org-get-heading))
-				 (scheduled . ,(reorg-get-set-props 'scheduled))
-				 (deadline . ,(reorg-get-set-props 'deadline))
-				 (headline-only . ,(org-no-properties (org-get-heading t t t t)))
-				 (priority . ,(propertize (concat "[#" (reorg-get-set-props 'priority) "]")
-							  reorg-face-text-prop 'org-priority))
-				 (level . ,(org-current-level))
-				 (todo . ,(reorg-get-set-props 'todo))
-				 (tags-all . ,(reorg-parser--get-tags 'all))				 
-				 (marker . ,(point-marker))
-				 (timestamp . ,(reorg-parser--timestamp-parser))
-				 (timestamp-ia . ,(reorg-parser--timestamp-parser t))
-				 (timestamp-range . ,(reorg-parser--timestamp-parser nil t))
-				 (timestamp-ia-range . ,(reorg-parser--timestamp-parser t t))
-				 (body . ,(reorg-parser--get-body-string t))
-				 (children-id . ,(when reorg-parser-use-id-p
-						   (reorg-parser--get-children-ids)))
-				 (siblings-id . ,(when reorg-parser-use-id-p
-						   (save-excursion
-						     (let ((current-id (org-id-get-create)))
-						       (when (org-up-heading-safe)
-							 (cl-loop initially (org-goto-first-child)
-								  collect (org-id-get-create) into ids
-								  while (org-goto-sibling)
-								  finally return (remove current-id ids)))))))
-				 (ancestors-id . ,(when reorg-parser-use-id-p
-						    (save-excursion 
-						      (cl-loop while (org-up-heading-safe)
-							       collect (org-id-get-create)))))
-				 (parent-id . ,(when reorg-parser-use-id-p
-						 (save-excursion (when (org-up-heading-safe)
-								   (org-id-get)))))
-				 (buffer-name . ,(buffer-name))
-				 (buffer . ,(current-buffer)))
-	   do (plist-put data (reorg-parser--add-remove-prop-colon prop) (reorg-parser--to-string val))
-	   finally return (progn
-			    (puthash (plist-get data :id)
-				     data
-				     reorg-hash-table)
-			    data)))
-
-(cl-defun reorg-get-set-props (prop &key
-				    (val nil valp)
-				    keep
-				    multi-value
-				    inherit
-				    literal-nil
-				    no-duplicates
-				    no-text-properties
-				    include-date-prefix
-				    &allow-other-keys)
-  "Change the org heading at point by set PROP to VAL.
-
-It accepts the following properties, as well as any others that are set 
-in the headings property drawer. Any such properties can be accessed as string
- or a symbol, e.g., \"CATEGORY\" or 'category.  See the return value of 
-`reorg-parser--headline-parser' for more information.
-
-There are flags for dealing with multivalued properties, inheritence, 
-etc.:
-
-If VAL is a list, assume a multi-valued property.
-If KEEP is non-nil and VAL is a list or MULTI is non-nil, keep the old value.
-If NO-DUPLICATES is non-nil and dealing with multi-valued, delete duplicates.
-If MULTI is non-nil, use a multivalued property even if VAL is not a list.
-
-When setting a value, return a cons cell with the old value as the `car' 
-and new value as the `cdr'."
-  (cl-macrolet ((get-or-set (&key get set)
-			    `(if (not valp)
-				 ,get
-			       (let ((old-val ,get))
-				 (save-excursion 
-				   (org-back-to-heading)		 
-				   ,set
-				   (cons old-val ,get))))))
-    (pcase prop
-      ((or :deadline
-	   :scheduled)
-       (get-or-set :get (when-let* ((type (if (eq prop :deadline)
-					      "DEADLINE" "SCHEDULED"))
-				    (date (org-entry-get (point) type
-							 inherit literal-nil)))
-			  (concat
-			   (when include-date-prefix
-			     (propertize 
-			      (concat type ": ")
-			      reorg-face-text-prop 'org-special-keyword))
-			   (propertize date reorg-face-text-prop 'org-date)))
-		   :set (let ((func (if (eq prop :deadline)
-					#'org-deadline #'org-schedule)))
-			  (if (null val)
-			      (funcall func '(4))
-			    (funcall func nil val)))))
-      (:comment
-       (get-or-set :get (org-in-commented-heading-p)
-		   :set (when (not (xor (not val)
-					(org-in-commented-heading-p)))
-			  (org-toggle-comment))))
-      (:tags
-       (get-or-set :get (org-get-tags (point) (not inherit))
-		   :set (if keep
-			    (org-set-tags (if no-duplicates
-					      (delete-duplicates (append old-val
-									 (-list val))
-								 :test #'string=)
-					    (append old-val (-list val))))
-			  (org-set-tags val))))
-      (:headline
-       (get-or-set :get (org-entry-get (point) "ITEM")
-		   :set (let ((commentedp (org-in-commented-heading-p)))
-			  (org-edit-headline val)
-			  (when commentedp
-			    (reorg-get-set-props :comment :val t)))))
-      (:todo
-       (get-or-set :get (when-let ((todo (org-entry-get (point) "TODO")))
-			  (propertize
-			   todo
-			   reorg-face-text-prop
-			   (org-get-todo-face todo)))
-		   :set (org-todo val)))
-      ((or :timestamp
-	   :timestamp-ia)
-       (get-or-set :get (when-let ((timestamp (org-entry-get (point)
-							     (if (eq :timestamp prop)
-								 "TIMESTAMP"
-							       "TIMESTAMP_IA"))))
-			  (propertize timestamp reorg-face-text-prop 'org-date))
-		   :set (if (and old-val
-				 (search-forward old-val (org-entry-end-position) t))
-			    (progn (replace-match (concat val))
-				   (delete-blank-lines))
-			  (org-end-of-meta-data t)
-			  (delete-blank-lines)
-			  (when val 
-			    (insert (concat val "\n"))))))
-      (:body
-       (get-or-set :get (reorg-edits--get-body-string no-text-properties)
-		   :set (error "You can't set body text (yet).")))
-      ((or (pred stringp)
-	   (pred symbolp))
-       (when (symbolp prop) (setq prop (thread-last
-					   (reorg-parser--add-remove-prop-colon prop 'remove)
-					 (symbol-name)
-					 (upcase))))
-       (get-or-set :get (if (or multi-value (and val (listp val)) keep)
-			    (org-entry-get-multivalued-property (point) prop)
-			  (org-entry-get (point) prop inherit literal-nil))
-		   :set (cond ((or multi-value (listp val) keep)
-			       (apply #'org-entry-put-multivalued-property (point) prop
-				      (if no-duplicates
-					  (delete-duplicates (append old-val (-list val)) :test #'string=)
-					(append old-val (-list val)))))
-			      (t (org-entry-put (point) prop val))))))))
-
-;;; Sorting and grouping
-
-(defun reorg--multi-sort (functions-and-predicates sequence)
-  "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
+  (defun reorg--multi-sort (functions-and-predicates sequence)
+    "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
 SEQUENCE is a sequence to sort."
-  ;; This is a naive solution, but works for now. 
-  (seq-sort 
-   (lambda (a b)
-     (cl-loop for (func . pred) in functions-and-predicates
-	      unless (equal (funcall func a)
-			    (funcall func b))
-	      return (funcall pred
-			      (funcall func a)
-			      (funcall func b))))
-   sequence))
+    (seq-sort 
+     (lambda (a b)
+       (cl-loop for (func . pred) in functions-and-predicates
+		unless (equal (funcall func a)
+			      (funcall func b))
+		return (funcall pred
+				(funcall func a)
+				(funcall func b))))
+     sequence))
 
-(cl-defun reorg--group-by (cell template &optional (n 0 np))
-  "Apply TEMPLATE to CELL, and return the resulting hierarchy.  
-CELL should be a list of data.  TEMPLATE is a nested list of functions
-that each accept one argument.  N is for internal use only.  
-CELL is destructively modified."
-  (let ((copy (seq-copy cell)))
-    (cl-labels ((doloop (data template &optional (n 0 np) result-sorters)
-			(let ((grouper (plist-get template :group))
-			      (children (plist-get template :children))
-			      (sorter (plist-get template :sort))
-			      (sort-getter (or (plist-get template :sort-getter)
-					       #'car))
-			      (pre-filter (plist-get template :pre-filter))
-			      (post-filter (plist-get template :post-filter))
-			      (format-string (plist-get template :format-string))
-			      (pre-transformer (plist-get template :pre-transformer))
-			      (post-transformer (plist-get template :post-transformer))
-			      (result-sort-func (or (plist-get template :sort-results-getter)
-						    #'identity))
-			      (result-sort-pred (plist-get template :sort-results)))
-			  (when result-sort-pred
-			    (setq result-sorters (reverse result-sorters))
-			    (push (cons result-sort-func result-sort-pred) 
-				  result-sorters)
-			    (setq result-sorters (reverse result-sorters)))
-			  
-			  (unless np
-			    (let ((old (cl-copy-list data)))
-			      (setcar data '_)
-			      (setcdr data (list old))))
+  (cl-defun reorg--group-and-sort (results template &optional (n 0 np))
+    "Group RESULTS according to TEMPLATE."
+    (let ((copy (seq-copy results)))
+      (cl-labels ((doloop (data template &optional (n 0 np) result-sorters)
+			  (let ((grouper (plist-get template :group))
+				(children (plist-get template :children))
+				(sorter (plist-get template :sort))
+				(sort-getter (or (plist-get template :sort-getter)
+						 #'car))
+				(pre-filter (plist-get template :pre-filter))
+				(post-filter (plist-get template :post-filter))
+				(format-string (plist-get template :format-string))
+				(pre-transformer (plist-get template :pre-transformer))
+				(post-transformer (plist-get template :post-transformer))
+				(result-sort-func (or (plist-get template :sort-results-getter)
+						      #'identity))
+				(result-sort-pred (plist-get template :sort-results)))
+			    (when result-sort-pred
+			      (setq result-sorters (reverse result-sorters))
+			      (push (cons result-sort-func result-sort-pred) 
+				    result-sorters)
+			      (setq result-sorters (reverse result-sorters)))			  
+			    (unless np
+			      (let ((old (cl-copy-list data)))
+				(setcar data '_)
+				(setcdr data (list old))))
 
-			  (setf (nth n (cdr data))
-				(--> (nth n (cdr data))
-				     (if pre-transformer
-					 (seq-map pre-transformer it)
-				       it)
-				     (if pre-filter (seq-remove pre-filter it) it)
-				     (cond ((functionp grouper)
-					    (->> it
-						 (seq-group-by grouper)
-						 (seq-map (lambda (x) (list (car x) (cdr x))))))
-					   ((or (stringp grouper)
-						(symbolp grouper))
-					    (list (list grouper it)))
-					   (t (error "something is wrong with your :group")))
-				     (seq-filter (lambda (x) (and (not (null (car x)))
-								  (not (null (cdr x)))
-								  (not (null x))))
-						 it)
-				     (if sorter
-					 (progn 
-					   (setq xxx it)
-					   (seq-sort-by (or sort-getter #'car) sorter it))
-				       it)
-				     (if post-filter
-					 (cl-loop for each in it
-						  collect (list (car each) (seq-remove post-filter (cadr each))))
-				       it)
-				     (if post-transformer
-					 (cl-loop for each in it
-						  collect (list (car each) (seq-map post-transformer (cadr each))))
-				       it)))
-			  (if children
-			      (progn 
+			    (setf (nth n (cdr data))
+				  (--> (nth n (cdr data))
+				       (if pre-transformer
+					   (seq-map pre-transformer it)
+					 it)
+				       (if pre-filter (seq-remove pre-filter it) it)
+				       (cond ((functionp grouper)
+					      (->> it
+						   (seq-group-by grouper)
+						   (seq-map (lambda (x) (list (car x) (cdr x))))))
+					     ((or (stringp grouper)
+						  (symbolp grouper))
+					      (list (list grouper it)))
+					     (t (error "something is wrong with your :group")))
+				       (seq-filter (lambda (x) (and (not (null (car x)))
+								    (not (null (cdr x)))
+								    (not (null x))))
+						   it)
+				       (if sorter
+					   (progn 
+					     (setq xxx it)
+					     (seq-sort-by (or sort-getter #'car) sorter it))
+					 it)
+				       (if post-filter
+					   (cl-loop for each in it
+						    collect (list (car each) (seq-remove post-filter (cadr each))))
+					 it)
+				       (if post-transformer
+					   (cl-loop for each in it
+						    collect (list (car each) (seq-map post-transformer (cadr each))))
+					 it)))
+			    (if children
+				(progn 
+				  (cl-loop for x below (length (nth n (cdr data)))
+					   do (setcdr (nth x (nth n (cdr data)))
+						      (cl-loop for z below (length children)
+							       collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
+				  (cl-loop for x below (length children)
+					   do (cl-loop for y below (length (nth n (cdr data)))
+						       do (doloop (nth y (nth n (cdr data)))
+								  (nth x children)
+								  x
+								  result-sorters))))
+			      (when result-sorters
 				(cl-loop for x below (length (nth n (cdr data)))
-					 do (setcdr (nth x (nth n (cdr data)))
-						    (cl-loop for z below (length children)
-							     collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
-				(cl-loop for x below (length children)
-					 do (cl-loop for y below (length (nth n (cdr data)))
-						     do (doloop (nth y (nth n (cdr data)))
-								(nth x children)
-								x
-								result-sorters))))
-			    (when result-sorters
-			      (cl-loop for x below (length (nth n (cdr data)))
-				       do (setf (cadr (nth x (nth n (cdr data))))
-						(reorg--multi-sort result-sorters
-								   (cadr (nth x (nth n (cdr data))))))))))))
+					 do (setf (cadr (nth x (nth n (cdr data))))
+						  (reorg--multi-sort result-sorters
+								     (cadr (nth x (nth n (cdr data))))))))))))
+	(doloop copy template))
+      (cadr copy)))
 
-      (doloop copy template))
-    (cadr copy)))
+;;; creating the org outline
 
-;;; Convert grouped list to org headings
+  (defun reorg--create-headline-string (data format-string &optional num)
+    "this is a mess."
+    (cl-flet* ((get-field-name (keyword) (intern (substring (symbol-name keyword) 1)))
+	       (make-field-string (string field)
+				  (concat 
+				   (propertize string
+					       reorg--field-property-name
+					       (get-field-name field))
+				   " "))
+	       (create-stars (num &optional data)
+			     (make-string (if (functionp num)
+					      (funcall num data)
+					    num)
+					  ?*)))
+      (when (reorg--id-p data)
+	(setq data (gethash data reorg-hash-table)))
+      (if (stringp data)
+	  (concat 
+	   (propertize 
+	    (concat (create-stars num nil) " " data)
+	    reorg--field-property-name :no-data)
+	   "\n")
+	(cl-loop for field in format-string  
+		 concat (cond ((symbolp field)
+			       (if (eq field :stars)
+				   (make-field-string (create-stars num data) field)
+				 (when-let ((field-val (reorg--to-string (plist-get data field))))
+				   (make-field-string field-val field))))
+			      ((stringp field) field)
+			      ((listp field)
+			       (concat
+				(when-let ((field-val (reorg--to-string (plist-get data (car field)))))
+				  (make-field-string  (car field)
+						      (get-field-name (car field))))
+				(propertize " "
+					    'display
+					    `(space . (:align-to ,(cadr field)))))))
+		 into results
+		 finally return
+		 (propertize
+		  (concat
+		   results
+		   "\n")
+		  reorg--data-property-name data
+		  reorg--id-property-name (plist-get data :id))))))
 
-(defun reorg--process-results (data &optional format-string)
-  "Process the results of `org-group' and turn them into orgmode headings."
-  (setq format-string  (or format-string reorg-headline-format))
-  (let (results)
-    (cl-labels ((recurse (data level)
-			 (cl-loop for entry in data
-				  do (push (reorg--create-headline-string (car entry)
-									  format-string
-									  level)
-					   results)
-				  if (reorg--plist-p (caadr entry))
-				  do (cl-loop for x in (cadr entry)
-					      do (push (reorg--create-headline-string x
-										      format-string
-										      (1+ level))
-						       results))
-				  else do (cl-loop for e in (cdr entry)
-						   do (recurse e (1+ level))))))
-      (recurse data 1))
-    (reverse results)))
+  (defun reorg--generate-org-headings (data format-string &optional num)
+    "Turn the output of `reorg--group-and-sort' into 
+  orgmode headings."
+    (cl-flet* ((get-field-name (keyword) (intern (substring (symbol-name keyword) 1)))
+	       (make-field-string (string field)
+				  (concat 
+				   (propertize string
+					       reorg--field-property-name
+					       (get-field-name field))
+				   " "))
+	       (create-stars (num &optional data)
+			     (make-string (if (functionp num)
+					      (funcall num data)
+					    num)
+					  ?*)))
+      (when (reorg--id-p data)
+	(setq data (gethash data reorg-hash-table)))
+      (if (stringp data)
+	  (concat 
+	   (propertize 
+	    (concat (create-stars num nil) " " data)
+	    reorg--field-property-name :no-data)
+	   "\n")
+	(cl-loop for field in format-string  
+		 concat (cond ((symbolp field)
+			       (if (eq field :stars)
+				   (make-field-string (create-stars num data) field)
+				 (when-let ((field-val (reorg--to-string (plist-get data field))))
+				   (make-field-string field-val field))))
+			      ((stringp field) field)
+			      ((listp field)
+			       (concat
+				(when-let ((field-val (reorg--to-string (plist-get data (car field)))))
+				  (make-field-string  (car field)
+						      (get-field-name (car field))))
+				(propertize " "
+					    'display
+					    `(space . (:align-to ,(cadr field)))))))
+		 into results
+		 finally return
+		 (propertize
+		  (concat
+		   results
+		   "\n")
+		  reorg--data-property-name data
+		  reorg--id-property-name (plist-get data :id))))))
 
-(defun reorg--create-headline-string (data format-string &optional num)
-  "this is a mess."
-  (cl-flet* ((get-field-name (keyword) (intern (substring (symbol-name keyword) 1)))
-	     (make-field-string (string field)
-				(concat 
-				 (propertize string
-					     reorg--field-property-name
-					     (get-field-name field))
-				 " "))
-	     (create-stars (num &optional data)
-			   (make-string (if (functionp num)
-					    (funcall num data)
-					  num)
-					?*)))
-    (if (stringp data)
-	(concat 
-	 (propertize 
-	  (concat (create-stars num nil) " " data)
-	  reorg--field-property-name :no-data)
-	 "\n")
-      (cl-loop for field in format-string  
-	       concat (cond ((symbolp field)
-			     (if (eq field :stars)
-				 (make-field-string (create-stars num data) field)
-			       (when-let ((field-val (reorg-parser--to-string (plist-get data field))))
-				 (make-field-string field-val field))))
-			    ((stringp field) field)
-			    ((listp field)
-			     (concat
-			      (when-let ((field-val (reorg-parser--to-string (plist-get data (car field)))))
-				(make-field-string  (car field)
-						    (get-field-name (car field))))
-			      (propertize " "
-					  'display
-					  `(space . (:align-to ,(cadr field)))))))
-	       into results
-	       finally return
-	       (propertize
-		(concat
-		 results
-		 "\n")
-		reorg--data-property-name data
-		reorg--id-property-name (plist-get data :id))))))
+  (defun reorg--insert-org-headlines (data)
+    "it's just a loop"
+    (cl-loop for x in data do (insert x)))
 
-;;; Creating the tree buffer
+;;; window control
 
-(defun reorg--insert-org-headlines (data)
-  "it's just a loop"
-  (cl-loop for x in data do (insert x)))
+  (defun reorg--open-side-window ()
+    "Open a side window to display the tree."
+    (display-buffer-in-side-window (get-buffer-create reorg-buffer-name)
+				   `((side . ,reorg-buffer-side)
+				     (slot . nil))))
 
-;;; Window control 
-
-(defun reorg--open-side-window ()
-  "Open a side window to display the tree."
-  (display-buffer-in-side-window (get-buffer-create reorg-buffer-name)
-				 `((side . ,reorg-buffer-side)
-				   (slot . nil))))
-
-(defun reorg--select-main-window (&optional buffer)
-  "Select the source window. If BUFFER is non-nil,
+  (defun reorg--select-main-window (&optional buffer)
+    "Select the source window. If BUFFER is non-nil,
 switch to that buffer in the window." 
-  (select-window (window-main-window))
-  (when buffer
-    (switch-to-buffer buffer)))
+    (select-window (window-main-window))
+    (when buffer
+      (switch-to-buffer buffer)))
 
-(defun reorg--select-tree-window ()
-  "Select the tree window." 
-  (select-window
-   (car 
-    (window-at-side-list nil reorg-buffer-side))))
+  (defun reorg--select-tree-window ()
+    "Select the tree window." 
+    (select-window
+     (car 
+      (window-at-side-list nil reorg-buffer-side))))
 
-;;; Tree buffer 
 
-(defun reorg--get-view-prop (&optional property)
-  "Get PROPERTY from the current heading."
-  (save-excursion 
-    (beginning-of-line)
-    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
-      (if property 
-	  (plist-get props property)
-	props))))
+;;; view buffer
 
-;;; Main
+  (defun reorg--get-view-prop (&optional property)
+    "Get PROPERTY from the current heading."
+    (save-excursion 
+      (beginning-of-line)
+      (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
+	(if property 
+	    (plist-get props property)
+	  props))))
 
-(defun reorg-open-sidebar (template &optional file)
-  "Open this shit in the sidebar."
-  (interactive)
-  (let ((results (--> (reorg-parser--map-entries file)
-		      (reorg--group-by it template)
-		      (reorg--process-results it))))
-    (when (get-buffer reorg-buffer-name)
-      (kill-buffer reorg-buffer-name))
-    (reorg--open-side-window)
-    (reorg--select-tree-window)
-    (let ((inhibit-read-only t))
-      (erase-buffer))
-    (reorg--insert-org-headlines results)
-    (reorg-view-mode)
+  (defun reorg-outline-level ()
+    "Get the outline level of the heading at point."
+    (outline-back-to-heading)
+    (re-search-forward "^*+ " (point-at-eol))
+    (1- (length (match-string 0))))
+
+  (defun reorg--get-field-at-point (&optional point)
+    "Get the reorg-field-type at point."
+    (get-text-property (or point (point)) reorg--field-property-name))
+
+  (defun reorg--get-field-bounds ()
+    "Get the bounds of the field at point."
+    (when-let ((field (reorg--get-field-at-point)))
+      (cons
+       (save-excursion 
+	 (cl-loop while (and (equal (reorg--get-field-at-point)
+				    field)
+			     (not (bobp)))
+		  do (forward-char -1)
+		  finally return (1+ (point))))
+       (save-excursion 
+	 (cl-loop while (and (equal (reorg--get-field-at-point)
+				    field)
+			     (not (eobp)))
+		  
+		  do (forward-char 1)
+		  finally return (point))))))
+;;; main
+
+  (defun reorg-open-sidebar-clone (&optional file)
+    "Open this shit in the sidebar."
+    (interactive)
+    (let ((results (reorg--map-entries file)))
+      (setq results
+	    (cl-loop
+	     for each in results
+	     collect
+	     (reorg--create-headline-string
+	      each
+	      reorg-headline-format
+	      (string-to-number
+	       (plist-get (gethash each reorg-hash-table)
+			  :level)))))
+      (when (get-buffer reorg-buffer-name)
+	(kill-buffer reorg-buffer-name))
+      (reorg--open-side-window)
+      (reorg--select-tree-window)
+      (let ((inhibit-read-only t))
+	(erase-buffer))
+      (reorg--insert-org-headlines results)
+      (reorg-view-mode)
+      (org-show-all)
+      (goto-char (point-min))))
+
+  (defun reorg-open-sidebar (template &optional file)
+    "Open this shit in the sidebar."
+    (interactive)
+    (let ((results (--> (reorg--map-entries file)
+			(reorg--group-by it template)
+			(reorg--process-results it))))
+      (when (get-buffer reorg-buffer-name)
+	(kill-buffer reorg-buffer-name))
+      (reorg--open-side-window)
+      (reorg--select-tree-window)
+      (let ((inhibit-read-only t))
+	(erase-buffer))
+      (reorg--insert-org-headlines results)
+      (reorg-view-mode)
+      (org-show-all)
+      (goto-char (point-min))))
+
+;;; reorg-views
+;;;; view buffer functions
+
+  (defun reorg-view--update-highlight-overlay (&optional &rest _args)
+    "update transclusion overlay."
+    nil)
+  ;; (delete-overlay reorg-current-heading-overlay)
+  ;; (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
+
+  (defun reorg--initialize-overlay ()
+    "initialize the transclusion overlay."
+    nil)
+  ;; (setq reorg-current-heading-overlay
+  ;; 	(make-overlay 1 2))
+  ;; (overlay-put reorg-current-heading-overlay
+  ;; 	       'face
+  ;; 	       'reorg-current-heading-face)
+  ;; (overlay-put reorg-current-heading-overlay 'insert-behind-hooks '(reorg--transclusion-logger
+  ;; 								    reorg-view--update-highlight-overlay
+  ;; 								    reorg--modification-hook-func))
+  ;; (overlay-put reorg-current-heading-overlay 'insert-in-front-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
+  ;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
+  ;; (delete-overlay reorg-current-heading-overlay))
+
+  (defun reorg-view--update-view-headline ()
+    "Goto source buffer, re-parse, update."
+    (let ((props (reorg--with-point-at-orig-entry nil nil
+						  (reorg-parser--headline-parser)))
+	  (inhibit-modification-hooks t))
+      (reorg-props 'headline :val (propertize (plist-get props :headline)
+					      reorg--data-property-name props))))
+
+  (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
+    "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
+    (interactive)
+    (when  (and (or buffer (reorg--get-view-prop :buffer))
+		(or id (reorg--get-view-prop :id)))
+      (if reorg-parser-use-id-p 
+	  (reorg-view--goto-source-id
+	   (or buffer (reorg--get-view-prop :buffer))
+	   (or id (reorg--get-view-prop :id))
+	   (not no-narrow))
+	(reorg-view--goto-source-marker 
+	 (or buffer (reorg--get-view-prop :buffer))
+	 (or id (reorg--get-view-prop :marker))
+	 (not no-narrow)))))
+
+  (defun reorg-view--source--goto-end-of-meta-data ()
+    "Go to the end of the meta data and insert a blank line
+if there is not one."
+    (let ((next-heading (org-with-wide-buffer
+			 (outline-next-heading)
+			 (point)))
+	  (end-of-meta-data (save-excursion
+			      (org-end-of-meta-data t)
+			      (re-search-backward (rx (not whitespace)))
+			      (match-end 0))))
+
+      (if (= (- next-heading end-of-meta-data) 1)
+	  (progn (goto-char end-of-meta-data)
+		 (insert "\n"))
+	(goto-char (1+ end-of-meta-data)))))
+
+  (defun reorg-view--source--narrow-to-heading ()
+    "Narrow to the current heading only, i.e., no subtree."
+    (widen)
     (org-show-all)
-    (goto-char (point-min))))
+    (reorg-view--source--goto-end-of-meta-data)
+    (narrow-to-region (save-excursion
+			(org-back-to-heading))
+		      (save-excursion 
+			(outline-next-heading)
+			(point))))
 
-(provide 'reorg)
+  (defun reorg-view--goto-source-id (buffer id &optional narrow)
+    "Move to buffer and find heading with ID.  If NARROW is non-nil,
+then narrow to that heading and return t.  If no heading is found, don't move
+the point and return nil."
+    (reorg--select-main-window)
+    (set-window-buffer (selected-window) buffer)
+    (widen)
+    (let ((old-point (point)))
+      (goto-char (point-min))
+      (if (re-search-forward id nil t)
+	  (progn (org-back-to-heading)
+		 (when narrow
+		   (reorg-view--source--narrow-to-heading))
+		 t)
+	(goto-char old-point)
+	nil)))
 
+  (defun reorg-view--goto-source-marker (buffer marker &optional narrow)
+    "Move to buffer and find heading with ID.  If NARROW is non-nil,
+then narrow to that heading and return t.  If no heading is found, don't move
+the point and return nil."
+    (reorg--select-main-window)
+    (set-window-buffer (selected-window) buffer)
+    (widen)
+    (goto-char (marker-position marker))
+    (when narrow
+      (reorg-view--source--narrow-to-heading)
+      t)
+    nil)
 
+  (defun reorg--move-to-next-entry-follow ()
+    (interactive)
+    (org-next-visible-heading 1)
+    (reorg-view--update-highlight-overlay)
+    (reorg-edits--post-field-navigation-hook)
+    (reorg-view--tree-to-source--goto-heading)
+    (reorg--select-tree-window)
+    (reorg-edits--post-field-navigation-hook))
 
+  (defun reorg--move-to-previous-entry-follow ()
+    (interactive)
+    (org-previous-visible-heading 1)
+    (reorg-view--update-highlight-overlay)
+    (reorg-edits--post-field-navigation-hook)
+    (reorg-view--tree-to-source--goto-heading)
+    (reorg--select-tree-window)
+    (reorg-edits--post-field-navigation-hook))
 
+  (defun reorg--move-to-next-entry-no-follow ()
+    (interactive)
+    (org-next-visible-heading 1)
+    (reorg-edits--post-field-navigation-hook)
+    (reorg-view--update-highlight-overlay)
+    (reorg-view--tree-to-source--goto-heading)
+    (reorg--select-tree-window))
 
+  (defun reorg--move-to-previous-entry-no-follow ()
+    (interactive)
+    (org-previous-visible-heading 1)
+    (reorg-edits--post-field-navigation-hook)
+    (reorg-view--update-highlight-overlay)
+    (reorg-view--tree-to-source--goto-heading)
+    (reorg--select-tree-window)
+    (reorg-edits--post-field-navigation-hook))
 
+  (defun reorg--goto-next-parent ()
+    "Goto the next parent."
+    (interactive)
+    (when (re-search-forward (concat "^*\\{" (number-to-string (1- (org-current-level))) "\\} ") nil t)
+      (beginning-of-line)
+      (reorg-edits--post-field-navigation-hook)
+      (reorg-view--update-highlight-overlay)
+      (reorg-edits--post-field-navigation-hook)))
 
+  (defun reorg--goto-parent ()
+    "Goto the next parent."
+    (interactive)
+    (org-up-heading-safe)
+    (reorg-edits--post-field-navigation-hook)
+    (reorg-view--update-highlight-overlay)
+    (reorg-edits--post-field-navigation-hook))
 
+;;;; updating the tree
+
+  (defmacro reorg--map-id (id &rest body)
+    "Execute BODY at each entry that matches
+ID."
+    `(save-excursion
+       (goto-char (point-min))
+       (while (text-property-search-forward
+	       reorg--id-property-name
+	       ,id
+	       nil)
+	 ,@body)))
+
+  (cl-defun reorg--update-hash (id prop val &rest keys)
+    "Set PROP and VAL of entry ID, and then replace the 
+current view entry."
+    (let (new)
+      (reorg--with-point-at-orig-entry id
+				       (apply reorg-get-set-props prop :val val keys)
+				       (setq new (reorg-parser--headline-parser)))
+      (puthash id new reorg-hash-table)
+      (reorg--create-headline-string
+       new
+       reorg-headline-format
+       (reorg-outline-level))))
+
+  (defun reorg--shift-up (arg)
+    "Shift priority or timestamp."
+    (interactive "P")
+    (pcase (reorg-edits--get-field-type)
+      ((or 'deadline
+	   'scheduled
+	   'timestamp
+	   'timestamp-ia)
+       (org-timestamp-up arg))
+      (`priority
+       (org-priority-up))))
+
+  (defun reorg--shift-down (arg)
+    "Shift priority or timestamp."
+    (interactive "P")
+    (pcase (reorg-edits--get-field-type)
+      ((or 'deadline
+	   'scheduled
+	   'timestamp
+	   'timestamp-ia)
+       (org-timestamp-down arg))
+      (`priority
+       (org-priority-down))))
+
+;;;; view mode
+
+  (defvar reorg-view-mode-map 
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "RET") #'reorg-view--tree-to-source--goto-heading)
+      (define-key map (kbd "e") #'reorg-edits--start-edit)
+      (define-key map (kbd "u") #'reorg--goto-parent)
+      (define-key map (kbd "f") #'reorg-edits-move-to-next-field)
+      (define-key map (kbd "S-<up>") #'reorg--shift-up)
+      (define-key map (kbd "S-<down>") #'reorg--shift-down)
+      (define-key map (kbd "b") #'reorg-edits-move-to-previous-field)
+      (define-key map (kbd "U") #'reorg--goto-next-parent)
+      (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
+      (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-follow)
+      (define-key map (kbd "TAB") #'outline-cycle)
+      map)
+    "keymap")
+
+  (define-derived-mode reorg-view-mode outline-mode
+    "Org tree view"
+    "Tree view of an Orgmode file. \{keymap}"
+    (reorg--initialize-overlay)
+    (setq cursor-type nil)
+    (reorg-dynamic-bullets-mode)
+    (org-visual-indent-mode)
+    (use-local-map reorg-view-mode-map))
+
+  (defmacro reorg-view--make-change-in-org-buffer-and-sync-clones (&rest body)
+    "asdf"
+    `(let (data)
+       (reorg--with-point-at-orig-entry nil nil
+					,@body
+					(setq data (reorg-parser--headline-parser)))
+       (reorg--map-id (plist-get data :id)
+		      (reorg-views--replace-heading data))))
+
+  (defun reorg-views--replace-heading (data)
+    "Replace the heading at point with NEW."
+    (let ((level (reorg-outline-level)))
+      (outline-back-to-heading)
+      (delete-region (point)
+		     (save-excursion (outline-next-heading) (point)))
+      (insert (reorg--create-headline-string data
+					     reorg-headline-format
+					     level))))
+
+;;; reorg-edit-mode
+;;;; keep point in field
+
+  (defun reorg--kill-field ()
+    "asdf"
+    (interactive)
+    (save-excursion
+      (let* ((end (field-end))
+             (beg (field-beginning)))
+	(delete-region (point) end))))
+
+  (defun reorg--pre-command-hook ()
+    "asdf"
+    (interactive)
+    (if (eq 'reorg (field-at-pos (point)))
+	(setq reorg--current-location
+	      (list (point)
+		    (field-beginning)
+		    (field-end)))
+      (setq reorg--current-location nil)))
+
+  (defun reorg--post-command-hook ()
+    "zxcv"
+    (interactive)
+    (unless (eq 'reorg (field-at-pos (point)))
+      (when reorg--current-location
+	(cond ((< (point)
+		  (cadr reorg--current-location))
+	       (goto-char (cadr reorg--current-location)))
+	      ((> (point)
+		  (caddr reorg--current-location))
+	       (goto-char (caddr reorg--current-location)))))))
+
+  (defun reorg--add-command-hooks (&optional remove)
+    "asdf"
+    (setq reorg--current-location nil)
+    (if remove
+	(progn 
+	  (remove-hook 'pre-command-hook #'reorg--pre-command-hook t)
+	  (remove-hook 'post-command-hook #'reorg--post-command-hook t))
+      (add-hook 'pre-command-hook #'reorg--pre-command-hook nil t)
+      (add-hook 'post-command-hook #'reorg--post-command-hook nil t)))
+
+;;;; customs
+  (defcustom reorg-edits-commit-edit-shortcut "C-c C-c"
+    "Shortcut to commit edits when in `reorg-edits-mode'
+Accepts any string acceptable to `kbd'."
+    :type 'string)
+
+  (defcustom reorg-edits-abort-edit-shortcut "C-c C-k"
+    "Shortcut to abort edits when in `reorg-edits-mode'
+Accepts any string acceptable to `kbd'."
+    :type 'string)
+
+  (defcustom reorg-edits-start-edit-shortcut "C-c C-c"
+    "Shortcut to initiate `reorg-edits-mode'
+Accepts any string acceptable to `kbd'."
+    :type 'string)
+
+;;;; variables
+  (defvar reorg-edits--restore-state nil
+    "When editing a clone, save the current headline and body
+  to restore if the edit is abandoned.")
+
+  (defvar reorg-edits--previous-header-line nil
+    "previous header line")
+
+  (defvar reorg-edits--header-line
+    '(:eval
+      (format 
+       "Editing headline. '%s' to finish and update. '%s' to abandon."
+       reorg-edits-commit-edit-shortcut
+       reorg-edits-abort-edit-shortcut))
+    "The value of header-line-format when `reorg-edits-mode' is 
+invoked.")
+
+  (defvar reorg-edits--current-field-overlay
+    (let ((overlay (make-overlay 1 2)))
+      (overlay-put overlay 'face '( :box (:line-width -1)
+				    :foreground "cornsilk"))    
+      (overlay-put overlay 'priority 1000)
+      overlay)
+    "Overlay for field at point.")
+
+  (defvar reorg-edits-field-mode-map
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd reorg-edits-commit-edit-shortcut)
+	#'reorg-edits--commit-edit)
+      (define-key map (kbd reorg-edits-abort-edit-shortcut)
+	#'reorg-edits--discard-edit)
+      (define-key map (kbd "TAB") #'reorg-edits-move-to-next-field)
+      (define-key map (kbd "BACKTAB") #'reorg-edits-move-to-previous-field)
+      map)
+    "keymap.")
+
+;;;; macros
+
+  (defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
+    "Execute BODY with point at the heading with ID at point."
+    `(when-let ((id ,(or id (reorg--get-view-prop :id))))
+       (with-current-buffer (or ,buffer (reorg--get-view-prop :buffer))
+	 (org-with-wide-buffer 
+	  (goto-char (point-min))
+	  ;; NOTE: Can't use `org-id-goto' here or it will keep the
+	  ;;       buffer open after the edit.  Getting the buffer
+	  ;;       and searching for the ID should ensure the buffer
+	  ;;       stays hidden.
+	  (save-match-data
+	    (if (re-search-forward id)
+		(progn 
+		  ,@body)
+	      (error "Heading with ID %s not found." id)))))))
+
+;;;; transclusion hook
+
+  (defun reorg--modification-hook-func (overlay postp beg end &optional length)
+    "overlay post change hook."
+    (when postp
+      (save-match-data
+	(let* ((overlay-beg (overlay-start overlay))
+	       (headline-beg (reorg--get-headline-start))
+	       (relative-beg (if (<= (- beg headline-beg) 0)
+				 0
+			       (- beg headline-beg)))
+	       (adjustment (if (< beg overlay-beg)
+			       (- beg overlay-beg)
+			     0)))
+	  (cond
+	   ((and (= beg end) (> length 0))
+	    (reorg--with-point-at-orig-entry nil nil
+					     (reorg--goto-headline-start)
+					     (forward-char relative-beg)
+					     (delete-region (point) (+ (point) length))))	 
+	   ((and (/= beg end) (> length 0))
+	    (let ((s (buffer-substring-no-properties (+ overlay-beg
+							relative-beg) end)))
+	      (message s)
+	      (reorg--with-point-at-orig-entry nil nil
+					       (reorg--goto-headline-start)
+					       (forward-char relative-beg)
+					       (delete-region (point) (+ (point)
+									 (+ length adjustment)))
+					       (insert s))))	 
+	   ((or (= length 0) (/= beg end))
+	    (let ((s (buffer-substring-no-properties beg end)))
+	      (reorg--with-point-at-orig-entry nil nil
+					       (reorg--goto-headline-start)
+					       (forward-char relative-beg)
+					       (insert s)))))))))
+
+;;;; functions
+
+  (defun reorg-edits--post-field-navigation-hook ()
+    "Tell the user what field they are on."
+    (reorg-edits--update-box-overlay)
+    (setf (point) (car 
+		   (reorg-edits--get-field-bounds))))
+
+  (defun reorg-edits--update-box-overlay ()
+    "Tell the user what field they are on."
+    (when-let ((field (get-text-property (point) reorg--field-property-name)))
+      (delete-overlay reorg-edits--current-field-overlay)
+      (move-overlay reorg-edits--current-field-overlay
+		    (car (reorg-edits--get-field-bounds))
+		    (if (eq field 'stars)
+			(point-at-eol)
+		      (cdr (reorg-edits--get-field-bounds))))
+      (message "You are on the field for the heading's %s"
+	       (reorg-edits--get-field-type))))
+
+  (defun reorg-edits--get-field-type ()
+    "Get the field type at point, if any."
+    (get-text-property (point) reorg--field-property-name))
+
+  (defun reorg-edits-move-to-next-field (&optional previous)
+    "Move to the next field at the current heading."
+    (interactive)
+    (let ((current-field (reorg-edits--get-field-at-point)))
+      (unless (if previous (= (point) (org-entry-beginning-position))
+		(= (point) (org-entry-end-position)))
+	(cl-loop with point = (point)
+		 do (if previous (cl-decf point) (cl-incf point))
+		 when (and (reorg-edits--get-field-at-point point)
+			   (not (equal (reorg-edits--get-field-at-point point)
+				       current-field)))
+		 return (prog1 (setf (point) point)
+			  (reorg-edits--post-field-navigation-hook))
+		 when (if previous (= point (org-entry-beginning-position))
+			(= point (org-entry-end-position)))
+		 return nil)
+	(reorg-edits--post-field-navigation-hook))))
+
+  (defun reorg-edits-move-to-previous-field ()
+    "Move to the next field at the current heading."
+    (interactive)  
+    (reorg-edits-move-to-next-field 'previous))
+
+  (defun reorg-edit-field--replace-field-at-point (val field)
+    "Replace FIELD with VAL."
+    (let ((beg (field-beginning))
+	  (end (field-end)))
+      (delete-region beg end)
+      (goto-char beg)
+      (insert (propertize val `(reorg--field-property-name
+				,field
+				field
+				,field)))))
+
+  (defun reorg-edits--get-field-value ()
+    "Get the value of the field at point.  Return 
+nil if there is no value."
+    (field-string-no-properties))
+  ;; (pcase-let ((`(,start . ,end) (reorg-edits--get-field-bounds)))
+  ;;   (when (and start end)
+  ;;     (buffer-substring-no-properties start end))))
+
+  (defun reorg-edits--commit-edit ()
+    "Discard the current edit and restore the node
+to its previous state, and turn off the minor mode."
+    (interactive)
+    (let ((type (reorg-edits--get-field-type))
+	  (val (reorg-edits--get-field-value)))
+      (reorg-view--make-change-in-org-buffer-and-sync-clones
+       (reorg-get-set-props type :val val))
+      (reorg-edits-mode -1)))
+
+  (defun reorg-edits--sync-field-with-source ()
+    "Set SOURCE to the value of the current field."
+    (let ((field (reorg-edits--get-field-at-point))
+	  (val (reorg-edits--get-field-value)))
+      (reorg--with-point-at-orig-entry nil
+				       (reorg-get-set-props field
+							    :val val ))))
+
+  (defun reorg-edits--discard-edit ()
+    "Discard the current edit and restore the node
+to its previous state, and turn off the minor mode."
+    (interactive)
+    (reorg-edit-field--replace-field
+     reorg-edits--restore-state)
+    (setq reorg-edits--restore-state nil)
+    (reorg-edits-mode -1)
+    (message "Discarded edit."))
+
+  (defun reorg-edits--start-edit ()
+    "Start editing the headline at point."
+    (interactive)
+    (reorg-edits-mode 1))
+
+  (defun reorg-edits--move-into-field ()
+    "If the point is at the border of a field, then 
+move it into the field.  This ensures that `reorg-edits--get-field-bounds'
+returns the correct positions."
+    (cond ((and (get-text-property (point) reorg--field-property-name)
+		(not (get-text-property (1- (point)) reorg--field-property-name))
+		(get-text-property (+ 1 (point)) reorg--field-property-name))
+	   (forward-char 1))
+	  ((and (get-text-property (point) reorg--field-property-name)
+		(not (get-text-property (1+ (point)) reorg--field-property-name)))
+	   (forward-char -1))))
+
+  (defun reorg-edit-heading (id prop val)
+    "Update the hashtable at ID by setting PROP to VAL.
+Update the applicable heading in the orgmode document. 
+Update the headings in the view buffer."
+    (plist-put (gethash id reorg-hash-table) prop
+	       (reorg--with-point-at-orig-entry id
+						(plist-get (gethash id reorg-hash-table) :buffer)
+						(reorg-get-set-props prop :val val)
+						(reorg-parser--headline-parser)))
+    (reorg--select-tree-window)
+    (reorg--map-id id
+		   (reorg-views--replace-heading
+		    (gethash id reorg-hash-table))))
+
+  (defun reorg-edits--get-field-at-point (&optional point)
+    "Get the `reorg--field-property-name' at point."
+    (get-text-property (or point (point)) reorg--field-property-name))
+
+  (defun reorg-edits--kill-line ()
+    "Kill up to the end of the end point."
+    (interactive)
+    (pcase-let ((`(,start . ,end) (reorg-edits--get-field-bounds)))
+      (delete-region start end)))
+
+  (defun reorg-edits--get-field-bounds ()
+    "Get the bounds of the field at point."
+    (when-let ((field (reorg-edits--get-field-at-point)))
+      (cons
+       (save-excursion 
+	 (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				    field)
+			     (not (bobp)))
+		  do (forward-char -1)
+		  finally return (1+ (point))))
+       (save-excursion 
+	 (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				    field)
+			     (not (eobp)))
+		  
+		  do (forward-char 1)
+		  finally return (point))))))
+
+  (defun reorg-edits--move-selection-overlay ()
+    (if-let ((bounds (reorg-edits--get-field-bounds)))
+	(move-overlay reorg-edits--current-field-overlay
+		      (car bounds)
+		      (cdr bounds))
+      (delete-overlay reorg-edits--current-field-overlay)))
+;;;; minor mode
+  (define-minor-mode reorg-edits-mode
+    "Minor mode to edit headlines."
+    nil
+    " EDITING HEADLINE"
+    reorg-edits-field-mode-map
+    (when-let* ((prop (get-text-property (point) reorg--field-property-name))
+		(start (previous-single-property-change (point) reorg--field-property-name))
+		(end (next-single-property-change (point) reorg--field-property-name))
+		(val (buffer-substring start end)))
+      ;; on
+      (if reorg-edits-mode
+	  (progn		
+	    ;;(add-hook 'post-command-hook #'reorg-edits--keep-point-in-range nil t)
+	    ;;(reorg--lock-buffer)
+	    (setq cursor-type 'bar
+		  reorg-edits--previous-header-line header-line-format
+		  header-line-format reorg-edits--header-line
+		  reorg-edits--restore-state (reorg-edits--get-field-value)
+		  reorg-edit-field--start-marker (set-marker (make-marker) start)
+		  reorg-edit-field--end-marker (set-marker (make-marker) end)
+		  overriding-local-map reorg-edits-field-mode-map))
+	;; off
+	;;(reorg--unlock-buffer)
+	;;(remove-hook 'post-command-hook #'reorg-edits--keep-point-in-range t)
+	(delete-overlay reorg-edits--current-field-overlay)
+	(setq header-line-format reorg-edits--previous-header-line
+	      reorg-edits--previous-header-line nil
+	      reorg-edit-field--start-marker nil
+	      reorg-edit-field--end-marker nil
+	      reorg-edits--restore-state nil
+	      overriding-local-map nil
+	      cursor-type nil))))
+
+  (provide 'reorg)
 
 
