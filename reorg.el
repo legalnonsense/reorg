@@ -1,5 +1,9 @@
 ;;; -*- lexical-binding: t; -*-
 
+;;; requires
+
+(require 'let-alist)
+
 ;;; constants
 
 (defconst reorg--data-property-name 'reorg-data)
@@ -21,7 +25,8 @@
 
 ;;; variables 
 
-(defvar reorg-parser-list nil)
+(defvar reorg-parser-list nil
+  "parser list")
 (defvar reorg-words nil
   "A list of `reorg-words'.")
 (defvar reorg--cache nil
@@ -85,6 +90,7 @@ then return PROP with no colon prefix."
        (string-match "[[:alnum:]]+-[[:alnum:]]+-[[:alnum:]]+-[[:alnum:]]+-[[:alnum:]]+" data)))
 
 ;;; parsing functions
+
 ;;;; headlines
 
 (defun reorg--goto-headline-start ()
@@ -98,7 +104,6 @@ then return PROP with no colon prefix."
   (save-excursion (reorg--goto-headline-start)))
 
 ;;;; body 
-
 
 (defun reorg-parser--get-body-string ()
   "Parse all elements from the start of the body to the next node.
@@ -243,7 +248,6 @@ timestamp range.  Do not include scheduled or deadline timestamps. "
 ;; 			(equal "END" key))
 ;; 	      (list key val))))))
 
-
 ;;; data macro
 
 (defun reorg--refresh-advice (old-fun &rest args)
@@ -274,101 +278,131 @@ ARGS are supplied to the function defined by ACTION in each
 (cl-defmacro reorg-create-data-type (&optional &key
 					       name
 					       get
+					       getter
 					       set
 					       parse
 					       validate
-					       get-view
 					       disabled
+					       display-prefix
+					       display-suffix
+					       display
 					       face
 					       editable
 					       display
-					       keymap )
+					       field-keymap
+					       heading-keymap
+					       post-edit-hook
+					       pre-edit-hook
+					       &allow-other-keys)
   `(progn
      (let ((data (list 
 		  :parse (lambda () ,parse)
 		  :get (lambda (id &rest args)			 
 			 (reorg--with-point-at-orig-entry id buffer
 							  ,get))
+		  :getter (lambda (plist arg)
+			    ,getter)
 		  :set  (lambda (id val &rest args)
 			  (reorg--with-point-at-orig-entry id buffer
 							   ,set))
-		  :get-view (lambda ()
-			      (pcase-let ((`(,start . ,end)
-					   (reorg--get-field-bounds)))
-				(buffer-substring start end)))
+		  :get-view-string (lambda ()
+				     (pcase-let ((`(,start . ,end)
+						  (reorg--get-field-bounds)))
+				       (buffer-substring start end)))
 		  :validate (lambda (val &rest args)
 			      ,validate)
-		  :display (cl-defun ,(intern (concat "reorg-display--" (intern name))) (&allow-other-keys)
-			     (when ',keymap 
-			       (setq val (propertize
-					  val
-					  'keymap
-					  (let ((map (make-sparse-keymap)))
-					    ,@(cl-loop
-					       for key in keymap
-					       collect `(define-key map
-							  (kbd ,(car key))
-							  ',(cdr key)))
-					    map))))
-			     (when ',face (setq val (propertize
-						     val
-						     'font-lock-face
-						     (if (functionp ',face)
-							 (funcall ',face val)
-						       ',face))))
-			     (setq val (propertize val 'reorg-field-type ',name))
-			     (when ',display
-			       (setq val ((lambda (val) ,display) val)))
-			     val)
-		  (if ',disabled
-		      (progn 
-			(cl-loop for (key . func) in ',keymap
-				 do (advice-remove func #'reorg--refresh-advice))
-			(setq reorg-parser-list (remq ',name reorg-parser-list)))
-		    (cl-loop for (key . func) in ',keymap
-			     do (advice-add func :around #'reorg--refresh-advice))
-		    (if (alist-get ',name reorg-parser-list)
-			(setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
-		      (push (cons ',name (plist-get data :parse)) reorg-parser-list)))))))))
+		  :display (cl-defun ,(intern (concat "reorg-display--"  (symbol-name name))) (plist &rest args)
+			     (let ((val (plist-get plist (or
+							  (when ',getter
+							    ,getter)
+							  ,(reorg--add-remove-colon name)))))
+			       (when ',display (setq val (apply (lambda (&rest args) ,display) args)))
+			       (when ',field-keymap 
+				 (setq val (propertize
+					    val
+					    'keymap
+					    (let ((map (make-sparse-keymap)))
+					      ,@(cl-loop
+						 for key in field-keymap
+						 collect `(define-key map
+							    (kbd ,(car key))
+							    ',(cdr key)))
+					      map))))
+			       (when ',face (setq val (propertize
+						       val
+						       'font-lock-face
+						       (cond ((internal-lisp-face-p ',face)
+							      ',face)
+							     ((functionp ',face)
+							      (funcall ',face val))
+							     (t (error "invalid face specification"))))))
+			       (setq val (concat ,display-prefix val ,display-suffix))
+			       (setq val (propertize val 'reorg-field-type ',name))))
+		  ;; header keymaps come last
+
+
+		  ))) ;; end let 
+       (if ',disabled
+	   (progn 
+	     (cl-loop for (key . func) in ',field-keymap
+		      do (advice-remove func #'reorg--refresh-advice))
+	     (setq reorg-parser-list (remq ',name reorg-parser-list)))
+	 (cl-loop for (key . func) in ',field-keymap
+		  do (advice-add func :around #'reorg--refresh-advice))
+	 (if (alist-get ',name reorg-parser-list)
+	     (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
+	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
 
 ;;; data macro application 
 
 (reorg-create-data-type :name deadline
 			:parse (org-entry-get (point) "DEADLINE")
-			:get (org-entry-get (point) "DEADLINE")
 			:set (if val (org-deadline nil val)
 			       (org-deadline '(4)))
-			:display (concat (apply #'propertize "DEADLINE: "
-						'(font-lock-face org-special-keyword))
-					 val)
+			:display-prefix (apply #'propertize "DEADLINE: "
+					       '(font-lock-face org-special-keyword))
 			:face org-date
-			:keymap (("S-<up>" . org-timestamp-up)
-				 ("S-<down>" . org-timestamp-down))
+			:field-keymap (("S-<up>" . org-timestamp-up)
+				       ("S-<down>" . org-timestamp-down))
 			:validate (with-temp-buffer
 				    (insert val)
 				    (beginning-of-buffer)
 				    (org-timestamp-change 0 'day)
 				    (buffer-string))) 
 
+(reorg-create-data-type :name property
+			:parse (reorg-parser--get-property-drawer)
+			:getter (plist-get (plist-get plist :property-drawer)
+					   (reorg--add-remove-colon (car args)))
+			:display (let* ((key  (reorg--add-remove-colon (car args) t))
+					(val (plist-get (plist-get plist :property-drawer)
+							(reorg--add-remove-colon key))))
+				   (concat
+				    (propertize (format ":%s:" key) 'font-lock-face 'org-special-keyword)
+				    " "
+				    (propertize (format "%s" val) 'font-lock-face 'org-property-value))
+				   (format ":%s: %s" key val))
+			:field-keymap (("C-c C-x p" . org-set-property)))
+
 (reorg-create-data-type :name tags
 			:parse (org-get-tags-string)
 			:get (org-get-tags-string)
 			:set (org-set-tags val)
 			:face org-tag-group
-			:display nil
-			:keymap (("C-c C-c" . org-set-tags-command))
-			:validate nil)
-
+			:heading-keymap (("C-c C-c" . org-set-tags-command)))
 
 (reorg-create-data-type :name todo
 			:parse (org-entry-get (point) "TODO")
-			:get (org-entry-get (point) "TODO")
+			:get (org-entry-get (point) "TODO")			
 			:set (org-todo)
-			:face org-get-todo-face
-			:display nil
-			:keymap (("C-c C-t" . org-todo)
-				 ("S-<right>" . org-shiftright)
-				 ("S-<left>" . org-shiftleft)))
+			:display (when-let ((s (plist-get plist :todo)))
+				   (propertize
+				    s
+				    'font-lock-face
+				    (org-get-todo-face s)))
+			:heading-keymap (("C-c C-t" . org-todo)
+					 ("S-<right>" . org-shiftright)
+					 ("S-<left>" . org-shiftleft)))
 
 (reorg-create-data-type :name scheduled
 			:parse (org-entry-get (point) "SCHEDULED")
@@ -380,7 +414,8 @@ ARGS are supplied to the function defined by ACTION in each
 					 val)
 			:face org-date
 			:keymap (("S-<up>" . org-timestamp-up)
-				 ("S-<down>" . org-timestamp-down))
+				 ("S-<down>" . org-timestamp-down)
+				 ("C-c C-s" . org-schedule))
 			:validate (with-temp-buffer
 				    (insert val)
 				    (beginning-of-buffer)
@@ -399,8 +434,9 @@ ARGS are supplied to the function defined by ACTION in each
 				 (insert (concat val "\n"))
 				 (delete-blank-lines)))
 			:face org-date
-			:keymap (("S-<up>" . org-timestamp-up)
-				 ("S-<down>" . org-timestamp-down))
+			:field-keymap (("S-<up>" . org-timestamp-up)
+				       ("S-<down>" . org-timestamp-down))
+			:header-keymap (("C-c ." . org-time-stamp))
 			:validate (with-temp-buffer
 				    (insert val)
 				    (beginning-of-buffer)
@@ -419,8 +455,9 @@ ARGS are supplied to the function defined by ACTION in each
 				 (insert (concat val "\n"))
 				 (delete-blank-lines)))
 			:face org-date
-			:keymap (("S-<up>" . org-timestamp-up)
-				 ("S-<down>" . org-timestamp-down))
+			:field-keymap (("S-<up>" . org-timestamp-up)
+				       ("S-<down>" . org-timestamp-down))
+			:header-keymap (("C-c ." . org-time-stamp))
 			:validate (with-temp-buffer
 				    (insert val)
 				    (beginning-of-buffer)
@@ -470,8 +507,8 @@ ARGS are supplied to the function defined by ACTION in each
 (reorg-create-data-type :name id
 			:parse (org-id-get-create))
 
-(reorg-create-data-type :name property-drawer
-			:parse (reorg-parser--get-property-drawer))
+(reorg-create-data-type :name headline
+			:parse (org-no-properties (org-get-heading t t t t)))
 
 (reorg-create-data-type :name category-inherited
 			:parse (org-entry-get-with-inheritance "CATEGORY"))
@@ -480,17 +517,13 @@ ARGS are supplied to the function defined by ACTION in each
 			:parse (org-get-category)
 			:set (org-set-property "CATEGORY" val))
 
+
+
 (reorg-create-data-type :name file
 			:parse (buffer-file-name))
 
 (reorg-create-data-type :name buffer-name
 			:parse (buffer-name))
-
-
-
-
-
-
 
 ;;; parsing org file
 
@@ -506,9 +539,26 @@ ARGS are supplied to the function defined by ACTION in each
 See `org-map-entries' for explanation of the parameters."
   (org-with-wide-buffer 
    (org-map-entries
-    #'reorg-parser match scope skip)))
+    #'reorg--parser match scope skip)))
 
 ;;; grouping and sorting parsed results
+;;;; let-plist 
+
+(cl-defmacro reorg--let-plist (plist &rest body)
+  (cl-assert (fboundp 'let-alist))
+  `(cl-labels ((plist-p
+                (lst)
+                (and (listp lst) (keywordp (car lst))))
+	       (decolon
+                (lst)
+                (if (plist-p lst)
+                    (cl-loop for (key value) on lst by #'cddr
+			     for tail = (intern (cl-subseq (symbol-name key) 1))
+			     collect (cons tail (decolon value)))
+                  lst)))
+     (let-alist (decolon ,plist) ,@body)))
+
+;;;; multi-sort
 
 (defun reorg--multi-sort (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
@@ -516,7 +566,7 @@ It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
 SEQUENCE is a sequence to sort."
   (seq-sort 
    (lambda (a b)
-     (cl-loop for (func . pred) in functions-and-predicates
+     (cl-loop for (func . pred) in functions-and-predicates	      
 	      unless (equal (funcall func a)
 			    (funcall func b))
 	      return (funcall pred
@@ -524,9 +574,28 @@ SEQUENCE is a sequence to sort."
 			      (funcall func b))))
    sequence))
 
-(cl-defun reorg--group-and-sort (results template &optional (n 0 np))
+;;;; group and sort 
+
+(cl-defgeneric reorg--seq-group-by (form sequence)
+  "Apply FUNCTION to each element of SEQUENCE.
+Separate the elements of SEQUENCE into an alist using the results as
+keys.  Keys are compared using `equal'."
+  (seq-reduce
+   (lambda (acc elt)
+     (let* ((key (funcall `(lambda (e)
+			     (reorg--let-plist e ,form))
+			  elt))
+	    (cell (assoc key acc)))
+       (if cell
+           (setcdr cell (push elt (cdr cell)))
+	 (push (list key elt) acc))
+       acc))
+   (seq-reverse sequence)
+   nil))
+
+(cl-defun reorg--group-and-sort (list template &optional (n 0 np))
   "Group RESULTS according to TEMPLATE."
-  (let ((copy (seq-copy results)))
+  (let ((copy (copy-tree list)))
     (cl-labels ((doloop (data template &optional (n 0 np) result-sorters)
 			(let ((grouper (plist-get template :group))
 			      (children (plist-get template :children))
@@ -538,19 +607,19 @@ SEQUENCE is a sequence to sort."
 			      (format-string (plist-get template :format-string))
 			      (pre-transformer (plist-get template :pre-transformer))
 			      (post-transformer (plist-get template :post-transformer))
-			      (result-sort-func (or (plist-get template :sort-results-getter)
-						    #'identity))
-			      (result-sort-pred (plist-get template :sort-results)))
-			  (when result-sort-pred
-			    (setq result-sorters (reverse result-sorters))
-			    (push (cons result-sort-func result-sort-pred) 
-				  result-sorters)
-			    (setq result-sorters (reverse result-sorters)))			  
+			      (result-sort (plist-get template :sort-results)))
+			  (when result-sort
+			    (setq result-sorters
+				  (append result-sorters
+					  (cl-loop for (form . pred) in result-sort
+						   collect (cons `(lambda (x)
+								    (reorg--let-plist x
+										      ,form))
+								 pred)))))
 			  (unless np
 			    (let ((old (cl-copy-list data)))
 			      (setcar data '_)
 			      (setcdr data (list old))))
-
 			  (setf (nth n (cdr data))
 				(--> (nth n (cdr data))
 				     (if pre-transformer
@@ -561,10 +630,11 @@ SEQUENCE is a sequence to sort."
 					    (->> it
 						 (seq-group-by grouper)
 						 (seq-map (lambda (x) (list (car x) (cdr x))))))
-					   ((or (stringp grouper)
-						(symbolp grouper))
+					   ((stringp grouper)
 					    (list (list grouper it)))
-					   (t (error "something is wrong with your :group")))
+					   (t (->> it
+						   (reorg--seq-group-by grouper)
+						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
 				     (seq-filter (lambda (x) (and (not (null (car x)))
 								  (not (null (cdr x)))
 								  (not (null x))))
@@ -599,192 +669,103 @@ SEQUENCE is a sequence to sort."
 				       do (setf (cadr (nth x (nth n (cdr data))))
 						(reorg--multi-sort result-sorters
 								   (cadr (nth x (nth n (cdr data))))))))))))
-      (doloop copy template))
-    (cadr copy)))
-
-;;; creating the org outline
+      (doloop copy template)
+      (cadr copy))))
 
 
+;;; Generating the outline
+;;;; process results
+(defun reorg--process-results (data &optional format-string)
+  "Process the results of `reorg--group-and-sort' and turn them into orgmode headings."
+  (setq format-string (or format-string reorg-headline-format))
+  (let (results)
+    (cl-labels ((recurse (data level)
+			 (cl-loop for entry in data
+				  do (push (reorg--create-headline-string (car entry)
+									  format-string
+									  level)
+					   results)
+				  if (reorg--plist-p (caadr entry))
+				  do (cl-loop for x in (cadr entry)
+					      do (push (reorg--create-headline-string x
+										      format-string
+										      (1+ level))
+						       results))
+				  else do (cl-loop for e in (cdr entry)
+						   do (recurse e (1+ level))))))
+      (recurse data 1))
+    (reverse results)))
 
+;;;; Creating headlines from headline template 
 
-(defun reorg--create-headline-string-1 (data format-string &optional num)
-  "this is a mess."
-  (cl-flet* ((get-field-name (keyword) (intern (substring (symbol-name keyword) 1)))
-	     (make-field-string (string field)
-				(concat 
-				 (propertize string
-					     reorg--field-property-name
-					     (get-field-name field))
-				 " "))
-	     (create-stars (num &optional data)
-			   (make-string (if (functionp num)
-					    (funcall num data)
-					  num)
-					?*)))
-    (when (reorg--id-p data)
-      (setq data (gethash data reorg-hash-table)))
-    (if (stringp data)
-	(concat 
-	 (propertize 
-	  (concat (create-stars num nil) " " data)
-	  reorg--field-property-name :no-data)
-	 "\n")
-      (cl-loop for field in format-string  
-	       concat (cond ((symbolp field)
-			     (if (eq field :stars)
-				 (make-field-string (create-stars num data) field)
-			       (when-let ((field-val (reorg--to-string (plist-get data field))))
-				 (make-field-string field-val field))))
-			    ((stringp field) field)
-			    ((listp field)
-			     (concat
-			      (when-let ((field-val (reorg--to-string (plist-get data (car field)))))
-				(make-field-string  (car field)
-						    (get-field-name (car field))))
-			      (propertize " "
-					  'display
-					  `(space . (:align-to ,(cadr field)))))))
-	       into results
-	       finally return
-	       (propertize
-		(concat
-		 results
-		 "\n")
-		reorg--data-property-name data
-		reorg--id-property-name (plist-get data :id))))))
+(defun reorg--create-headline-string (data format-string &optional level)
+  (cl-loop for each in format-string
+	   if (stringp each)
+	   concat each
+	   else if (and (listp each)
+			(stringp (car each)))
+	   concat (car each)
+	   else if (eq 'align-to (car each))
+	   concat (propertize " " 'display `(space . (:align-to ,(cadr each))))
+	   else if (eq 'pad (car each))
+	   concat (make-string (cadr each) ? )
 
+	   else
+	   concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+			 data
+			 (cdr each))))
+;; (defun reorg--generate-org-headings (data format-string &optional num)
+;;   "Turn the output of `reorg--group-and-sort' into 
+;;   orgmode headings."
+;;   (cl-flet* ((get-field-name (keyword) (intern (substring (symbol-name keyword) 1)))
+;; 	     (make-field-string (string field)
+;; 				(concat 
+;; 				 (propertize string
+;; 					     reorg--field-property-name
+;; 					     (get-field-name field))
+;; 				 " "))
+;; 	     (create-stars (num &optional data)
+;; 			   (make-string (if (functionp num)
+;; 					    (funcall num data)
+;; 					  num)
+;; 					?*)))
+;;     (when (reorg--id-p data)
+;;       (setq data (gethash data reorg-hash-table)))
+;;     (if (stringp data)
+;; 	(concat 
+;; 	 (propertize 
+;; 	  (concat (create-stars num nil) " " data)
+;; 	  reorg--field-property-name :no-data)
+;; 	 "\n")
+;;       (cl-loop for field in format-string  
+;; 	       concat (cond ((symbolp field)
+;; 			     (if (eq field :stars)
+;; 				 (make-field-string (create-stars num data) field)
+;; 			       (when-let ((field-val (reorg--to-string (plist-get data field))))
+;; 				 (make-field-string field-val field))))
+;; 			    ((stringp field) field)
+;; 			    ((listp field)
+;; 			     (concat
+;; 			      (when-let ((field-val (reorg--to-string (plist-get data (car field)))))
+;; 				(make-field-string  (car field)
+;; 						    (get-field-name (car field))))
+;; 			      (propertize " "
+;; 					  'display
+;; 					  `(space . (:align-to ,(cadr field)))))))
+;; 	       into results
+;; 	       finally return
+;; 	       (propertize
+;; 		(concat
+;; 		 results
+;; 		 "\n")
+;; 		reorg--data-property-name data
+;; 		reorg--id-property-name (plist-get data :id))))))
 
-(defun reorg--create-headline-string (data format-string &optional num)
-  "this is a mess."
-  (cl-flet* ((get-field-name (keyword) (intern (substring (symbol-name keyword) 1)))
-	     (make-field-string (string field)
-				(concat 
-				 (propertize string
-					     reorg--field-property-name
-					     (get-field-name field))
-				 " "))
-	     (create-stars (num &optional data)
-			   (make-string (if (functionp num)
-					    (funcall num data)
-					  num)
-					?*)))
-    (when (reorg--id-p data)
-      (setq data (gethash data reorg-hash-table)))
-    (if (stringp data)
-	(concat 
-	 (propertize 
-	  (concat (create-stars num nil) " " data)
-	  reorg--field-property-name :no-data)
-	 "\n")
-      (cl-loop for field in format-string  
-	       concat (cond ((symbolp field)
-			     (if (eq field :stars)
-				 (make-field-string (create-stars num data) field)
-			       (when-let ((field-val (reorg--to-string (plist-get data field))))
-				 (make-field-string field-val field))))
-			    ((stringp field) field)
-			    ((listp field)
-			     (concat
-			      (when-let ((field-val (reorg--to-string (plist-get data (car field)))))
-				(make-field-string  (car field)
-						    (get-field-name (car field))))
-			      (propertize " "
-					  'display
-					  `(space . (:align-to ,(cadr field)))))))
-	       into results
-	       finally return
-	       (propertize
-		(concat
-		 results
-		 "\n")
-		reorg--data-property-name data
-		reorg--id-property-name (plist-get data :id))))))
-
-;; (setq reorg-format-string '( stars
-;; 			     (pad 50)
-;; 			     todo
-;; 			     (pad 10)
-;; 			     (if deadline
-;; 				 (progn 
-;; 				   (concat (propertize "DEADLINE: " 'font-lock-face 'org-special-keyword)
-;; 					   deadline)
-;; 				   (pad 10))
-;; 			       (pad 100))
-;; 			     (align-right )))
-
-
-;; (defun reorg--align-to (string post-pad &optional pre-pad ellipsis)
-;;   "asdf"
-;;   (concat (when pre-pad 
-;; 	    (propertize " " 'display `(space . (:align-to ,pre-pad))))
-;; 	  (if (>= (length string) (- post-pad (length (or ellipsis 0))))
-;; 	      (truncate-string-to-width string post-pad 0 nil ellipsis t)
-;; 	    string)
-;; 	  (when post-pad 
-;; 	    (propertize " " 'display `(space . (:align-to ,post-pad))))))
-
-
-;; (insert (reorg--align-to "asxxxxxxxxxxxxxxxxdf" 20 nil "... ")
-;; 	(reorg--align-to "zzzzzzzz" 30 nil "... "))
-;; . asxxxxxxxxxxxxxxxxdf zzzzzzzz 
-
-
-
-
-
-
-
-(defun reorg--generate-org-headings (data format-string &optional num)
-  "Turn the output of `reorg--group-and-sort' into 
-  orgmode headings."
-  (cl-flet* ((get-field-name (keyword) (intern (substring (symbol-name keyword) 1)))
-	     (make-field-string (string field)
-				(concat 
-				 (propertize string
-					     reorg--field-property-name
-					     (get-field-name field))
-				 " "))
-	     (create-stars (num &optional data)
-			   (make-string (if (functionp num)
-					    (funcall num data)
-					  num)
-					?*)))
-    (when (reorg--id-p data)
-      (setq data (gethash data reorg-hash-table)))
-    (if (stringp data)
-	(concat 
-	 (propertize 
-	  (concat (create-stars num nil) " " data)
-	  reorg--field-property-name :no-data)
-	 "\n")
-      (cl-loop for field in format-string  
-	       concat (cond ((symbolp field)
-			     (if (eq field :stars)
-				 (make-field-string (create-stars num data) field)
-			       (when-let ((field-val (reorg--to-string (plist-get data field))))
-				 (make-field-string field-val field))))
-			    ((stringp field) field)
-			    ((listp field)
-			     (concat
-			      (when-let ((field-val (reorg--to-string (plist-get data (car field)))))
-				(make-field-string  (car field)
-						    (get-field-name (car field))))
-			      (propertize " "
-					  'display
-					  `(space . (:align-to ,(cadr field)))))))
-	       into results
-	       finally return
-	       (propertize
-		(concat
-		 results
-		 "\n")
-		reorg--data-property-name data
-		reorg--id-property-name (plist-get data :id))))))
+;;; Insert headlines into buffer
 
 (defun reorg--insert-org-headlines (data)
   "it's just a loop"
   (cl-loop for x in data do (insert x)))
-
 ;;; window control
 
 (defun reorg--open-side-window ()
@@ -805,7 +786,6 @@ switch to that buffer in the window."
   (select-window
    (car 
     (window-at-side-list nil reorg-buffer-side))))
-
 
 ;;; view buffer
 
@@ -890,6 +870,7 @@ switch to that buffer in the window."
     (goto-char (point-min))))
 
 ;;; reorg-views
+
 ;;;; view buffer functions
 
 (defun reorg-view--update-highlight-overlay (&optional &rest _args)
@@ -1185,6 +1166,7 @@ current view entry."
     (add-hook 'post-command-hook #'reorg--post-command-hook nil t)))
 
 ;;;; customs
+
 (defcustom reorg-edits-commit-edit-shortcut "C-c C-c"
   "Shortcut to commit edits when in `reorg-edits-mode'
 Accepts any string acceptable to `kbd'."
@@ -1201,6 +1183,7 @@ Accepts any string acceptable to `kbd'."
   :type 'string)
 
 ;;;; variables
+
 (defvar reorg-edits--restore-state nil
   "When editing a clone, save the current headline and body
   to restore if the edit is abandoned.")
@@ -1450,7 +1433,9 @@ Update the headings in the view buffer."
 		    (car bounds)
 		    (cdr bounds))
     (delete-overlay reorg-edits--current-field-overlay)))
+
 ;;;; minor mode
+
 (define-minor-mode reorg-edits-mode
   "Minor mode to edit headlines."
   nil
@@ -1485,5 +1470,15 @@ Update the headings in the view buffer."
 	    cursor-type nil))))
 
 (provide 'reorg)
+
+
+;;;; testing 
+
+(reorg--group-and-sort xxx '(:group "x")) ;;;test
+;; '( (stars)
+;;    (headline-text args)
+;;    (align-to 50)
+;;    (prop-name args)
+;;    (pad 50))
 
 
