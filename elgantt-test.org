@@ -11,7 +11,6 @@ DEADLINE: <2020-05-10 Sun> SCHEDULED: <2020-02-03 Mon>
 :ID:       7cda092c-d670-4545-892b-4eae2c68c4fa
 :ELGANTT-COLOR: Red Yellow
 :ELGANTT-LINKED-TO: 0b4dde5d-4363-47d2-9995-b82c36a40645
-:nil:
 :END:
 asdf
 xxx
@@ -96,9 +95,11 @@ a
 * Launch pad
 :PROPERTIES:
 :ID:       b1444d1f-6fae-4475-83dc-39a83efc8d8b
+:test:     1 2 3
+:CATEGORY: ssss
 :END:
 
-** <2020-01-01 Wed> opp_due new headlin cas:
+** <2020-01-01 Wed> opp_due new headline case:
 DEADLINE: <2020-01-01 Wed> SCHEDULED: <2020-01-24 Fri>
 :PROPERTIES:
 :ELGANTT-COLOR: LightGreen DarkGreen

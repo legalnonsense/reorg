@@ -699,21 +699,26 @@ keys.  Keys are compared using `equal'."
 ;;;; Creating headlines from headline template 
 
 (defun reorg--create-headline-string (data format-string &optional level)
-  (cl-loop for each in format-string
-	   if (stringp each)
-	   concat each
-	   else if (and (listp each)
-			(stringp (car each)))
-	   concat (car each)
-	   else if (eq 'align-to (car each))
-	   concat (propertize " " 'display `(space . (:align-to ,(cadr each))))
-	   else if (eq 'pad (car each))
-	   concat (make-string (cadr each) ? )
-
-	   else
-	   concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
-			 data
-			 (cdr each))))
+  (cl-flet ((create-stars (num &optional data)
+			  (make-string (if (functionp num)
+					   (funcall num data)
+					 num)
+				       ?*)))
+    (if (stringp data)
+	(concat (create-stars level) " " data)
+      (cl-loop for each in format-string
+	       if (stringp (car each))
+	       concat (car each)
+	       else if (eq 'stars (car each))
+	       concat (create-stars level)
+	       else if (eq 'align-to (car each))
+	       concat (propertize " " 'display `(space . (:align-to ,(cadr each))))
+	       else if (eq 'pad (car each))
+	       concat (make-string (cadr each) ? )
+	       else
+	       concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+			     data
+			     (cdr each))))))
 ;; (defun reorg--generate-org-headings (data format-string &optional num)
 ;;   "Turn the output of `reorg--group-and-sort' into 
 ;;   orgmode headings."
@@ -1474,11 +1479,12 @@ Update the headings in the view buffer."
 
 ;;;; testing 
 
-(reorg--group-and-sort xxx '(:group "x")) ;;;test
-;; '( (stars)
-;;    (headline-text args)
-;;    (align-to 50)
-;;    (prop-name args)
-;;    (pad 50))
+(cl-loop for x in (reorg--process-results (reorg--group-and-sort xxx '( :group (concat "Legs: " .property.legs)
+									:children (( :group (concat "Aquatic: "
+												    (if (string= "1" .property.aquatic)
+													"yes"
+												      "no"))))))
 
+					  '((stars) (pad 10) (headline)))
+	 do (insert x "\n"))
 
