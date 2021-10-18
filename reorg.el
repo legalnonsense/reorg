@@ -1482,11 +1482,12 @@ Update the headings in the view buffer."
 
 ;;;; testing 
 
-(cl-loop for x in (reorg--process-results (reorg--group-and-sort xxx '( :group (concat "Legs: " (or .property.legs "nil"))
-									:children (( :group (concat "Aquatic: "
-												    (if (string= "1" .property.aquatic)
-													"yes"
-												      "no"))))))
+(cl-loop for x in (reorg--process-results (reorg--group-and-sort (reorg--map-entries nil '("~/.emacs.d/lisp/reorg/zoo.org"))
+								 '( :group (concat "Legs: " (or .property.legs "nil"))
+								    :children (( :group (concat "Aquatic: "
+												(if (string= "1" .property.aquatic)
+												    "yes"
+												  "no"))))))
 
 					  '((stars) (" ") (headline) ("\n")
 					    (pad 10) (property legs)))
