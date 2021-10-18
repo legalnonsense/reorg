@@ -1,0 +1,95 @@
+* /Re/​organize your life
+This is a prototype for a new approach to org-agenda. 
+** Overview
+Create a tree view buffer of your orgmode file, akin to Leo Editor. 
+
+Dynamically, recursively, and automatically reorganize your orgmode files into new outlines shown in that tree view 
+
+Customize the data displayed in each heading. (E.g., deadline, timestamp, tags, TODO, properties, etc.)
+
+Edit the data displayed in each heading, with all changes immediately syncing to the underlying org file.
+** Usage 
+*** Step 1. Write a grouping and sorting template. 
+Imagine an orgmode file:
+#+begin_src org :results silent 
+  ,* Jack :tag1:
+  DEADLINE: <2021-10-12 Tue>
+  ,* Justin :tag2:
+  DEADLINE: <2021-10-26 Tue>
+  ,* Alice :tag1:
+  DEADLINE: <2021-10-12 Tue>
+  ,* Alabaster :tag2:
+  DEADLINE: <2021-10-08 Fri>
+#+end_src
+
+You want to group them like this:
+#+begin_src org :results silent
+  ,* “MY CUSTOM HEADING”
+  ,** headline text (in alphabetical order)
+  ,*** tag (unsorted)
+  (with results sorted by deadline, earliest first)
+#+end_src
+#+begin_src emacs-lisp :results silent
+  '( :group "MY CUSTOM HEADING"
+     :children (( :group (lambda (x) (plist-get x :headline-only))
+                  :children (( :group (lambda (x) (plist-get x :tag-string))
+                               :sort-results (lambda (x) (plist-get x :tag-string)))))))
+#+end_src
+This will produce:
+#+begin_src org :results silent 
+  #+end_src
+| keyword       | description        | elisp                                                                 |
+|---------------+--------------------+-----------------------------------------------------------------------|
+| :group        | Function or string | A function accepting one argument, the plist of the heading at point. |
+| :children     | more groups        | the children keyword is followed by a new group                       |
+| :sort         | Sort the groups    | A function that accepts two arguments and returns the first           |
+| :sort-results | Sort the results   | A function that accepts two arguments and returns the first           |
+There are a lot of other features of the grouping sorting function. See the source code.
+
+The grouped and sorted results are translated into an outline and displayed in a side buffer. 
+*** Step 2. Write a display template
+:PROPERTIES:
+:ID:       e188c453-38b0-4344-bdee-d0b7b9d34ce3
+:END:
+The information shown in each heading depends on a display template.
+
+A display template takes the following form:
+
+
+It is not necessary to display the leading stars, i.e., it can look more like a flat agenda view.
+*** Step 4. Using the outline
+**** Navigation 
+***** headings
+***** heading fields
+***** clones 
+**** Editing fields
+*** Customization 
+**** Defining new data types
+:PROPERTIES:
+:ID:       d3205aae-528a-4282-ba20-6c1fd15a9798
+:END:
+Each definition has the following components. 
+1. name 
+2. parser
+3. setter
+4. field keymap
+5. heading keymap
+6. display function
+7. validation function
+*** Planned 
+**** Changing views on the fly
+:PROPERTIES:
+:ID:       0a8b0883-2b86-4db0-bb50-f3ef9778ab3f
+:END:
+***** Hoisting headings 
+***** Inverting the outline
+***** Infinite outlines 
+**** Capturing new entries 
+:PROPERTIES:
+:ID:       50bb18ae-ba60-4a8f-8395-51870e377b35
+:END:
+**** Saving outline views 
+*** Can we talk about your code?
+We can talk about making it better.
+- The sorting and grouping function
+- The 
