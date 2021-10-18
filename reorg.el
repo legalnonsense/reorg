@@ -372,10 +372,10 @@ ARGS are supplied to the function defined by ACTION in each
 
 (reorg-create-data-type :name property
 			:parse (reorg-parser--get-property-drawer)
-			:getter (plist-get (plist-get plist :property-drawer)
+			:getter (plist-get (plist-get plist :property)
 					   (reorg--add-remove-colon (car args)))
-			:display (let* ((key  (reorg--add-remove-colon (car args) t))
-					(val (plist-get (plist-get plist :property-drawer)
+			:display (let* ((key (reorg--add-remove-colon (car args) t))
+					(val (plist-get (plist-get plist :property)
 							(reorg--add-remove-colon key))))
 				   (concat
 				    (propertize (format ":%s:" key) 'font-lock-face 'org-special-keyword)
@@ -640,9 +640,7 @@ keys.  Keys are compared using `equal'."
 								  (not (null x))))
 						 it)
 				     (if sorter
-					 (progn 
-					   (setq xxx it)
-					   (seq-sort-by (or sort-getter #'car) sorter it))
+					 (seq-sort-by (or sort-getter #'car) sorter it)
 				       it)
 				     (if post-filter
 					 (cl-loop for each in it
@@ -711,6 +709,10 @@ keys.  Keys are compared using `equal'."
 	       concat (car each)
 	       else if (eq 'stars (car each))
 	       concat (create-stars level)
+	       else if (eq 'property (car each))
+	       concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+			     data
+			     (cdr each))
 	       else if (eq 'align-to (car each))
 	       concat (propertize " " 'display `(space . (:align-to ,(cadr each))))
 	       else if (eq 'pad (car each))
@@ -771,6 +773,7 @@ keys.  Keys are compared using `equal'."
 (defun reorg--insert-org-headlines (data)
   "it's just a loop"
   (cl-loop for x in data do (insert x)))
+
 ;;; window control
 
 (defun reorg--open-side-window ()
@@ -1479,12 +1482,12 @@ Update the headings in the view buffer."
 
 ;;;; testing 
 
-(cl-loop for x in (reorg--process-results (reorg--group-and-sort xxx '( :group (concat "Legs: " .property.legs)
+(cl-loop for x in (reorg--process-results (reorg--group-and-sort xxx '( :group (concat "Legs: " (or .property.legs "nil"))
 									:children (( :group (concat "Aquatic: "
 												    (if (string= "1" .property.aquatic)
 													"yes"
 												      "no"))))))
 
-					  '((stars) (pad 10) (headline)))
+					  '((stars) (" ") (headline) ("\n")
+					    (pad 10) (property legs)))
 	 do (insert x "\n"))
-
