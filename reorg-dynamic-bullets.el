@@ -273,24 +273,15 @@ This function searches the region for the headline regexp and calls
 		   (point))))
 	(reorg-dynamic-bullets--fontify beg end)))))
 
-(defun reorg-dynamic-bullets--org-cycle-hook-func (state)
+(defun reorg-dynamic-bullets--org-cycle-hook-func ()
   "Called after `org-cyle'."
-  (pcase state
-    ((or `overview
-	 `contents
-	 `showall)
-     (reorg-dynamic-bullets--fontify-buffer))
-    ((or `folded
-	 `children
-	 `subtree)
-     (reorg-dynamic-bullets--fontify-tree))
-    (_ nil)))
+  (reorg-dynamic-bullets--fontify-buffer))
 
 ;;;; Hooks and advice
 
 (defun reorg-dynamic-bullets--add-hook-or-advice (hook-or-func
-						func
-						&optional remove)
+						  func
+						  &optional remove)
   "If HOOK-OR-FUNC is a hook, add FUNC as a local hook.
 If HOOK-OF-FUNC is a function, add FUNC as advice after HOOK-OR-FUNC.
 if REMOVE is non-nil, remove the hook or advice."
