@@ -9,6 +9,7 @@
 
 (require 'let-alist)
 (require 'reorg-dynamic-bullets)
+(require 'org-visual-indent)
 
 ;;; constants
 
@@ -41,6 +42,11 @@ For now, only for debugging purposes.")
 (defvar reorg--grouped-results nil
   "The results of applying reorg--group-and-sort
 to parsed data.  For now, only for debugging.")
+
+(defvar reorg-setter-alist nil
+  "setter alist")
+(defvar reorg--last-point nil
+  "last point (edit mode)")
 
 ;;; macros
 
@@ -110,178 +116,7 @@ then return PROP with no colon prefix."
   (save-excursion (reorg--goto-headline-start)))
 
 ;;;; body 
-
-(defun reorg-parser--get-body-string ()
-  "Parse all elements from the start of the body to the next node.
-and return the tree beginning with the section element.
-If NO-PROPS is non-nil, remove text properties."
-  (org-no-properties 
-   (org-element-interpret-data
-    (org-element--parse-elements (save-excursion (org-back-to-heading)
-						 (org-end-of-meta-data t)
-						 (point))
-				 (or (save-excursion (outline-next-heading))
-				     (point-max))
-				 'section nil nil nil nil))))
-
-(defun reorg-parser--set-body-string (string)
-  "Parse all elements from the start of the body to the next node.
-and return the tree beginning with the section element.
-If NO-PROPS is non-nil, remove text properties."
-  (save-excursion 
-    (if-let* ((props (cadar 
-		      (org-element--parse-elements (save-excursion (org-back-to-heading)
-								   (org-end-of-meta-data t)
-								   (point))
-						   (or (save-excursion (outline-next-heading))
-						       (point-max))
-						   'section nil nil nil nil)))
-	      (begin (plist-get props :begin))
-	      (end (plist-get props :end)))
-	(progn 
-	  (delete-region begin end)
-	  (goto-char begin)
-	  (insert string))
-      (org-end-of-meta-data)
-      (insert string))
-    (unless (string= "\n" (substring string (1- (length string))))
-      (insert "\n"))
-    (delete-blank-lines)))
-
-;;;; timestamps
-
-(defun reorg--timestamp-parser (&optional inactive range)
-  "Get the first timestamp at the current heading.  If INACTIVE
-is non-nil, get the first inactive timestamp.  If RANGE is non-nil,
-get the first active/inactive (depending on the value of INACTIVE) 
-timestamp range.  Do not include scheduled or deadline timestamps. "
-  (org-element-map
-      (org-element--parse-elements
-       (point)
-       (org-entry-end-position)
-       'section nil nil nil nil)
-      'timestamp
-    (lambda (timestamp)
-      (when (eq (plist-get (cadr timestamp) :type)
-		(pcase `(,inactive ,range)
-		  (`(t t) 'inactive-range)
-		  (`(t nil) 'inactive)
-		  (`(nil t) 'active-range)
-		  (`(nil nil) 'active)))
-	(plist-get (cadr timestamp) :raw-value)))
-    nil t))
-
-;;;; relations
-
-(defun reorg-parser--get-children-ids ()
-  "Get the list of IDs of all children."
-  (org-with-wide-buffer
-   (let (ids)
-     (when (org-goto-first-child)
-       (push (org-id-get (point) t) ids)
-       (while (outline-get-next-sibling)
-	 (push (org-id-get (point) t) ids)))
-     ids)))
-
-;;;; tags
-
-(defun reorg-parser--get-tags (which)
-  "Get tags for heading at point.  WHICH can be:
-'local      only get local tags
-'all        get both local and inherited tags
-'inherited  get only inherited tags.
-'string     get the tag string for the heading"
-  (pcase which
-    (`string (org-get-tags-string))
-    (`local (mapcar #'org-no-properties (org-get-local-tags)))
-    (`all (mapcar #'org-no-properties (org-get-tags (point))))
-    (`inherited
-     (seq-difference
-      (mapcar #'org-no-properties (org-get-tags (point)))
-      (mapcar #'org-no-properties (org-get-local-tags))))
-    (_ (error "%s is not a valid tag option" which))))
-
-;;;; properties
-
-(defun reorg-parser--get-property-drawer ()
-  "asdf"
-  (save-excursion
-    (org-back-to-heading)
-    (let (seen-base props)
-      (while (re-search-forward org-property-re (org-entry-end-position) t)
-	(let* ((key (upcase (match-string-no-properties 2)))
-	       (extendp (string-match-p "\\+\\'" key))
-	       (key-base (if extendp (substring key 0 -1) key))
-	       (value (match-string-no-properties 3)))
-	  (cond
-	   ((member-ignore-case key-base org-special-properties))
-	   (extendp
-	    (setq props
-		  (org--update-property-plist key value props)))
-	   ((member key seen-base))
-	   (t (push key seen-base)
-	      (let ((p (assoc-string key props t)))
-		(if p (setcdr p (concat value " " (cdr p)))
-		  (unless (or (null key)
-			      (equal "" key)
-			      (equal "PROPERTIES" key)
-			      (equal "END" key))
-		    (setq props (append (list
-					 (reorg--add-remove-colon (intern (downcase key)))
-					 value)
-					props)))))))))
-      props)))
-
-;; (defun reorg-parser--get-property-drawer ()
-;;   "adsf"
-;;   ;; (seq-remove (lambda (prop)
-;;   ;; 		(let ((key (car prop)))
-;;   ;; 		  (or (null key)
-;;   ;; 		      (equal "PROPERTIES" key)
-;;   ;; 		      (equal "END" key))))
-;;   (org-element-map
-;; 	  (org-element--parse-elements
-;; 	   (point)
-;; 	   (org-entry-end-position)
-;; 	   'node-property 'greater-element nil nil nil)
-;; 	  'node-property
-;; 	(lambda (prop)
-;; 	  (when-let ((key (plist-get (cadr prop) :key))
-;; 		     (val (plist-get (cadr prop) :value)))
-;; 	    (unless (or (null key)
-;; 			(equal "" key)
-;; 			(equal "PROPERTIES" key)
-;; 			(equal "END" key))
-;; 	      (list key val))))))
-
 ;;; data macro
-
-(defun reorg--refresh-advice (old-fun &rest args)
-  (setq xxx  (list old-fun args))
-  (let ((old old-fun))
-    (reorg--with-point-at-orig-entry nil nil
-				     (funcall-interactively old))))
-
-
-(defun reorg--modification-hook ()
-  (pcase-let* ((`(,start . ,end) (reorg--get-field-bounds))
-	       (new-val (buffer-substring-no-properties start end))
-	       (field (reorg--get-field-at-point)))
-    (delete-region start end)
-    (goto-char start)
-    (insert (reorg-action field 'display new-val))))
-
-(defun reorg-action (type action &rest args)
-  "Call the ACTION associated with TYPE.  ACTION
-can be get, set, display, or validate.  TYPE is any
-data type defined by the `reorg-create-data-type' macro.
-ARGS are supplied to the function defined by ACTION in each 
-`reorg-create-data-type' declaration."
-  (apply
-   (plist-get 
-    (alist-get type reorg-parser-list)
-    (reorg--add-remove-colon action))
-   args))
 
 (cl-defmacro reorg-create-data-type (&optional &key
 					       name
@@ -310,10 +145,7 @@ ARGS are supplied to the function defined by ACTION in each
 			 (reorg--with-point-at-orig-entry id buffer
 							  ,get))
 		  :getter (lambda (plist arg)
-			    ,getter)
-		  :set  (lambda (id val &rest args)
-			  (reorg--with-point-at-orig-entry id buffer
-							   ,set))
+			    ,getter)		  
 		  :get-view-string (lambda ()
 				     (pcase-let ((`(,start . ,end)
 						  (reorg--get-field-bounds)))
@@ -338,6 +170,7 @@ ARGS are supplied to the function defined by ACTION in each
 			       (setq val (concat ,display-prefix val ,display-suffix))
 			       (setq val (propertize val 'reorg-field-type ',name))
 			       (setq val (propertize val 'field (list 'reorg ',name)))
+			       (setq val (propertize val 'front-sticky t))
 			       (when ',field-keymap 
 				 (setq val (propertize
 					    val
@@ -360,16 +193,24 @@ ARGS are supplied to the function defined by ACTION in each
 	     (setq reorg-parser-list (remq ',name reorg-parser-list)))
 	 ;; (cl-loop for (key . func) in ',field-keymap
 	 ;; 	  do (advice-add func :around #'reorg--refresh-advice))
+
+	 (if (alist-get ',name reorg-setter-alist)
+	     (setf (alist-get ',name reorg-setter-alist) ,set)
+	   (push (cons ',name ,set) reorg-setter-alist))
+	 
 	 (if (alist-get ',name reorg-parser-list)
 	     (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
 	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
+
 
 ;;; data macro application 
 
 (reorg-create-data-type :name deadline
 			:parse (org-entry-get (point) "DEADLINE")
-			:set (if val (org-deadline nil val)
-			       (org-deadline '(4)))
+			:set (lambda ()
+			       (reorg--with-source-buffer
+				 (if val (org-deadline nil val)
+				   (org-deadline '(4)))))
 			:display-prefix (apply #'propertize "DEADLINE: "
 					       '(font-lock-face org-special-keyword))
 			:face org-date
@@ -383,10 +224,20 @@ ARGS are supplied to the function defined by ACTION in each
 				    (org-timestamp-change 0 'day)
 				    (buffer-string))) 
 
+(reorg-create-data-type :name headline
+			:set (lambda ()
+			       (let ((val (field-string-no-properties)))
+				 (reorg--with-source-buffer val
+				   (org-edit-headline val))))
+			:parse (org-no-properties (org-get-heading t t t t)))
+
 (reorg-create-data-type :name property
 			:parse (reorg-parser--get-property-drawer)
-			:getter (plist-get (plist-get plist :property)
-					   (reorg--add-remove-colon (car args)))
+			:set (let* ((pair (split-string (field-string-no-properties) ":" t " "))
+				    (key (upcase (car pair)))
+				    (val (cadr pair)))
+			       (reorg--with-source-buffer (cons key val)
+							  (org-set-property (car arg) (cdr arg))))
 			:display (let* ((key (reorg--add-remove-colon (car args) t))
 					(val (plist-get (plist-get plist :property)
 							(reorg--add-remove-colon key))))
@@ -396,6 +247,9 @@ ARGS are supplied to the function defined by ACTION in each
 				    (propertize (format "%s" val) 'font-lock-face 'org-property-value))
 				   (format ":%s: %s" key val))
 			:field-keymap (("C-c C-x p" . org-set-property)))
+
+(defun xxx-props ()
+  )
 
 (reorg-create-data-type :name tags
 			:parse (org-get-tags-string)
@@ -407,7 +261,7 @@ ARGS are supplied to the function defined by ACTION in each
 (reorg-create-data-type :name todo
 			:parse (org-entry-get (point) "TODO")
 			:get (org-entry-get (point) "TODO")			
-			:set (org-todo)
+			:set (org-todo val)
 			:display (when-let ((s (plist-get plist :todo)))
 				   (propertize
 				    s
@@ -520,8 +374,7 @@ ARGS are supplied to the function defined by ACTION in each
 (reorg-create-data-type :name id
 			:parse (org-id-get-create))
 
-(reorg-create-data-type :name headline
-			:parse (org-no-properties (org-get-heading t t t t)))
+
 
 
 (reorg-create-data-type :name category-inherited
@@ -1081,6 +934,21 @@ the point and return nil."
     map)
   "keymap")
 
+
+(defmacro reorg--with-source-buffer (&rest body)
+  "Execute BODY in the source buffer and
+update the heading at point."
+  (declare (indent defun))
+  `(progn
+     (let ((val (field-string-no-properties)))
+       (reorg-view--tree-to-source--goto-heading)
+       ,@body
+       (reorg--select-tree-window)
+       (reorg--update-this-heading))))
+
+
+
+
 (define-derived-mode reorg-view-mode outline-mode
   "Org tree view"
   "Tree view of an Orgmode file. \{keymap}"
@@ -1189,7 +1057,7 @@ invoked.")
 (defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
   "Execute BODY with point at the heading with ID at point."
   `(when-let ((id ,(or id (reorg--get-view-prop :id))))
-     (with-current-buffer (or ,buffer (reorg--get-view-prop :buffer))
+     (with-current-buffer ,(or buffer (reorg--get-view-prop :buffer))
        (org-with-wide-buffer 
 	(goto-char (point-min))
 	;; NOTE: Can't use `org-id-goto' here or it will keep the
@@ -1292,9 +1160,103 @@ to its previous state, and turn off the minor mode."
   (interactive)
   (let ((type (reorg-edits--get-field-type))
 	(val (reorg-edits--get-field-value)))
-    (reorg-view--make-change-in-org-buffer-and-sync-clones
-     (reorg-get-set-props type :val val))
+    (funcall (alist-get type reorg-setter-alist) val)
+    (reorg--update-this-heading)
     (reorg-edits-mode -1)))
+
+(cl-defun reorg-get-set-props (prop &key
+				    (val nil valp)
+				    keep
+				    multi-value
+				    inherit
+				    literal-nil
+				    no-duplicates
+				    no-text-properties
+				    &allow-other-keys)
+  "Change the org heading at point by set PROP to VAL.
+It accepts the following properties, as well as any others that are set 
+in the headings property drawer. Any such properties can be accessed as string
+ or a symbol, e.g., \"CATEGORY\" or 'category.  See the return value of 
+`reorg-parser--headline-parser' for more information.
+There are flags for dealing with multivalued properties, inheritence, 
+etc.:
+If VAL is a list, assume a multi-valued property.
+If KEEP is non-nil and VAL is a list or MULTI is non-nil, keep the old value.
+If NO-DUPLICATES is non-nil and dealing with multi-valued, delete duplicates.
+If MULTI is non-nil, use a multivalued property even if VAL is not a list.
+Return a cons cell with the old value as the `car' and new value as the `cdr'."
+  (cl-macrolet ((get-or-set (&key get set)
+			    `(if (not valp)
+				 ,get
+			       (let ((old-val ,get))
+				 (save-excursion 
+				   (org-back-to-heading)		 
+				   ,set
+				   (cons old-val ,get))))))
+    (pcase prop
+      ;;(org-insert-time-stamp (org-read-date t t "2021-01-01"))
+      (`deadline
+       (get-or-set :get (org-entry-get (point) "DEADLINE" inherit literal-nil)
+		   :set (if (null val)
+			    (org-deadline '(4))
+			  (org-deadline nil val))))
+      (`scheduled
+       (get-or-set :get (org-entry-get (point) "SCHEDULED" inherit literal-nil)
+		   :set (if (null val)
+			    (org-schedule '(4))
+			  (org-schedule nil val))))
+      (`comment
+       (get-or-set :get (org-in-commented-heading-p)
+		   :set (when (not (xor (not val)
+					(org-in-commented-heading-p)))
+			  (org-toggle-comment))))
+      (`tags
+       (get-or-set :get (org-get-tags (point) (not inherit))
+		   :set (if keep
+			    (org-set-tags (if no-duplicates
+					      (delete-duplicates (append old-val
+									 (-list val))
+								 :test #'string=)
+					    (append old-val (-list val))))
+			  (org-set-tags val))))
+      (`headline
+       (get-or-set :get (org-entry-get (point) "ITEM")
+		   ;; keep the comment if it is there
+		   :set (let ((commentedp (org-in-commented-heading-p)))
+			  (org-edit-headline val)
+			  (when commentedp
+			    (reorg-get-set-props 'comment :val t)))))
+      (`todo
+       (get-or-set :get (org-entry-get (point) "TODO")
+		   :set (org-todo val)))
+      ((or `timestamp
+	   `timestamp-ia)
+       (get-or-set :get (org-entry-get (point) (if (eq 'timestamp prop)
+						   "TIMESTAMP"
+						 "TIMESTAMP_IA"))
+		   :set (if (and old-val
+				 (search-forward old-val (org-entry-end-position) t))
+			    (progn (replace-match (concat val))
+				   (delete-blank-lines))
+			  (org-end-of-meta-data t)
+			  (delete-blank-lines)
+			  (when val 
+			    (insert (concat val "\n"))))))
+      (`body
+       (get-or-set :get (reorg-edits--get-body-string no-text-properties)
+		   :set (error "You can't set body text (yet).")))
+      ((or (pred stringp)
+	   (pred symbolp))
+       (when (symbolp prop) (setq prop (symbol-name prop)))
+       (get-or-set :get (if (or multi-value (and val (listp val)) keep)
+			    (org-entry-get-multivalued-property (point) prop)
+			  (org-entry-get (point) prop inherit literal-nil))
+		   :set (cond ((or multi-value (listp val) keep)
+			       (apply #'org-entry-put-multivalued-property (point) prop
+				      (if no-duplicates
+					  (delete-duplicates (append old-val (-list val)) :test #'string=)
+					(append old-val (-list val)))))
+			      (t (org-entry-put (point) prop val))))))))
 
 (defun reorg-edits--sync-field-with-source ()
   "Set SOURCE to the value of the current field."
@@ -1308,10 +1270,11 @@ to its previous state, and turn off the minor mode."
   "Discard the current edit and restore the node
 to its previous state, and turn off the minor mode."
   (interactive)
-  (reorg-edit-field--replace-field
-   reorg-edits--restore-state)
-  (setq reorg-edits--restore-state nil)
   (reorg-edits-mode -1)
+  (when reorg-edits--restore-state
+    (reorg-views--replace-heading
+     reorg-edits--restore-state))
+  (setq reorg-edits--restore-state nil)
   (message "Discarded edit."))
 
 (defun reorg-edits--start-edit ()
@@ -1395,18 +1358,19 @@ returns the correct positions."
     ;; on
     (if reorg-edits-mode
 	(progn		
-	  (reorg--add-command-hooks)
+	  ;; (reorg--add-command-hooks)
 	  ;;(reorg--lock-buffer)
 	  (setq cursor-type 'bar
+		reorg--last-point nil
 		reorg-edits--previous-header-line header-line-format
 		header-line-format reorg-edits--header-line
-		reorg-edits--restore-state (reorg-edits--get-field-value)
+		reorg-edits--restore-state (get-text-property (point-at-bol) 'reorg-data)
 		reorg-edit-field--start-marker (set-marker (make-marker) start)
 		reorg-edit-field--end-marker (set-marker (make-marker) end)
 		overriding-local-map reorg-edits-field-mode-map))
       ;; off
       ;;(reorg--unlock-buffer)
-      (reorg--add-command-hooks 'remove)
+      ;; (reorg--add-command-hooks 'remove)
       (delete-overlay reorg-edits--current-field-overlay)
       (setq header-line-format reorg-edits--previous-header-line
 	    reorg-edits--previous-header-line nil
@@ -1421,7 +1385,7 @@ returns the correct positions."
 (defun reorg--pre-command-hook ()
   "asdf"
   (interactive)
-  (if (eq 'reorg (field-at-pos (point)))
+  (if (eq 'reorg (car (field-at-pos (point))))
       (setq reorg--last-point (point))))
 
 (defun reorg--post-command-hook ()
@@ -1432,7 +1396,7 @@ returns the correct positions."
 
 (defun reorg--add-command-hooks (&optional remove)
   "asdf"
-  (setq reorg--current-location nil)
+  (setq reorg--last-point nil)
   (if remove
       (progn 
 	(remove-hook 'pre-command-hook #'reorg--pre-command-hook t)
@@ -1445,25 +1409,110 @@ returns the correct positions."
 (provide 'reorg)
 
 
-;;; testing 
 
-(defun xxx-reorg-test-1 ()
-  (interactive)
-  (reorg-open-sidebar '( :group "Reorg test"
-			 :children (( :group (when-let ((legs .property.legs)
-							(legs (string-to-number legs)))
-					       (when (> legs 4)
-						 (format "Num legs: %d" legs)))
-				      :sort-getter (lambda (x) (s-trim (cadr (s-split ":" (car x)))))
-				      :sort string<)
-				    ( :group (when-let ((predator .property.predator))
-					       (if (string= "1" predator)
-						   "Predator"
-						 "Non-predator"))
-				      :children (( :group (when-let ((eggs .property.eggs))
-							    (if (string= "1" eggs)
-								"Non-mammal"
-							      "Mammal")))))))
-		      ;;					 :sort-results (.headline . string<))))))
-		      (let ((reorg-headline-format '((stars) (" ") (headline) (" ") (deadline))))
-			reorg-headline-format)))
+
+
+;;;; get or set props 
+
+(cl-defun reorg-get-set-props (prop &key
+				    (val nil valp)
+				    keep
+				    multi-value
+				    inherit
+				    literal-nil
+				    no-duplicates
+				    no-text-properties
+				    &allow-other-keys)
+  "Change the org heading at point by set PROP to VAL.
+
+It accepts the following properties, as well as any others that are set 
+in the headings property drawer. Any such properties can be accessed as string
+ or a symbol, e.g., \"CATEGORY\" or 'category.  See the return value of 
+`reorg-parser--headline-parser' for more information.
+
+There are flags for dealing with multivalued properties, inheritence, 
+etc.:
+
+If VAL is a list, assume a multi-valued property.
+If KEEP is non-nil and VAL is a list or MULTI is non-nil, keep the old value.
+If NO-DUPLICATES is non-nil and dealing with multi-valued, delete duplicates.
+If MULTI is non-nil, use a multivalued property even if VAL is not a list.
+
+Return a cons cell with the old value as the `car' and new value as the `cdr'."
+  (cl-macrolet ((get-or-set (&key get set)
+			    `(if (not valp)
+				 ,get
+			       (let ((old-val ,get))
+				 (save-excursion 
+				   (org-back-to-heading)		 
+				   ,set
+				   (cons old-val ,get))))))
+    (pcase prop
+      ;;(org-insert-time-stamp (org-read-date t t "2021-01-01"))
+      (`deadline
+       (get-or-set :get (org-entry-get (point) "DEADLINE" inherit literal-nil)
+		   :set (if (null val)
+			    (org-deadline '(4))
+			  (org-deadline nil val))))
+      (`scheduled
+       (get-or-set :get (org-entry-get (point) "SCHEDULED" inherit literal-nil)
+		   :set (if (null val)
+			    (org-schedule '(4))
+			  (org-schedule nil val))))
+      (`comment
+       (get-or-set :get (org-in-commented-heading-p)
+		   :set (when (not (xor (not val)
+					(org-in-commented-heading-p)))
+			  (org-toggle-comment))))
+      (`tags
+       (get-or-set :get (org-get-tags (point) (not inherit))
+		   :set (if keep
+			    (org-set-tags (if no-duplicates
+					      (delete-duplicates (append old-val
+									 (-list val))
+								 :test #'string=)
+					    (append old-val (-list val))))
+			  (org-set-tags val))))
+      (`headline
+       (get-or-set :get (org-entry-get (point) "ITEM")
+		   ;; keep the comment if it is there
+		   :set (let ((commentedp (org-in-commented-heading-p)))
+			  (org-edit-headline val)
+			  (when commentedp
+			    (reorg-get-set-props 'comment :val t)))))
+      (`todo
+       (get-or-set :get (org-entry-get (point) "TODO")
+		   :set (org-todo val)))
+      ((or `timestamp
+	   `timestamp-ia)
+       (get-or-set :get (org-entry-get (point) (if (eq 'timestamp prop)
+						   "TIMESTAMP"
+						 "TIMESTAMP_IA"))
+		   :set (if (and old-val
+				 (search-forward old-val (org-entry-end-position) t))
+			    (progn (replace-match (concat val))
+				   (delete-blank-lines))
+			  (org-end-of-meta-data t)
+			  (delete-blank-lines)
+			  (when val 
+			    (insert (concat val "\n"))))))
+      (`body
+       (get-or-set :get (reorg-edits--get-body-string no-text-properties)
+		   :set (error "You can't set body text (yet).")))
+      ((or (pred stringp)
+	   (pred symbolp))
+       (when (symbolp prop) (setq prop (symbol-name prop)))
+       (get-or-set :get (if (or multi-value (and val (listp val)) keep)
+			    (org-entry-get-multivalued-property (point) prop)
+			  (org-entry-get (point) prop inherit literal-nil))
+		   :set (cond ((or multi-value (listp val) keep)
+			       (apply #'org-entry-put-multivalued-property (point) prop
+				      (if no-duplicates
+					  (delete-duplicates (append old-val (-list val)) :test #'string=)
+					(append old-val (-list val)))))
+			      (t (org-entry-put (point) prop val))))))))
+(macroexpand-all '(lambda ()
+		    (let ((val (field-string-no-properties)))
+		      (reorg--with-source-buffer val
+			(org-edit-headline val)))))
+
