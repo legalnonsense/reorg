@@ -15,6 +15,10 @@
   "Bullet face"
   :group 'reorg-dynamic-bullets)
 
+(defface reorg-dynamic-bullets-clone-face '((t (:foreground "red")))
+  "Clone face"
+  :group 'reorg-dynamic-bullets)
+
 ;;;; Customization
 
 (defcustom reorg-dynamic-bullets-update-triggers
@@ -98,23 +102,20 @@ to be refreshed. Two options are:
   " dbullets"
   nil
   (if reorg-dynamic-bullets-mode
-      (progn
-	(when (fboundp 'org-bullets-mode)
-	  (org-bullets-mode -1))
-	(when (fboundp 'org-superstar-mode)
-	  (org-superstar-mode -1))
+      (progn 
 	(reorg-dynamic-bullets--add-all-hooks-and-advice)
-	(cl-pushnew 'display font-lock-extra-managed-props)
-	(font-lock-add-keywords nil reorg-dynamic-bullets--font-lock-keyword)
+	;;(cl-pushnew 'display font-lock-extra-managed-props)
+	;;(font-lock-add-keywords nil reorg-dynamic-bullets--font-lock-keyword)
 	(reorg-dynamic-bullets--fontify-buffer)
 	(setq reorg-dynamic-bullets--idle-timer
 	      (run-with-idle-timer 1 'repeat #'reorg-dynamic-bullets--fontify-heading)))
-    (font-lock-remove-keywords nil reorg-dynamic-bullets--font-lock-keyword)
+    ;; (font-lock-remove-keywords nil reorg-dynamic-bullets--font-lock-keyword)
     (reorg-dynamic-bullets--add-all-hooks-and-advice 'remove)
     (reorg-dynamic-bullets--fontify (point-min) (point-max) 'remove)
     (cancel-timer reorg-dynamic-bullets--idle-timer)
-    (font-lock-flush (point-min) (point-max))
-    (font-lock-ensure (point-min) (point-max))))
+    ;; (font-lock-flush (point-min) (point-max))
+    ;; (font-lock-ensure (point-min) (point-max))
+    ))
 
 ;;;; Functions
 
@@ -141,14 +142,15 @@ to be refreshed. Two options are:
 
 (defun reorg-dynamic-bullets--body-p ()
   "Use org-element to get all elements after the property drawers."
-  (when (reorg--get-view-prop)
-    (reorg--with-point-at-orig-entry nil
-      (org-element--parse-elements (save-excursion (org-back-to-heading)
-						   (org-end-of-meta-data t)
-						   (point))
-				   (or (save-excursion (outline-next-heading))
-				       (point-max))
-				   'first-section nil nil nil nil))))
+  (not (string= "" (reorg--get-view-prop :body))))
+;; (when (reorg--get-view-prop)
+;;   (reorg--with-source-buffer
+;;     (org-element--parse-elements (save-excursion (org-back-to-heading)
+;; 						   (org-end-of-meta-data t)
+;; 						   (point))
+;; 				   (or (save-excursion (outline-next-heading))
+;; 				       (point-max))
+;; 				   'first-section nil nil nil nil))))
 
 ;; (defun reorg-dynamic-bullets--body-p ()
 ;;   "Does the current heading have text in its body? \"Body\" is
@@ -168,19 +170,28 @@ to be refreshed. Two options are:
     (outline-back-to-heading)
     (let ((children (reorg-dynamic-bullets--has-children-p))
 	  (folded (reorg-dynamic-bullets--heading-folded-p))
-	  (body (reorg-dynamic-bullets--body-p)))
-      (cond ((and children folded body)
-	     reorg-dynamic-bullets-folded-body-text-bullet)
-	    ((and children folded)
-	     reorg-dynamic-bullets-folded-no-body-text-bullet)
-	    ((and children body)
-	     reorg-dynamic-bullets-unfolded-body-text-bullet)
-	    (children
-	     reorg-dynamic-bullets-unfolded-no-body-text-bullet)
-	    (body
-	     reorg-dynamic-bullets-leaf-body-text-bullet)
-	    (t
-	     reorg-dynamic-bullets-leaf-no-body-text-bullet)))))
+	  (body (reorg-dynamic-bullets--body-p))
+	  (clone (reorg--get-view-prop :clone)))
+      (propertize 
+       (cond ((and children folded body)
+	      reorg-dynamic-bullets-folded-body-text-bullet)
+	     ((and children folded)
+	      reorg-dynamic-bullets-folded-no-body-text-bullet)
+	     ((and children body)
+	      reorg-dynamic-bullets-unfolded-body-text-bullet)
+	     (children
+	      reorg-dynamic-bullets-unfolded-no-body-text-bullet)
+	     (body
+	      reorg-dynamic-bullets-leaf-body-text-bullet)
+	     (t
+	      reorg-dynamic-bullets-leaf-no-body-text-bullet))
+       'face
+       (if clone 'reorg-dynamic-bullets-clone-face
+	 'reorg-dynamic-bullets-face)))))
+
+
+
+
 
 ;;;;; Refreshing display
 
@@ -213,17 +224,15 @@ All fontifying functions use this function as their base.
 This function searches the region for the headline regexp and calls 
 `reorg-dynamic-bullets-refresh-func' to act on the matches."
   (when reorg-dynamic-bullets-mode 
-    (unless (org-before-first-heading-p)
-      (org-with-wide-buffer 
-       (save-excursion
-	 (save-match-data 
-	   (goto-char beg)
-	   (while
-	       (re-search-forward reorg-dynamic-bullets--heading-re end t)
-	     (save-excursion
-	       (funcall reorg-dynamic-bullets-refresh-func
-			(match-beginning 1)
-			(match-end 1))))))))))
+    (save-excursion
+      (save-match-data 
+	(goto-char beg)
+	(while
+	    (re-search-forward reorg-dynamic-bullets--heading-re end t)
+	  (save-excursion
+	    (funcall reorg-dynamic-bullets-refresh-func
+		     (match-beginning 1)
+		     (match-end 1))))))))
 
 (defun reorg-dynamic-bullets--fontify-buffer (&rest _)
   "Fontify the entire buffer."

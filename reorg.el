@@ -1,10 +1,6 @@
 ;;; -*- lexical-binding: t; -*-
 
 ;;; TODOs
-;;;; write function to loop over clones
-;;;; write function to mark clones as they are created
-;;;; write function to refresh an individual heading (using ID and buffer)
-;;;; re-write data macro to allow user to specify the code executed in the orig-entry macro 
 ;;; requires
 
 (require 'let-alist)
@@ -115,7 +111,70 @@ then return PROP with no colon prefix."
 (defun reorg--get-headline-start ()
   (save-excursion (reorg--goto-headline-start)))
 
-;;;; body 
+;;;; property drawer
+
+(defun reorg-parser--get-property-drawer ()
+  "asdf"
+  (save-excursion
+    (org-back-to-heading)
+    (let (seen-base props)
+      (while (re-search-forward org-property-re (org-entry-end-position) t)
+	(let* ((key (upcase (match-string-no-properties 2)))
+	       (extendp (string-match-p "\\+\\'" key))
+	       (key-base (if extendp (substring key 0 -1) key))
+	       (value (match-string-no-properties 3)))
+	  (cond
+	   ((member-ignore-case key-base org-special-properties))
+	   (extendp
+	    (setq props
+		  (org--update-property-plist key value props)))
+	   ((member key seen-base))
+	   (t (push key seen-base)
+	      (let ((p (assoc-string key props t)))
+		(if p (setcdr p (concat value " " (cdr p)))
+		  (unless (or (null key)
+			      (equal "" key)
+			      (equal "PROPERTIES" key)
+			      (equal "END" key))
+		    (setq props (append (list
+					 (reorg--add-remove-colon (intern (downcase key)))
+					 value)
+					props)))))))))
+      props)))
+
+;;;; timestamps
+
+(defun reorg--timestamp-parser (&optional inactive range)
+  "Find the fist timestamp in the current heading and return it. 
+if INACTIVE is non-nil, get the first inactive timestamp.  If 
+RANGE is non-nil, only look for timestamp ranges."
+  (save-excursion
+    (when (re-search-forward (pcase `(,inactive ,range)
+			       (`(nil t)
+				org-tr-regexp)
+			       (`(nil nil)
+				org-ts-regexp)
+			       (`(t nil)
+				org-ts-regexp-inactive)
+			       (`(t t)
+				(concat 
+				 org-ts-regexp-inactive
+				 "--?-?"
+				 org-ts-regexp-inactive)))
+			     (org-entry-end-position)
+			     t)      
+      (org-no-properties (match-string 0)))))
+;;;; body
+
+(defun reorg--get-body ()
+  "get headings body text"
+  (org-element-interpret-data
+   (org-element--parse-elements (save-excursion (org-back-to-heading)
+						(org-end-of-meta-data t)
+						(point))
+				(or (save-excursion (outline-next-heading))
+				    (point-max))
+				'first-section nil nil nil nil)))
 ;;; data macro
 
 (cl-defmacro reorg-create-data-type (&optional &key
@@ -155,9 +214,9 @@ then return PROP with no colon prefix."
 		  :orig-entry-func (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name name))) (plist &rest args)
 				     ,@orig-entry-func)
 		  :display (cl-defun ,(intern (concat "reorg-display--"  (symbol-name name))) (plist &rest args)
-			     (when-let ((val (plist-get plist (or (when ',getter
-								    ,getter)
-								  ,(reorg--add-remove-colon name)))))
+			     (let ((val (plist-get plist (or (when ',getter
+							       ,getter)
+							     ,(reorg--add-remove-colon name)))))
 			       (when ',display (setq val (apply (lambda (&rest args) ,display) args)))
 			       (when ',face (setq val (propertize
 						       val
@@ -165,7 +224,7 @@ then return PROP with no colon prefix."
 						       (cond ((internal-lisp-face-p ',face)
 							      ',face)
 							     ((functionp ',face)
-							      (funcall ',face val))
+							      (funcall ',face plist))
 							     (t (error "invalid face specification"))))))
 			       (setq val (concat ,display-prefix val ,display-suffix))
 			       (setq val (propertize val 'reorg-field-type ',name))
@@ -205,39 +264,40 @@ then return PROP with no colon prefix."
 
 ;;; data macro application 
 
+
+(reorg-create-data-type :name body
+			:parse (reorg--get-body))
+
 (reorg-create-data-type :name deadline
 			:parse (org-entry-get (point) "DEADLINE")
 			:set (lambda ()
 			       (reorg--with-source-buffer
 				 (if val (org-deadline nil val)
 				   (org-deadline '(4)))))
-			:display-prefix (apply #'propertize "DEADLINE: "
-					       '(font-lock-face org-special-keyword))
-			:face org-date
-			:orig-entry-func (when (re-search-forward (org-re-timestamp 'deadline)
-								  (org-entry-end-position) t))
-			:field-keymap (("S-<up>" . org-timestamp-up)
-				       ("S-<down>" . org-timestamp-down))
-			:validate (with-temp-buffer
-				    (insert val)
-				    (beginning-of-buffer)
-				    (org-timestamp-change 0 'day)
-				    (buffer-string))) 
+			:display (if (plist-get plist :deadline)
+				     (concat 
+				      (propertize "DEADLINE: "
+						  'font-lock-face 'org-special-keyword)
+				      (propertize (plist-get plist :deadline)
+						  'font-lock-face 'org-date))
+				   "____"))
 
 (reorg-create-data-type :name headline
 			:set (lambda ()
 			       (let ((val (field-string-no-properties)))
 				 (reorg--with-source-buffer val
 				   (org-edit-headline val))))
+			:face org-level-3
 			:parse (org-no-properties (org-get-heading t t t t)))
 
 (reorg-create-data-type :name property
 			:parse (reorg-parser--get-property-drawer)
-			:set (let* ((pair (split-string (field-string-no-properties) ":" t " "))
-				    (key (upcase (car pair)))
-				    (val (cadr pair)))
-			       (reorg--with-source-buffer (cons key val)
-							  (org-set-property (car arg) (cdr arg))))
+			:set (lambda ()
+			       (reorg--with-source-buffer
+				 (let* ((pair (split-string val ":" t " "))
+					(key (upcase (car pair)))
+					(val (cadr pair)))
+				   (org-set-property key val))))
 			:display (let* ((key (reorg--add-remove-colon (car args) t))
 					(val (plist-get (plist-get plist :property)
 							(reorg--add-remove-colon key))))
@@ -248,20 +308,17 @@ then return PROP with no colon prefix."
 				   (format ":%s: %s" key val))
 			:field-keymap (("C-c C-x p" . org-set-property)))
 
-(defun xxx-props ()
-  )
-
 (reorg-create-data-type :name tags
 			:parse (org-get-tags-string)
 			:get (org-get-tags-string)
-			:set (org-set-tags val)
+			;; :set (org-set-tags val)
 			:face org-tag-group
 			:heading-keymap (("C-c C-c" . org-set-tags-command)))
 
 (reorg-create-data-type :name todo
 			:parse (org-entry-get (point) "TODO")
 			:get (org-entry-get (point) "TODO")			
-			:set (org-todo val)
+			;; :set (org-todo val)
 			:display (when-let ((s (plist-get plist :todo)))
 				   (propertize
 				    s
@@ -274,8 +331,8 @@ then return PROP with no colon prefix."
 (reorg-create-data-type :name scheduled
 			:parse (org-entry-get (point) "SCHEDULED")
 			:get (org-entry-get (point) "SCHEDULED")
-			:set (if val (org-deadline nil val)
-			       (org-deadline '(4)))
+			;; :set (if val (org-deadline nil val)
+			;;        (org-deadline '(4)))
 			:display (concat (apply #'propertize "SCHEDULED: "
 						'(font-lock-face org-special-keyword))
 					 val)
@@ -293,13 +350,13 @@ then return PROP with no colon prefix."
 			:parse (when (reorg--timestamp-parser)
 				 (org-no-properties (reorg--timestamp-parser)))
 			:get (reorg--timestamp-parser)
-			:set (if-let* ((old-val (reorg--timestamp-parser)))
-				 (when (search-forward old-val (org-entry-end-position) t)
-				   (replace-match (concat val)))
-			       (when val
-				 (org-end-of-meta-data t)
-				 (insert (concat val "\n"))
-				 (delete-blank-lines)))
+			;; :set (if-let* ((old-val (reorg--timestamp-parser)))
+			;; 	 (when (search-forward old-val (org-entry-end-position) t)
+			;; 	   (replace-match (concat val)))
+			;;        (when val
+			;; 	 (org-end-of-meta-data t)
+			;; 	 (insert (concat val "\n"))
+			;; 	 (delete-blank-lines)))
 			:face org-date
 			:field-keymap (("S-<up>" . org-timestamp-up)
 				       ("S-<down>" . org-timestamp-down))
@@ -314,13 +371,13 @@ then return PROP with no colon prefix."
 			:parse (when (reorg--timestamp-parser t)
 				 (org-no-properties (reorg--timestamp-parser t)))
 			:get (reorg--timestamp-parser t)
-			:set (if-let* ((old-val (reorg--timestamp-parser t)))
-				 (when (search-forward old-val (org-entry-end-position) t)
-				   (replace-match (concat val)))
-			       (when val
-				 (org-end-of-meta-data t)
-				 (insert (concat val "\n"))
-				 (delete-blank-lines)))
+			;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
+			;; 	 (when (search-forward old-val (org-entry-end-position) t)
+			;; 	   (replace-match (concat val)))
+			;;        (when val
+			;; 	 (org-end-of-meta-data t)
+			;; 	 (insert (concat val "\n"))
+			;; 	 (delete-blank-lines)))
 			:face org-date
 			:field-keymap (("S-<up>" . org-timestamp-up)
 				       ("S-<down>" . org-timestamp-down))
@@ -335,13 +392,13 @@ then return PROP with no colon prefix."
 			:parse (when (reorg--timestamp-parser t t)
 				 (org-no-properties (reorg--timestamp-parser t t)))
 			:get (reorg--timestamp-parser t)
-			:set (if-let* ((old-val (reorg--timestamp-parser t)))
-				 (when (search-forward old-val (org-entry-end-position) t)
-				   (replace-match (concat val)))
-			       (when val
-				 (org-end-of-meta-data t)
-				 (insert (concat val "\n"))
-				 (delete-blank-lines)))
+			;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
+			;; 	 (when (search-forward old-val (org-entry-end-position) t)
+			;; 	   (replace-match (concat val)))
+			;;        (when val
+			;; 	 (org-end-of-meta-data t)
+			;; 	 (insert (concat val "\n"))
+			;; 	 (delete-blank-lines)))
 			:face org-date
 			:keymap (("S-<up>" . org-timestamp-up)
 				 ("S-<down>" . org-timestamp-down))
@@ -355,13 +412,13 @@ then return PROP with no colon prefix."
 			:parse (when (reorg--timestamp-parser nil t)
 				 (org-no-properties (reorg--timestamp-parser nil t)))
 			:get (reorg--timestamp-parser t)
-			:set (if-let* ((old-val (reorg--timestamp-parser t)))
-				 (when (search-forward old-val (org-entry-end-position) t)
-				   (replace-match (concat val)))
-			       (when val
-				 (org-end-of-meta-data t)
-				 (insert (concat val "\n"))
-				 (delete-blank-lines)))
+			;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
+			;; 	 (when (search-forward old-val (org-entry-end-position) t)
+			;; 	   (replace-match (concat val)))
+			;;        (when val
+			;; 	 (org-end-of-meta-data t)
+			;; 	 (insert (concat val "\n"))
+			;; 	 (delete-blank-lines)))
 			:face org-date
 			:keymap (("S-<up>" . org-timestamp-up)
 				 ("S-<down>" . org-timestamp-down))
@@ -374,15 +431,12 @@ then return PROP with no colon prefix."
 (reorg-create-data-type :name id
 			:parse (org-id-get-create))
 
-
-
-
 (reorg-create-data-type :name category-inherited
 			:parse (org-entry-get-with-inheritance "CATEGORY"))
 
 (reorg-create-data-type :name category
-			:parse (org-get-category)
-			:set (org-set-property "CATEGORY" val))
+			:parse (org-get-category))
+			;; :set (org-set-property "CATEGORY" val))
 
 (reorg-create-data-type :name file
 			:parse (buffer-file-name))
@@ -595,7 +649,7 @@ keys.  Keys are compared using `equal'."
 			      data
 			      (cdr each))
 		else if (eq 'align-to (car each))
-		concat (propertize " " 'display `(space . (:align-to ,(cadr each))))
+        	concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
 		else if (eq 'pad (car each))
 		concat (make-string (cadr each) ? )
 		else
@@ -685,7 +739,8 @@ switch to that buffer in the window."
       (erase-buffer))
     (reorg--insert-org-headlines results)
     (reorg-view-mode)
-    (org-show-all)
+    (reorg-dynamic-bullets-mode)
+    (org-visual-indent-mode)    
     (goto-char (point-min))))
 
 (defun reorg-open-sidebar (template &optional format-string file)
@@ -702,11 +757,56 @@ switch to that buffer in the window."
       (erase-buffer))
     (reorg--insert-org-headlines results)
     (reorg-view-mode)
-    (org-show-all)
+    (reorg-dynamic-bullets-mode)
+    (org-visual-indent-mode) 
     (goto-char (point-min))))
+
+(defun reorg-open-sidebar-fundamental (template &optional format-string file)
+  "Open this shit in the sidebar."
+  (interactive)
+  (let ((results (--> (reorg--map-entries file)
+		      (reorg--group-and-sort it template)
+		      (reorg--process-results it format-string))))
+    (when (get-buffer reorg-buffer-name)
+      (kill-buffer reorg-buffer-name))
+    (reorg--open-side-window)
+    (reorg--select-tree-window)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (reorg--insert-org-headlines results)
+    (fundamental-mode)))
 
 ;;; reorg-views
 
+
+;;;; clone functions
+
+(defun reorg--jump-to-next-clone (&optional id previous)
+  "Move to the next clone of the current node."
+  (interactive)
+  (let ((func (if previous
+		  #'text-property-search-backward
+		#'text-property-search-forward))
+	(id (or id (reorg--get-view-prop :id))))
+    (if (funcall func reorg--data-property-name
+		 id
+		 (lambda (val plist)
+		   (string= 
+		    (plist-get plist :id)
+		    val))
+		 'not-current)
+	(progn (when previous (backward-char))
+	       (outline-back-to-heading)
+	       (reorg-edits--update-box-overlay))
+      (if previous
+	  (goto-char (point-max))
+	(goto-char (point-min)))
+      (reorg--jump-to-next-clone id previous))))
+
+(defun reorg--jump-to-previous-clone (&optional id)
+  "Jump to previous clone"
+  (interactive)
+  (reorg--jump-to-next-clone id 'previous))
 
 ;;;; view buffer functions
 
@@ -813,7 +913,7 @@ the point and return nil."
 
 (defun reorg--move-to-next-entry-follow ()
   (interactive)
-  (org-next-visible-heading 1)
+  (outline-next-visible-heading 1)
   (reorg-view--update-highlight-overlay)
   (reorg-edits--post-field-navigation-hook)
   (reorg-view--tree-to-source--goto-heading)
@@ -822,7 +922,7 @@ the point and return nil."
 
 (defun reorg--move-to-previous-entry-follow ()
   (interactive)
-  (org-previous-visible-heading 1)
+  (outline-previous-visible-heading 1)
   (reorg-view--update-highlight-overlay)
   (reorg-edits--post-field-navigation-hook)
   (reorg-view--tree-to-source--goto-heading)
@@ -831,7 +931,7 @@ the point and return nil."
 
 (defun reorg--move-to-next-entry-no-follow ()
   (interactive)
-  (org-next-visible-heading 1)
+  (outline-next-visible-heading 1)
   (reorg-edits--post-field-navigation-hook)
   (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
@@ -839,7 +939,7 @@ the point and return nil."
 
 (defun reorg--move-to-previous-entry-no-follow ()
   (interactive)
-  (org-previous-visible-heading 1)
+  (outline-previous-visible-heading 1)
   (reorg-edits--post-field-navigation-hook)
   (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
@@ -849,7 +949,7 @@ the point and return nil."
 (defun reorg--goto-next-parent ()
   "Goto the next parent."
   (interactive)
-  (when (re-search-forward (concat "^*\\{" (number-to-string (1- (org-current-level))) "\\} ") nil t)
+  (when (re-search-forward (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
     (beginning-of-line)
     (reorg-edits--post-field-navigation-hook)
     (reorg-view--update-highlight-overlay)
@@ -927,6 +1027,8 @@ the point and return nil."
     ;; (define-key map (kbd "S-<up>") #'reorg--shift-up)
     ;; (define-key map (kbd "S-<down>") #'reorg--shift-down)
     (define-key map (kbd "b") #'reorg-edits-move-to-previous-field)
+    (define-key map (kbd "c") #'reorg--jump-to-next-clone)
+    ;;(define-key map (kbd "C") #'reorg--jump-to-previous-clone)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
     (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
     (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-follow)
@@ -942,20 +1044,19 @@ update the heading at point."
   `(progn
      (let ((val (field-string-no-properties)))
        (reorg-view--tree-to-source--goto-heading)
-       ,@body
+       (save-restriction
+	 (save-excursion 
+	   ,@body))
        (reorg--select-tree-window)
        (reorg--update-this-heading))))
 
-
-
-
-(define-derived-mode reorg-view-mode outline-mode
+(define-derived-mode reorg-view-mode fundamental-mode
   "Org tree view"
   "Tree view of an Orgmode file. \{keymap}"
   (reorg--initialize-overlay)
   (setq cursor-type 'box)
-  (reorg-dynamic-bullets-mode)
-  (org-visual-indent-mode)
+  ;; (reorg-dynamic-bullets-mode)
+  ;; (org-visual-indent-mode)
   (use-local-map reorg-view-mode-map))
 
 ;;; reorg-edit-mode
@@ -1511,8 +1612,3 @@ Return a cons cell with the old value as the `car' and new value as the `cdr'."
 					  (delete-duplicates (append old-val (-list val)) :test #'string=)
 					(append old-val (-list val)))))
 			      (t (org-entry-put (point) prop val))))))))
-(macroexpand-all '(lambda ()
-		    (let ((val (field-string-no-properties)))
-		      (reorg--with-source-buffer val
-			(org-edit-headline val)))))
-
