@@ -288,7 +288,9 @@ RANGE is non-nil, only look for timestamp ranges."
 				 (reorg--with-source-buffer val
 				   (org-edit-headline val))))
 			:face org-level-3
-			:parse (org-no-properties (org-get-heading t t t t)))
+			:disabled t
+			:parse (org-no-properties
+				(org-get-heading t t t t)))
 
 (reorg-create-data-type :name property
 			:parse (reorg-parser--get-property-drawer)
@@ -516,6 +518,85 @@ keys.  Keys are compared using `equal'."
    (seq-reverse sequence)
    nil))
 
+
+;; (cl-defun reorg--group-and-sort (list template &optional (n 0 np))
+;;   "Group RESULTS according to TEMPLATE."
+;;   (let ((copy (copy-tree list)))
+;;     (cl-labels ((doloop (data template &optional (n 0 np) result-sorters)
+;; 			(let ((grouper (plist-get template :group))
+;; 			      (children (plist-get template :children))
+;; 			      (sorter (plist-get template :sort))
+;; 			      (sort-getter (or (plist-get template :sort-getter)
+;; 					       #'car))
+;; 			      (pre-filter (plist-get template :pre-filter))
+;; 			      (post-filter (plist-get template :post-filter))
+;; 			      (format-string (plist-get template :format-string))
+;; 			      (pre-transformer (plist-get template :pre-transformer))
+;; 			      (post-transformer (plist-get template :post-transformer))
+;; 			      (result-sort (plist-get template :sort-results)))
+;; 			  (when result-sort
+;; 			    (setq result-sorters
+;; 				  (append result-sorters
+;; 					  (cl-loop for (form . pred) in result-sort
+;; 						   collect (cons `(lambda (x)
+;; 								    (reorg--let-plist x
+;; 										      ,form))
+;; 								 pred)))))
+;; 			  (unless np
+;; 			    (let ((old (cl-copy-list data)))
+;; 			      (setcar data '_)
+;; 			      (setcdr data (list old))))
+;; 			  (setf (nth n (cdr data))
+;; 				(--> (nth n (cdr data))
+;; 				     (if pre-transformer
+;; 					 (seq-map pre-transformer it)
+;; 				       it)
+;; 				     (if pre-filter (seq-remove pre-filter it) it)
+;; 				     (cond ((functionp grouper)
+;; 					    (->> it
+;; 						 (seq-group-by grouper)
+;; 						 (seq-map (lambda (x) (list (car x) (cdr x))))))
+;; 					   ((stringp grouper)
+;; 					    (list (list grouper it)))
+;; 					   (t (->> it
+;; 						   (reorg--seq-group-by grouper)
+;; 						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
+;; 				     (seq-filter (lambda (x) (and (not (null (car x)))
+;; 								  (not (null (cdr x)))
+;; 								  (not (null x))))
+;; 						 it)
+;; 				     (if sorter
+;; 					 (seq-sort-by (or sort-getter #'car)
+;; 						      sorter it)
+;; 				       it)
+;; 				     (if post-filter
+;; 					 (cl-loop for each in it
+;; 						  collect (list (car each) (seq-remove post-filter (cadr each))))
+;; 				       it)
+;; 				     (if post-transformer
+;; 					 (cl-loop for each in it
+;; 						  collect (list (car each) (seq-map post-transformer (cadr each))))
+;; 				       it)))
+;; 			  (if children
+;; 			      (progn 
+;; 				(cl-loop for x below (length (nth n (cdr data)))
+;; 					 do (setcdr (nth x (nth n (cdr data)))
+;; 						    (cl-loop for z below (length children)
+;; 							     collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
+;; 				(cl-loop for x below (length children)
+;; 					 do (cl-loop for y below (length (nth n (cdr data)))
+;; 						     do (doloop (nth y (nth n (cdr data)))
+;; 								(nth x children)
+;; 								x
+;; 								result-sorters))))
+;; 			    (when result-sorters
+;; 			      (cl-loop for x below (length (nth n (cdr data)))
+;; 				       do (setf (cadr (nth x (nth n (cdr data))))
+;; 						(reorg--multi-sort result-sorters
+;; 								   (cadr (nth x (nth n (cdr data))))))))))))
+;;       (doloop copy template)
+;;       (cadr copy))))
+
 (cl-defun reorg--group-and-sort (list template &optional (n 0 np))
   "Group RESULTS according to TEMPLATE."
   (let ((copy (copy-tree list)))
@@ -533,7 +614,7 @@ keys.  Keys are compared using `equal'."
 			      (result-sort (plist-get template :sort-results)))
 			  (when result-sort
 			    (setq result-sorters
-				  (append result-sorters
+				  (append result-sorters					  
 					  (cl-loop for (form . pred) in result-sort
 						   collect (cons `(lambda (x)
 								    (reorg--let-plist x
@@ -558,6 +639,15 @@ keys.  Keys are compared using `equal'."
 					   (t (->> it
 						   (reorg--seq-group-by grouper)
 						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
+				     (seq-filter (lambda (x) (and (not (null (car x)))
+								  (not (null (cdr x)))
+								  (not (null x))))
+						 it)
+				     (cl-loop for x in it
+					      do (setf (car x) (propertize (car x)
+									   'reorg-predicate grouper
+									   'reorg-value (car x)))
+					      finally return it)
 				     (seq-filter (lambda (x) (and (not (null (car x)))
 								  (not (null (cdr x)))
 								  (not (null x))))
@@ -587,6 +677,7 @@ keys.  Keys are compared using `equal'."
 								x
 								result-sorters))))
 			    (when result-sorters
+			      (push result-sorters xxx)
 			      (cl-loop for x below (length (nth n (cdr data)))
 				       do (setf (cadr (nth x (nth n (cdr data))))
 						(reorg--multi-sort result-sorters
@@ -974,8 +1065,8 @@ the point and return nil."
 	(id (reorg--get-view-prop :id)))
     (reorg--select-tree-window)
     (reorg--map-id id
-		   (reorg-views--replace-heading
-		    data))))
+		   (reorg-views--replace-heading data)
+		   (reorg-dynamic-bullets--fontify-heading))))
 
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
@@ -1612,3 +1703,16 @@ Return a cons cell with the old value as the `car' and new value as the `cdr'."
 					  (delete-duplicates (append old-val (-list val)) :test #'string=)
 					(append old-val (-list val)))))
 			      (t (org-entry-put (point) prop val))))))))
+
+;;;; test re: org shortcuts and syncing 
+
+(defun reorg-change-deadline (arg)
+  (interactive "P")
+  (reorg--with-source-buffer 
+    (funcall-interactively #'org-deadline arg)))
+
+;;;; test re: inserting headers into the appropriate location
+
+;;;;; reorg-map-branches
+;;;;; reorg-insert-into-branch 
+
