@@ -298,7 +298,6 @@ RANGE is non-nil, only look for timestamp ranges."
 				 (reorg--with-source-and-sync val
 				   (org-edit-headline val))))
 			:face org-level-3
-			:disabled t
 			:parse (org-no-properties
 				(org-get-heading t t t t)))
 
@@ -1117,6 +1116,7 @@ the point and return nil."
 					  (reorg--parser)))
 	(id (reorg--get-view-prop :id)))
     (reorg--select-tree-window)
+    (setq xxx data)
     (reorg--map-id id
 		   (reorg-views--replace-heading data)
 		   (reorg-dynamic-bullets--fontify-heading))))
@@ -1887,8 +1887,7 @@ branch."
 						 (funcall form (reorg--get-view-prop)))
 				return t
 				else return nil))
-		do (reorg-views--insert-before-point data level)
-		and return t
+		return (reorg-views--insert-before-point data level)
 		else do (forward-line))))))
 
 (provide 'reorg)
