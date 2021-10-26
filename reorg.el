@@ -556,80 +556,80 @@ keys.  Keys are compared using `equal'."
 				  (append grouper-list
 					  (list `(lambda (x)
 						   (reorg--let-plist x
-								     ,grouper)))))			  
-			    (unless np
-			      (let ((old (cl-copy-list data)))
-				(setcar data '_)
-				(setcdr data (list old))))
-			    (setf (nth n (cdr data))
-				  (--> (nth n (cdr data))
-				       (if pre-transformer
-					   (seq-map pre-transformer it)
-					 it)
-				       (if pre-filter (seq-remove pre-filter it) it)
-				       (cond ((functionp grouper)
-					      (->> it
-						   (seq-group-by grouper)
-						   (seq-map (lambda (x) (list (car x) (cdr x))))))
-					     ((stringp grouper)
-					      (list (list grouper it)))
-					     (t (->> it
-						     (reorg--seq-group-by grouper)
-						     (seq-map (lambda (x) (list (car x) (cdr x)))))))
-				       
-				       (seq-filter (lambda (x) (and (not (null (car x)))
-								    (not (null (cdr x)))
-								    (not (null x))))
-						   it)
-				       (cl-loop for x in it					      
-						do (setf (car x) (list :branch-name (car x)
-								       :reorg-branch t
-								       :result-sorters result-sorters 
-								       :grouper-list grouper-list
-								       :grouper-list-results (-list (append grouper-list-results
-													    (car x)))
-								       :branch-predicate grouper
-								       :branch-value (car x)))
-						finally return it)
-				       (seq-filter (lambda (x) (and (not (null (car x)))
-								    (not (null (cdr x)))
-								    (not (null x))))
-						   it)
-				       (if sorter
-					   (seq-sort-by (or sort-getter #'car)
-							sorter it)
-					 it)
-				       (if post-filter
-					   (cl-loop for each in it
-						    collect (list (car each) (seq-remove post-filter (cadr each))))
-					 it)
-				       (if post-transformer
-					   (cl-loop for each in it
-						    collect (list (car each) (seq-map post-transformer (cadr each))))
-					 it)))
-			    (if children
-				(progn 
-				  (cl-loop for x below (length (nth n (cdr data)))
-					   do (setcdr (nth x (nth n (cdr data)))
-						      (cl-loop for z below (length children)
-							       collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
-				  (cl-loop for x below (length children)
-					   do (cl-loop
-					       for y below (length (nth n (cdr data)))
-					       do (doloop
-						   (nth y (nth n (cdr data)))
-						   (nth x children)
-						   x
-						   result-sorters
-						   grouper-list
-						   (append grouper-list-results
-							   (list (plist-get (car (nth y (nth n (cdr data))))
-									    :branch-value)))))))
-			      (when result-sorters
+								     ,grouper))))))
+			  (unless np
+			    (let ((old (cl-copy-list data)))
+			      (setcar data '_)
+			      (setcdr data (list old))))
+			  (setf (nth n (cdr data))
+				(--> (nth n (cdr data))
+				     (if pre-transformer
+					 (seq-map pre-transformer it)
+				       it)
+				     (if pre-filter (seq-remove pre-filter it) it)
+				     (cond ((functionp grouper)
+					    (->> it
+						 (seq-group-by grouper)
+						 (seq-map (lambda (x) (list (car x) (cdr x))))))
+					   ((stringp grouper)
+					    (list (list grouper it)))
+					   (t (->> it
+						   (reorg--seq-group-by grouper)
+						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
+				     
+				     (seq-filter (lambda (x) (and (not (null (car x)))
+								  (not (null (cdr x)))
+								  (not (null x))))
+						 it)
+				     (cl-loop for x in it					      
+					      do (setf (car x) (list :branch-name (car x)
+								     :reorg-branch t
+								     :result-sorters result-sorters 
+								     :grouper-list grouper-list
+								     :grouper-list-results (append grouper-list-results
+												   (list (car x)))
+								     :branch-predicate grouper
+								     :branch-value (car x)))
+					      finally return it)
+				     (seq-filter (lambda (x) (and (not (null (car x)))
+								  (not (null (cdr x)))
+								  (not (null x))))
+						 it)
+				     (if sorter
+					 (seq-sort-by (or sort-getter #'car)
+						      sorter it)
+				       it)
+				     (if post-filter
+					 (cl-loop for each in it
+						  collect (list (car each) (seq-remove post-filter (cadr each))))
+				       it)
+				     (if post-transformer
+					 (cl-loop for each in it
+						  collect (list (car each) (seq-map post-transformer (cadr each))))
+				       it)))
+			  (if children
+			      (progn 
 				(cl-loop for x below (length (nth n (cdr data)))
-					 do (setf (cadr (nth x (nth n (cdr data))))
-						  (reorg--multi-sort result-sorters
-								     (cadr (nth x (nth n (cdr data)))))))))))))
+					 do (setcdr (nth x (nth n (cdr data)))
+						    (cl-loop for z below (length children)
+							     collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
+				(cl-loop for x below (length children)
+					 do (cl-loop
+					     for y below (length (nth n (cdr data)))
+					     do (doloop
+						 (nth y (nth n (cdr data)))
+						 (nth x children)
+						 x
+						 result-sorters
+						 grouper-list
+						 (append grouper-list-results
+							 (list (plist-get (car (nth y (nth n (cdr data))))
+									  :branch-value)))))))
+			    (when result-sorters
+			      (cl-loop for x below (length (nth n (cdr data)))
+				       do (setf (cadr (nth x (nth n (cdr data))))
+						(reorg--multi-sort result-sorters
+								   (cadr (nth x (nth n (cdr data))))))))))))
       (doloop copy template)
       (cadr copy))))
 
@@ -1844,21 +1844,21 @@ returns the correct positions."
 (defun reorg--insert-into-branches (data)
   "asdf"
   (goto-char (point-min))
-  (while (text-property-search-backward 'reorg-field-type
-					'branch
-					nil
-					'not-current)
+  (while (text-property-search-forward 'reorg-field-type
+				       'branch
+				       nil
+				       'not-current)
     (when (reorg--last-branch-p) ()
-	  (let ((forms (reorg--get-view-props 'reorg-data :grouper-list))
-		(results (reorg--get-view-props 'reorg-data :grouper-list-results))
-		(result-sorters (reorg--get-view-props 'reorg-data :result-sorters))
-		(insert? (cl-loop for form in forms
-				  for result in results
-				  when (not (equal
-					     (funcall form data)
-					     result))
-				  return nil
-				  finally return t)))
+	  (let* ((forms (reorg--get-view-props 'reorg-data :grouper-list))
+		 (results (reorg--get-view-props 'reorg-data :grouper-list-results))
+		 (result-sorters (reorg--get-view-props 'reorg-data :result-sorters))
+		 (insert? (cl-loop for form in forms
+				   for result in results
+				   when (not (equal
+					      (funcall form data)
+					      result))
+				   return nil
+				   finally return t)))
 	    (when insert?
 	      (reorg--traverse-data-nodes-and-find-home data result-sorters))))))
 	      
@@ -1879,31 +1879,14 @@ branch."
 		       (eq (get-text-property (point) 'reorg-field-type) 'branch)
 		       (cl-loop for (form . pred) in result-sorters
 				if (equal
-				    (funcall
-				     `(lambda (x)
-					(reorg--let-plist x
-							  ,form))
-				     data)
-				    (funcall
-				     `(lambda (x)
-					(reorg--let-plist x
-							  ,form))
-				     (reorg--get-view-prop)))
+				    (funcall form data)
+				    (funcall form (reorg--get-view-prop)))
 				do 'nothing
 				else if (funcall pred 
-						 (funcall
-						  `(lambda (x)
-						     (reorg--let-plist x
-								       ,form))
-						  data)
-						 (funcall
-						  `(lambda (x)
-						     (reorg--let-plist x
-								       ,form))
-						  (reorg--get-view-prop)))
+						 (funcall form data)
+						 (funcall form (reorg--get-view-prop)))
 				return t
 				else return nil))
-
 		do (reorg-views--insert-before-point data level)
 		and return t
 		else do (forward-line))))))
