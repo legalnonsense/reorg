@@ -584,6 +584,7 @@ keys.  Keys are compared using `equal'."
 				       (cl-loop for x in it					      
 						do (setf (car x) (list :branch-name (car x)
 								       :reorg-branch t
+								       :result-sorters result-sorters 
 								       :grouper-list grouper-list
 								       :grouper-list-results (-list (append grouper-list-results
 													    (car x)))
@@ -621,9 +622,9 @@ keys.  Keys are compared using `equal'."
 						   x
 						   result-sorters
 						   grouper-list
-						   (-list (append (-list grouper-list-results)
-								  (-list (plist-get (car (nth y (nth n (cdr data))))
-										    :branch-value))))))))
+						   (append grouper-list-results
+							   (list (plist-get (car (nth y (nth n (cdr data))))
+									    :branch-value)))))))
 			      (when result-sorters
 				(cl-loop for x below (length (nth n (cdr data)))
 					 do (setf (cadr (nth x (nth n (cdr data))))
@@ -1422,99 +1423,99 @@ to its previous state, and turn off the minor mode."
     (reorg--update-this-heading)
     (reorg-edits-mode -1)))
 
-(cl-defun reorg-get-set-props (prop &key
-				    (val nil valp)
-				    keep
-				    multi-value
-				    inherit
-				    literal-nil
-				    no-duplicates
-				    no-text-properties
-				    &allow-other-keys)
-  "Change the org heading at point by set PROP to VAL.
-It accepts the following properties, as well as any others that are set 
-in the headings property drawer. Any such properties can be accessed as string
- or a symbol, e.g., \"CATEGORY\" or 'category.  See the return value of 
-`reorg-parser--headline-parser' for more information.
-There are flags for dealing with multivalued properties, inheritence, 
-etc.:
-If VAL is a list, assume a multi-valued property.
-If KEEP is non-nil and VAL is a list or MULTI is non-nil, keep the old value.
-If NO-DUPLICATES is non-nil and dealing with multi-valued, delete duplicates.
-If MULTI is non-nil, use a multivalued property even if VAL is not a list.
-Return a cons cell with the old value as the `car' and new value as the `cdr'."
-  (cl-macrolet ((get-or-set (&key get set)
-			    `(if (not valp)
-				 ,get
-			       (let ((old-val ,get))
-				 (save-excursion 
-				   (org-back-to-heading)		 
-				   ,set
-				   (cons old-val ,get))))))
-    (pcase prop
-      ;;(org-insert-time-stamp (org-read-date t t "2021-01-01"))
-      (`deadline
-       (get-or-set :get (org-entry-get (point) "DEADLINE" inherit literal-nil)
-		   :set (if (null val)
-			    (org-deadline '(4))
-			  (org-deadline nil val))))
-      (`scheduled
-       (get-or-set :get (org-entry-get (point) "SCHEDULED" inherit literal-nil)
-		   :set (if (null val)
-			    (org-schedule '(4))
-			  (org-schedule nil val))))
-      (`comment
-       (get-or-set :get (org-in-commented-heading-p)
-		   :set (when (not (xor (not val)
-					(org-in-commented-heading-p)))
-			  (org-toggle-comment))))
-      (`tags
-       (get-or-set :get (org-get-tags (point) (not inherit))
-		   :set (if keep
-			    (org-set-tags (if no-duplicates
-					      (delete-duplicates (append old-val
-									 (-list val))
-								 :test #'string=)
-					    (append old-val (-list val))))
-			  (org-set-tags val))))
-      (`headline
-       (get-or-set :get (org-entry-get (point) "ITEM")
-		   ;; keep the comment if it is there
-		   :set (let ((commentedp (org-in-commented-heading-p)))
-			  (org-edit-headline val)
-			  (when commentedp
-			    (reorg-get-set-props 'comment :val t)))))
-      (`todo
-       (get-or-set :get (org-entry-get (point) "TODO")
-		   :set (org-todo val)))
-      ((or `timestamp
-	   `timestamp-ia)
-       (get-or-set :get (org-entry-get (point) (if (eq 'timestamp prop)
-						   "TIMESTAMP"
-						 "TIMESTAMP_IA"))
-		   :set (if (and old-val
-				 (search-forward old-val (org-entry-end-position) t))
-			    (progn (replace-match (concat val))
-				   (delete-blank-lines))
-			  (org-end-of-meta-data t)
-			  (delete-blank-lines)
-			  (when val 
-			    (insert (concat val "\n"))))))
-      (`body
-       (get-or-set :get (reorg-edits--get-body-string no-text-properties)
-		   :set (error "You can't set body text (yet).")))
-      ((or (pred stringp)
-	   (pred symbolp))
-       (when (symbolp prop) (setq prop (symbol-name prop)))
-       (get-or-set :get (if (or multi-value (and val (listp val)) keep)
-			    (org-entry-get-multivalued-property (point) prop)
-			  (org-entry-get (point) prop inherit literal-nil))
-		   :set (cond ((or multi-value (listp val) keep)
-			       (apply #'org-entry-put-multivalued-property (point) prop
-				      (if no-duplicates
-					  (delete-duplicates (append old-val (-list val)) :test #'string=)
-					(append old-val (-list val)))))
-			      (t (org-entry-put (point) prop val))))))))
+;; (cl-defun reorg-get-set-props (prop &key
+;; 				    (val nil valp)
+;; 				    keep
+;; 				    multi-value
+;; 				    inherit
+;; 				    literal-nil
+;; 				    no-duplicates
+;; 				    no-text-properties
+;; 				    &allow-other-keys)
+;;   "Change the org heading at point by set PROP to VAL.
+;; It accepts the following properties, as well as any others that are set 
+;; in the headings property drawer. Any such properties can be accessed as string
+;;  or a symbol, e.g., \"CATEGORY\" or 'category.  See the return value of 
+;; `reorg-parser--headline-parser' for more information.
+;; There are flags for dealing with multivalued properties, inheritence, 
+;; etc.:
+;; If VAL is a list, assume a multi-valued property.
+;; If KEEP is non-nil and VAL is a list or MULTI is non-nil, keep the old value.
+;; If NO-DUPLICATES is non-nil and dealing with multi-valued, delete duplicates.
+;; If MULTI is non-nil, use a multivalued property even if VAL is not a list.
+;; Return a cons cell with the old value as the `car' and new value as the `cdr'."
+;;   (cl-macrolet ((get-or-set (&key get set)
+;; 			    `(if (not valp)
+;; 				 ,get
+;; 			       (let ((old-val ,get))
+;; 				 (save-excursion 
+;; 				   (org-back-to-heading)		 
+;; 				   ,set
+;; 				   (cons old-val ,get))))))
+;;     (pcase prop
+;;       ;;(org-insert-time-stamp (org-read-date t t "2021-01-01"))
+;;       (`deadline
+;;        (get-or-set :get (org-entry-get (point) "DEADLINE" inherit literal-nil)
+;; 		   :set (if (null val)
+;; 			    (org-deadline '(4))
+;; 			  (org-deadline nil val))))
+;;       (`scheduled
+;;        (get-or-set :get (org-entry-get (point) "SCHEDULED" inherit literal-nil)
+;; 		   :set (if (null val)
+;; 			    (org-schedule '(4))
+;; 			  (org-schedule nil val))))
+;;       (`comment
+;;        (get-or-set :get (org-in-commented-heading-p)
+;; 		   :set (when (not (xor (not val)
+;; 					(org-in-commented-heading-p)))
+;; 			  (org-toggle-comment))))
+;;       (`tags
+;;        (get-or-set :get (org-get-tags (point) (not inherit))
+;; 		   :set (if keep
+;; 			    (org-set-tags (if no-duplicates
+;; 					      (delete-duplicates (append old-val
+;; 									 (-list val))
+;; 								 :test #'string=)
+;; 					    (append old-val (-list val))))
+;; 			  (org-set-tags val))))
+;;       (`headline
+;;        (get-or-set :get (org-entry-get (point) "ITEM")
+;; 		   ;; keep the comment if it is there
+;; 		   :set (let ((commentedp (org-in-commented-heading-p)))
+;; 			  (org-edit-headline val)
+;; 			  (when commentedp
+;; 			    (reorg-get-set-props 'comment :val t)))))
+;;       (`todo
+;;        (get-or-set :get (org-entry-get (point) "TODO")
+;; 		   :set (org-todo val)))
+;;       ((or `timestamp
+;; 	   `timestamp-ia)
+;;        (get-or-set :get (org-entry-get (point) (if (eq 'timestamp prop)
+;; 						   "TIMESTAMP"
+;; 						 "TIMESTAMP_IA"))
+;; 		   :set (if (and old-val
+;; 				 (search-forward old-val (org-entry-end-position) t))
+;; 			    (progn (replace-match (concat val))
+;; 				   (delete-blank-lines))
+;; 			  (org-end-of-meta-data t)
+;; 			  (delete-blank-lines)
+;; 			  (when val 
+;; 			    (insert (concat val "\n"))))))
+;;       (`body
+;;        (get-or-set :get (reorg-edits--get-body-string no-text-properties)
+;; 		   :set (error "You can't set body text (yet).")))
+;;       ((or (pred stringp)
+;; 	   (pred symbolp))
+;;        (when (symbolp prop) (setq prop (symbol-name prop)))
+;;        (get-or-set :get (if (or multi-value (and val (listp val)) keep)
+;; 			    (org-entry-get-multivalued-property (point) prop)
+;; 			  (org-entry-get (point) prop inherit literal-nil))
+;; 		   :set (cond ((or multi-value (listp val) keep)
+;; 			       (apply #'org-entry-put-multivalued-property (point) prop
+;; 				      (if no-duplicates
+;; 					  (delete-duplicates (append old-val (-list val)) :test #'string=)
+;; 					(append old-val (-list val)))))
+;; 			      (t (org-entry-put (point) prop val))))))))
 
 ;; (defun reorg-edits--sync-field-with-source ()
 ;;   "Set SOURCE to the value of the current field."
@@ -1842,42 +1843,56 @@ returns the correct positions."
 
 (defun reorg--insert-into-branches (data)
   "asdf"
-  (let (insertp)
-    (goto-char (point-min))
-    (while (text-property-search-backward 'reorg-field-type
-					  'branch
-					  nil
-					  'not-current)
-      
+  (goto-char (point-min))
+  (while (text-property-search-backward 'reorg-field-type
+					'branch
+					nil
+					'not-current)
+    (when (reorg--last-branch-p) ()
+	  (let ((forms (reorg--get-view-props 'reorg-data :grouper-list))
+		(results (reorg--get-view-props 'reorg-data :grouper-list-results))
+		(result-sorters (reorg--get-view-props 'reorg-data :result-sorters))
+		(insert? (cl-loop for form in forms
+				  for result in results
+				  when (not (equal
+					     (funcall form data)
+					     result))
+				  return nil
+				  finally return t)))
+	    (when insert?
+	      (reorg--traverse-data-nodes-and-find-home data result-sorters))))))
+	      
+
+
 
 ;;;;; reorg-insert-into-branch 
 
-    (defun reorg--traverse-data-nodes-and-find-home (data result-sorters)
-      "find the home of the current data.  must be called from the last
+(defun reorg--traverse-data-nodes-and-find-home (data result-sorters)
+  "find the home of the current data.  must be called from the last
 branch."
-      (when (reorg--last-branch-p)
-	(let (level)
-	  (reorg-edit-tree
-	   (forward-line)
-	   (cl-loop with level = (reorg-outline-level)
-		    if (or (eobp)
-			   (eq (get-text-property (point) 'reorg-field-type) 'branch)
-			   (cl-loop for (form . pred) in result-sorters
-				    if (equal
-					(funcall
-					 `(lambda (x)
-					    (reorg--let-plist x
-							      ,form))
-					 data)
-					(funcall
-					 `(lambda (x)
-					    (reorg--let-plist x
-							      ,form))
-					 (reorg--get-view-prop)))
-				    do 'nothing
-				    else if (funcall pred 
-						     (funcall
-						      `(lambda (x)
+  (when (reorg--last-branch-p)
+    (let (level)
+      (reorg-edit-tree
+       (forward-line)
+       (cl-loop with level = (reorg-outline-level)
+		if (or (eobp)
+		       (eq (get-text-property (point) 'reorg-field-type) 'branch)
+		       (cl-loop for (form . pred) in result-sorters
+				if (equal
+				    (funcall
+				     `(lambda (x)
+					(reorg--let-plist x
+							  ,form))
+				     data)
+				    (funcall
+				     `(lambda (x)
+					(reorg--let-plist x
+							  ,form))
+				     (reorg--get-view-prop)))
+				do 'nothing
+				else if (funcall pred 
+						 (funcall
+						  `(lambda (x)
 						     (reorg--let-plist x
 								       ,form))
 						  data)
@@ -1893,4 +1908,4 @@ branch."
 		and return t
 		else do (forward-line))))))
 
-    (provide 'reorg)
+(provide 'reorg)
