@@ -274,7 +274,6 @@ RANGE is non-nil, only look for timestamp ranges."
 
 ;;; data macro application 
 
-
 (reorg-create-data-type :name body
 			:parse (reorg--get-body))
 
@@ -480,7 +479,6 @@ See `org-map-entries' for explanation of the parameters."
 ;;;; let-plist 
 
 (cl-defmacro reorg--let-plist (plist &rest body)
-  (cl-assert (fboundp 'let-alist))
   `(cl-labels ((plist-p
                 (lst)
                 (and (listp lst) (keywordp (car lst))))
@@ -632,98 +630,8 @@ keys.  Keys are compared using `equal'."
       (doloop copy template)
       (cadr copy))))
 
-;; (cl-defun reorg--group-and-sort (list template &optional (n 0 np))
-;;   "Group RESULTS according to TEMPLATE."
-;;   (let ((copy (copy-tree list)))
-;;     (cl-labels ((doloop (data template &optional (n 0 np) result-sorters grouper-list)
-;; 			(let ((grouper (plist-get template :group))
-;; 			      (children (plist-get template :children))
-;; 			      (sorter (plist-get template :sort))
-;; 			      (sort-getter (or (plist-get template :sort-getter)
-;; 					       #'car))
-;; 			      (pre-filter (plist-get template :pre-filter))
-;; 			      (post-filter (plist-get template :post-filter))
-;; 			      (format-string (plist-get template :format-string))
-;; 			      (pre-transformer (plist-get template :pre-transformer))
-;; 			      (post-transformer (plist-get template :post-transformer))
-;; 			      (result-sort (plist-get template :sort-results)))
-;; 			  (when result-sort
-;; 			    (setq result-sorters
-;; 				  (append result-sorters					  
-;; 					  (cl-loop for (form . pred) in result-sort
-;; 						   collect (cons `(lambda (x)
-;; 								    (reorg--let-plist x
-;; 										      ,form))
-;; 								 pred)))))
-;; 			  (unless np
-;; 			    (let ((old (cl-copy-list data)))
-;; 			      (setcar data '_)
-;; 			      (setcdr data (list old))))
-;; 			  (setf (nth n (cdr data))
-;; 				(--> (nth n (cdr data))
-;; 				     (if pre-transformer
-;; 					 (seq-map pre-transformer it)
-;; 				       it)
-;; 				     (if pre-filter (seq-remove pre-filter it) it)
-;; 				     (cond ((functionp grouper)
-;; 					    (->> it
-;; 						 (seq-group-by grouper)
-;; 						 (seq-map (lambda (x) (list (car x) (cdr x))))))
-;; 					   ((stringp grouper)
-;; 					    (list (list grouper it)))
-;; 					   (t (->> it
-;; 						   (reorg--seq-group-by grouper)
-;; 						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
-
-;; 				     (seq-filter (lambda (x) (and (not (null (car x)))
-;; 								  (not (null (cdr x)))
-;; 								  (not (null x))))
-;; 						 it)
-;; 				     (cl-loop for x in it
-;; 					      do (setf (car x) (list :branch-name (car x)
-;; 								     :reorg-branch t
-;; 								     :branch-predicate grouper
-;; 								     :branch-value (car x)))
-;; 					      finally return it)
-;; 				     (seq-filter (lambda (x) (and (not (null (car x)))
-;; 								  (not (null (cdr x)))
-;; 								  (not (null x))))
-;; 						 it)
-;; 				     (if sorter
-;; 					 (seq-sort-by (or sort-getter #'car)
-;; 						      sorter it)
-;; 				       it)
-;; 				     (if post-filter
-;; 					 (cl-loop for each in it
-;; 						  collect (list (car each) (seq-remove post-filter (cadr each))))
-;; 				       it)
-;; 				     (if post-transformer
-;; 					 (cl-loop for each in it
-;; 						  collect (list (car each) (seq-map post-transformer (cadr each))))
-;; 				       it)))
-;; 			  (if children
-;; 			      (progn 
-;; 				(cl-loop for x below (length (nth n (cdr data)))
-;; 					 do (setcdr (nth x (nth n (cdr data)))
-;; 						    (cl-loop for z below (length children)
-;; 							     collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
-;; 				(cl-loop for x below (length children)
-;; 					 do (cl-loop for y below (length (nth n (cdr data)))
-;; 						     do (doloop (nth y (nth n (cdr data)))
-;; 								(nth x children)
-;; 								x
-;; 								result-sorters
-;; 								grouper-list))))
-;; 			    (when result-sorters
-;; 			      (cl-loop for x below (length (nth n (cdr data)))
-;; 				       do (setf (cadr (nth x (nth n (cdr data))))
-;; 						(reorg--multi-sort result-sorters
-;; 								   (cadr (nth x (nth n (cdr data))))))))))))
-;;       (doloop copy template)
-;;       (cadr copy))))
-
-
 ;;; Generating the outline
+
 ;;;; cloning outline
 
 (defun reorg--clone-outline-results (data &optional format-string)
@@ -1841,6 +1749,17 @@ returns the correct positions."
 	     (plist-get (get-text-property (point) reorg--data-property-name)
 			:branch-value))))
 
+(defun reorg--get-next-level-subtree-branches (&rest props)
+  (let ((current-level (reorg-outline-level)))
+    (save-excursion 
+      (cl-loop while (and (text-property-search-forward 'reorg-field-type
+							'branch
+							nil
+							'not-current)
+			  (< current-level (reorg-outline-level)))
+	       when (= (1- (reorg-outline-level)) current-level)
+	       collect (apply #'reorg--get-view-props 'reorg-data props)))))
+
 (defun reorg--insert-into-branches (data)
   "asdf"
   (goto-char (point-min))
@@ -1890,4 +1809,72 @@ branch."
 		return (reorg-views--insert-before-point data level)
 		else do (forward-line))))))
 
+
+
+;;;; testing 
+
+(defun reorg--goto-next-property-field (prop val &optional backward pred)
+  (let ((func (if backward
+		  #'previous-single-property-change
+		#'next-single-property-change))
+	(limit (if backward
+		   (point-min)
+		 (point-max)))
+	(pred (or pred #'eq)))
+    
+    (cl-loop with point = (point)
+	     with origin = (point)
+	     while point	     
+
+	     do (setq point (funcall func (point) prop))
+	     
+	     if (and (null point)
+		     (funcall pred
+			      (get-text-property limit prop)
+			      val))
+	     return (goto-char limit)
+
+	     else if (null point)
+	     return (goto-char origin)
+	     
+	     else if (funcall pred
+			      val
+			      (get-text-property point prop))
+	     return (goto-char point)
+
+	     else do (forward-char (- point (point))))))
+
+(defun reorg--goto-next-branch (&optional relative-level)
+  (let ((start-level (reorg-outline-level))
+	(point (point)))
+    (cl-loop while (text-property-search-forward 'reorg-field-type
+						 'branch
+						 nil
+						 'not-current)
+	     if (= start-level (- (reorg-outline-level) (or relative-level 0)))
+	     return t
+	     else if (> start-level (+ (reorg-outline-level) relative-level))
+	     return (progn (setf (point) point) nil)
+	     finally (progn (setf (point) point) nil))))
+
+(defun reorg--goto-previous-branch (&optional relative-level)
+  (let ((start-level (reorg-outline-level))
+	(point (point)))
+    (cl-loop while (prog1 (text-property-search-backward 'reorg-field-type
+							 'branch
+							 nil
+							 'not-current)
+		     (goto-char (point-at-bol)))
+	     if (= start-level (- (reorg-outline-level) (or relative-level 0)))
+	     return t
+	     else if (> start-level (+ (reorg-outline-level) relative-level))
+	     return (progn (setf (point) point) nil)
+	     finally (progn (setf (point) point) nil))))
+
+;;;; Footer
+
 (provide 'reorg)
+
+;;; reorg.el ends here
+
+
