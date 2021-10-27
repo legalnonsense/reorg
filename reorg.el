@@ -1811,7 +1811,7 @@ branch."
 
 
 
-;;;; testing 
+;;;; text property navigation 
 
 (defun reorg--goto-next-property-field (prop val &optional backward pred)
   (let ((func (if backward
@@ -1835,7 +1835,7 @@ branch."
 	     return (goto-char limit)
 
 	     else if (null point)
-	     return (goto-char origin)
+	     return (progn (goto-char origin) nil)
 	     
 	     else if (funcall pred
 			      val
@@ -1844,32 +1844,21 @@ branch."
 
 	     else do (forward-char (- point (point))))))
 
-(defun reorg--goto-next-branch (&optional relative-level)
+(defun reorg--goto-previous-property-field (prop val pred)
+  (reorg--goto-next-property-field prop val 'backward pred))
+
+(defun reorg--goto-next-branch (&optional relative-level previous)
   (let ((start-level (reorg-outline-level))
 	(point (point)))
-    (cl-loop while (text-property-search-forward 'reorg-field-type
-						 'branch
-						 nil
-						 'not-current)
+    (cl-loop while (reorg--goto-next-property-field 'reorg-field-type 'branch previous)
 	     if (= start-level (- (reorg-outline-level) (or relative-level 0)))
 	     return t
-	     else if (> start-level (+ (reorg-outline-level) relative-level))
+	     else if (> start-level (+ (reorg-outline-level) (or relative-level 0)))
 	     return (progn (setf (point) point) nil)
 	     finally (progn (setf (point) point) nil))))
 
 (defun reorg--goto-previous-branch (&optional relative-level)
-  (let ((start-level (reorg-outline-level))
-	(point (point)))
-    (cl-loop while (prog1 (text-property-search-backward 'reorg-field-type
-							 'branch
-							 nil
-							 'not-current)
-		     (goto-char (point-at-bol)))
-	     if (= start-level (- (reorg-outline-level) (or relative-level 0)))
-	     return t
-	     else if (> start-level (+ (reorg-outline-level) relative-level))
-	     return (progn (setf (point) point) nil)
-	     finally (progn (setf (point) point) nil))))
+  (reorg--goto-next-branch relative-level 'previous))
 
 ;;;; Footer
 
