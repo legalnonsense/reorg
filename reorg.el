@@ -47,7 +47,7 @@ to parsed data.  For now, only for debugging.")
 
 ;;; macros
 
-(defmacro reorg-edit-tree (&rest body)
+(defmacro reorg-restore-state (&rest body)
   "do BODY while saving, excursion, restriction, etc."
   (declare (debug (body)))
   `(save-excursion
@@ -159,21 +159,23 @@ then return PROP with no colon prefix."
 if INACTIVE is non-nil, get the first inactive timestamp.  If 
 RANGE is non-nil, only look for timestamp ranges."
   (save-excursion
-    (when (re-search-forward (pcase `(,inactive ,range)
-			       (`(nil t)
-				org-tr-regexp)
-			       (`(nil nil)
-				org-ts-regexp)
-			       (`(t nil)
-				org-ts-regexp-inactive)
-			       (`(t t)
-				(concat 
-				 org-ts-regexp-inactive
-				 "--?-?"
-				 org-ts-regexp-inactive)))
-			     (org-entry-end-position)
-			     t)      
-      (org-no-properties (match-string 0)))))
+    (cl-loop while (re-search-forward (pcase `(,inactive ,range)
+					(`(nil t)
+					 org-tr-regexp)
+					(`(nil nil)
+					 org-ts-regexp)
+					(`(t nil)
+					 org-ts-regexp-inactive)
+					(`(t t)
+					 (concat 
+					  org-ts-regexp-inactive
+					  "--?-?"
+					  org-ts-regexp-inactive)))
+				      (org-entry-end-position)
+				      t)
+	     when (save-match-data (not (eq (car (org-element-at-point))
+					    'planning)))
+	     return (org-no-properties (match-string 0)))))
 ;;;; body
 
 (defun reorg--get-body ()
@@ -259,7 +261,7 @@ RANGE is non-nil, only look for timestamp ranges."
 	   (progn 
 	     (cl-loop for (key . func) in ',field-keymap
 		      do (advice-remove func #'reorg--refresh-advice))
-	     (setq reorg-parser-list (remq ',name reorg-parser-list)))
+	     (setq reorg-parser-list (remove ',name yreorg-parser-list)))
 	 ;; (cl-loop for (key . func) in ',field-keymap
 	 ;; 	  do (advice-add func :around #'reorg--refresh-advice))
 
@@ -275,7 +277,8 @@ RANGE is non-nil, only look for timestamp ranges."
 ;;; data macro application 
 
 (reorg-create-data-type :name body
-			:parse (reorg--get-body))
+			:parse (reorg--get-body)
+			:disabled t)
 
 (reorg-create-data-type :name deadline
 			:parse (org-entry-get (point) "DEADLINE")
@@ -366,7 +369,12 @@ RANGE is non-nil, only look for timestamp ranges."
 			;; 	 (org-end-of-meta-data t)
 			;; 	 (insert (concat val "\n"))
 			;; 	 (delete-blank-lines)))
-			:face org-date
+			:display
+			(if (plist-get plist :timestamp)
+			    (concat 
+			     (propertize (plist-get plist :timestamp)
+					 'font-lock-face 'org-date))
+			  "____")
 			:field-keymap (("S-<up>" . org-timestamp-up)
 				       ("S-<down>" . org-timestamp-down))
 			:header-keymap (("C-c ." . org-time-stamp))
@@ -435,7 +443,8 @@ RANGE is non-nil, only look for timestamp ranges."
 				    (insert val)
 				    (beginning-of-buffer)
 				    (org-timestamp-change 0 'day)
-				    (buffer-string)))
+				    (buffer-string))
+			:disabled t)
 
 (reorg-create-data-type :name id
 			:parse (org-id-get-create))
@@ -448,7 +457,9 @@ RANGE is non-nil, only look for timestamp ranges."
 			;; :set (org-set-property "CATEGORY" val))
 
 (reorg-create-data-type :name file
-			:parse (buffer-file-name))
+			:parse (buffer-file-name)
+			:disabled t
+			:disable t)
 
 (reorg-create-data-type :name buffer-name
 			:parse (buffer-name))
@@ -471,9 +482,14 @@ RANGE is non-nil, only look for timestamp ranges."
 (defun reorg--map-entries (&optional match scope &rest skip)
   "Run the parser at each heading in the current buffer.
 See `org-map-entries' for explanation of the parameters."
-  (reorg-edit-tree
+  (reorg-restore-state
    (org-map-entries
     #'reorg--parser match scope skip)))
+
+(defun reorg--org-ql ()
+  (interactive)
+  (org-ql-select nil nil
+    :action #'reorg--parser))
 
 ;;; grouping and sorting parsed results
 ;;;; let-plist 
@@ -586,6 +602,9 @@ keys.  Keys are compared using `equal'."
 								     :grouper-list-results (append grouper-list-results
 												   (list (car x)))
 								     :branch-predicate grouper
+								     :result-sorters result-sorters
+								     :branch-sorter sorter
+								     :branch-sort-getter sort-getter
 								     :branch-value (car x)))
 					      finally return it)
 				     (seq-filter (lambda (x) (and (not (null (car x)))
@@ -736,7 +755,10 @@ get nested properties."
 				 (->> (plist-get payload (car props))
 				      (get-props (cdr props)))))
 			   payload)))
-    (get-props props)))
+    (if props 
+	(get-props props)
+      (let ((inhibit-field-text-motion t))
+	(get-text-property (point-at-bol) reorg--data-property-name)))))
 
 (defun reorg--get-view-prop (&optional property)
   "Get PROPERTY from the current heading."
@@ -908,7 +930,7 @@ get nested properties."
 (defun reorg-view--source--goto-end-of-meta-data ()
   "Go to the end of the meta data and insert a blank line
 if there is not one."
-  (let ((next-heading (reorg-edit-tree
+  (let ((next-heading (reorg-restore-state
 		       (outline-next-heading)
 		       (point)))
 	(end-of-meta-data (save-excursion
@@ -1224,7 +1246,7 @@ invoked.")
   "Execute BODY with point at the heading with ID at point."
   `(when-let ((id ,(or id (reorg--get-view-prop :id))))
      (with-current-buffer ,(or buffer (reorg--get-view-prop :buffer))
-       (reorg-edit-tree
+       (reorg-restore-state
 	(goto-char (point-min))
 	;; NOTE: Can't use `org-id-goto' here or it will keep the
 	;;       buffer open after the edit.  Getting the buffer
@@ -1501,7 +1523,7 @@ returns the correct positions."
 
 (defun reorg-views--insert-before-point (data &optional level)
   "insert a hearing before the heading at point."
-  (reorg-edit-tree
+  (reorg-restore-state
    (beginning-of-line)
    (insert "\n")
    (previous-line 1)
@@ -1722,7 +1744,7 @@ returns the correct positions."
 
 ;;;;; reorg-map-branches
 
-(defmacro reorg--map-branches (&rest body)
+(defmacro reorg--map-all-branches (&rest body)
   "Move to the next clone of the current node."
   `(save-restriction 
      (save-excursion
@@ -1740,80 +1762,162 @@ returns the correct positions."
     (forward-line)
     (not (eq 'branch (get-text-property (point) 'reorg-field-type)))))
 
-(defun reorg--branch-member-p (data)
-  "Is DATA a member of the branch at point?"
-  (let ((form (plist-get (get-text-property (point)
-					    reorg--data-property-name)
-			 :branch-predicate)))
-    (string= (funcall `(lambda (e) (reorg--let-plist e ,form)) data)
-	     (plist-get (get-text-property (point) reorg--data-property-name)
-			:branch-value))))
+;; (defun reorg--branch-member-p (data)
+;;   "Is DATA a member of the branch at point?"
+;;   (let ((form (plist-get (get-text-property (point)
+;; 					    reorg--data-property-name)
+;; 			 :branch-predicate)))
+;;     (string= (funcall `(lambda (e) (reorg--let-plist e ,form)) data)
+;; 	     (plist-get (get-text-property (point) reorg--data-property-name)
+;; 			:branch-value))))
 
-(defun reorg--get-next-level-subtree-branches (&rest props)
-  (let ((current-level (reorg-outline-level)))
-    (save-excursion 
-      (cl-loop while (and (text-property-search-forward 'reorg-field-type
-							'branch
-							nil
-							'not-current)
-			  (< current-level (reorg-outline-level)))
-	       when (= (1- (reorg-outline-level)) current-level)
-	       collect (apply #'reorg--get-view-props 'reorg-data props)))))
+;; (defun reorg--get-next-level-subtree-branches (&rest props)
+;;   (let ((current-level (reorg-outline-level)))
+;;     (save-excursion 
+;;       (cl-loop while (and (text-property-search-forward 'reorg-field-type
+;; 							'branch
+;; 							nil
+;; 							'not-current)
+;; 			  (< current-level (reorg-outline-level)))
+;; 	       when (= (1- (reorg-outline-level)) current-level)
+;; 	       collect (apply #'reorg--get-view-props 'reorg-data props)))))
 
-(defun reorg--insert-into-branches (data)
-  "asdf"
-  (goto-char (point-min))
-  (while (text-property-search-forward 'reorg-field-type
-				       'branch
-				       nil
-				       'not-current)
-    (when (reorg--last-branch-p) ()
-	  (let* ((forms (reorg--get-view-props 'reorg-data :grouper-list))
-		 (results (reorg--get-view-props 'reorg-data :grouper-list-results))
-		 (result-sorters (reorg--get-view-props 'reorg-data :result-sorters))
-		 (insert? (cl-loop for form in forms
-				   for result in results
-				   when (not (equal
-					      (funcall form data)
-					      result))
-				   return nil
-				   finally return t)))
-	    (when insert?
-	      (reorg--traverse-data-nodes-and-find-home data result-sorters))))))
-	      
+;; (defun reorg--insert-into-branches (data)
+;;   "asdf"
+;;   (goto-char (point-min))
+;;   (while (text-property-search-forward 'reorg-field-type
+;; 				       'branch
+;; 				       nil
+;; 				       'not-current)
+;;     (when (reorg--last-branch-p) ()
+;; 	  (let* ((forms (reorg--get-view-props 'reorg-data :grouper-list))
+;; 		 (results (reorg--get-view-props 'reorg-data :grouper-list-results))
+;; 		 (result-sorters (reorg--get-view-props 'reorg-data :result-sorters))
+;; 		 (insert? (cl-loop for form in forms
+;; 				   for result in results
+;; 				   when (not (equal
+;; 					      (funcall form data)
+;; 					      result))
+;; 				   return nil
+;; 				   finally return t)))
+;; 	    (when insert?
+;; 	      (reorg--traverse-data-nodes-and-find-home data result-sorters))))))
+
+;;;;; insert-into-branch 
+
+(defun reorg--insert-into-leaves (data sorters)
+  (cl-loop while (not (eq (reorg--get-view-props 'reorg-field-type)
+			  'branch))
+	   with level = (reorg-outline-level)
+	   if (cl-loop for (func . pred) in sorters
+		       if (funcall pred
+				   (funcall func data)
+				   (funcall func (reorg--get-view-prop)))
+		       return t
+		       finally return nil)
+	   return (reorg-views--insert-before-point data level)
+	   else do (forward-line)
+	   finally return (reorg-views--insert-before-point data level)))
+
+(defun reorg--insert-into-branch-or-make-new-branch (data)
+  (let* ((level (reorg-outline-level))
+	 (grouper (nth (1- level) (reorg--get-view-props 'reorg-data :grouper-list)))
+	 (value (nth (1- level) (reorg--get-view-props 'reorg-data :grouper-list-results)))
+	 (cur-val (funcall grouper data))
+	 (result-sorters (reorg--get-view-props 'reorg-data :result-sorters))
+	 (these-branches (reorg--get-list-of-branch-vals 0))
+	 (sort-getter (reorg--get-view-props 'reorg-data :branch-sort-getter))
+	 (sorter (reorg--get-view-props 'reorg-data :branch-sort)))    
+    (if (member cur-val these-branches)
+	(progn 
+	  (reorg--goto-next-property-field 'reorg-data
+					   cur-val
+					   nil
+					   #'string=
+					   (lambda (x) (plist-get x :branch-name)))
+	  (reorg--insert-into-leaves data result-sorters))
+      )))
 
 
 
-;;;;; reorg-insert-into-branch 
+(defun reorg--set-text-property (plist val &rest props)
+  "Set the text property at point to a new value.
+Set the text property (car PROPS) to the value of
+the PROPS drilling nested plist whatever.
 
-(defun reorg--traverse-data-nodes-and-find-home (data result-sorters)
-  "find the home of the current data.  must be called from the last
-branch."
-  (when (reorg--last-branch-p)
-    (let (level)
-      (reorg-edit-tree
-       (forward-line)
-       (cl-loop with level = (reorg-outline-level)
-		if (or (eobp)
-		       (eq (get-text-property (point) 'reorg-field-type) 'branch)
-		       (cl-loop for (form . pred) in result-sorters
-				if (equal
-				    (funcall form data)
-				    (funcall form (reorg--get-view-prop)))
-				do 'nothing
-				else if (funcall pred 
-						 (funcall form data)
-						 (funcall form (reorg--get-view-prop)))
-				return t
-				else return nil))
-		return (reorg-views--insert-before-point data level)
-		else do (forward-line))))))
+If PROPS is only one element then start with 'reorg-data
+otherwise start with the car of PROPS.
 
+If PLIST is nil, then get the text properties at point."
+  (let* ((inhibit-field-text-motion t)
+	 (results (or plist (text-properties-at (point)))))
+    (cl-loop for prop in (or (butlast props) `(,reorg--data-property-name))
+	     with new-results = nil
+	     do (setf new-results (if prop
+				      (plist-get results prop)
+				    results))
+	     finally return (progn (plist-put new-results (car (last props)) val)
+				   (put-text-property (point-at-bol)
+						      (point-at-eol)
+						      reorg--data-property-name
+						      new-results)
+				   results))))
+
+(defun reorg--insert-heading (&optional data level format)
+  (let ((inhibit-field-text-motion t))
+    (beginning-of-line)
+    (insert 
+     (reorg--create-headline-string (or data (reorg--get-view-props))
+				    (or format reorg-headline-format)
+				    (or level (reorg-outline-level)))
+     "\n")
+    (forward-line -1)
+    (reorg-dynamic-bullets--fontify-heading)))
+
+(defmacro reorg--map-next-level-sub-branches (&rest body)
+  "map the branches at the current level"
+  `(save-excursion 
+     (reorg--goto-parent)
+     (cl-loop while (reorg--goto-next-branch 1)
+	      do ,@body)))
+
+(defmacro reorg--map-all-sub-branches (&rest body)
+  "map the branches at the current level"
+  `(save-excursion 
+     (reorg--goto-parent)
+     (cl-loop with level = (reorg-outline-level)
+	      while (reorg--goto-next-property-field 'reorg-field-type 'branch)
+	      while (> (reorg-outline-level ) level)
+	      do ,@body)))
+
+(defun reorg--get-list-of-branch-vals (&optional relative-level)
+  "Get a list of the headings of the next generation of branches."
+  (save-excursion 
+    (cl-loop
+     collect (reorg--get-view-props 'reorg-data :branch-name)
+     while (reorg--goto-next-branch (or relative-level 1)))))
 
 
 ;;;; text property navigation 
 
-(defun reorg--goto-next-property-field (prop val &optional backward pred)
+(defun reorg--goto-next-property-field (prop val &optional backward pred transformer)
+  "Move to the beginning of the next field of text property PROP that
+matches VAL.
+
+If PRED is specified, compare values using PRED instead of `eq'.
+
+If BACKWARD is non-nil, move backward instead of forward. 
+
+TRANSFORMER is an optional function that accepts one argument
+(the value of the text property at point) and transforms it before
+comparing it to VAL.
+
+For example, if (get-text-property (point) PROP) returns a plist, but you
+only want to see if one value is present, the TRANSFORMER:
+
+(lambda (plist) (plist-get plist :interesting-value))
+
+will extract the single value prior to comparing to VAL."
   (let ((func (if backward
 		  #'previous-single-property-change
 		#'next-single-property-change))
@@ -1826,11 +1930,12 @@ branch."
 	     with origin = (point)
 	     while point	     
 
-	     do (setq point (funcall func (point) prop))
+	     do (setq point (funcall func point prop))
 	     
 	     if (and (null point)
 		     (funcall pred
-			      (get-text-property limit prop)
+			      (funcall (or transformer #'identity)
+				       (get-text-property limit prop))
 			      val))
 	     return (goto-char limit)
 
@@ -1839,15 +1944,28 @@ branch."
 	     
 	     else if (funcall pred
 			      val
-			      (get-text-property point prop))
+			      (funcall (or transformer #'identity)
+				       (get-text-property point prop)))
 	     return (goto-char point)
 
 	     else do (forward-char (- point (point))))))
 
-(defun reorg--goto-previous-property-field (prop val pred)
+(defun reorg--goto-previous-property-field (prop val &optional pred)
+  "Move to the beginning of the buffer position that
+text property PROP that matches VAL.  Check for matching VAL
+using `eq', unless PRED is suppied."
   (reorg--goto-next-property-field prop val 'backward pred))
 
 (defun reorg--goto-next-branch (&optional relative-level previous)
+  "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
+level relative to the current one.  For example, if the current outline
+level is 2, and RELATIVE-LEVEL is -1, the function will move to the next
+branch at level 1.  If RELATIVE-LEVEL is 1, the function will move to the
+next branch at level 3.
+
+If PREVIOUS is non-nil, move to the previous branch instead of the next.
+
+Return nil if there is no such branch."
   (let ((start-level (reorg-outline-level))
 	(point (point)))
     (cl-loop while (reorg--goto-next-property-field 'reorg-field-type 'branch previous)
@@ -1858,6 +1976,8 @@ branch."
 	     finally (progn (setf (point) point) nil))))
 
 (defun reorg--goto-previous-branch (&optional relative-level)
+  "Wrapper for `reorg--goto-next-branch' which moves to the
+previous branch."
   (reorg--goto-next-branch relative-level 'previous))
 
 ;;;; Footer
@@ -1866,4 +1986,14 @@ branch."
 
 ;;; reorg.el ends here
 
+
+;;; new parser
+(setq xxx nil)
+(defun reorg--map-entries (&optional match scope &rest skip)
+  "Run the parser at each heading in the current buffer.
+See `org-map-entries' for explanation of the parameters."
+  (org-ql-select nil
+    '(and (and (todo) (not (todo "done"))) (or (ts-active) (deadline) (scheduled)))
+    :action 
+    #'reorg--parser))
 
