@@ -261,7 +261,7 @@ RANGE is non-nil, only look for timestamp ranges."
 	   (progn 
 	     (cl-loop for (key . func) in ',field-keymap
 		      do (advice-remove func #'reorg--refresh-advice))
-	     (setq reorg-parser-list (remove ',name yreorg-parser-list)))
+	     (setq reorg-parser-list (remove ',name reorg-parser-list)))
 	 ;; (cl-loop for (key . func) in ',field-keymap
 	 ;; 	  do (advice-add func :around #'reorg--refresh-advice))
 
@@ -543,12 +543,13 @@ keys.  Keys are compared using `equal'."
 (cl-defun reorg--group-and-sort (list template &optional (n 0 np))
   "Group RESULTS according to TEMPLATE."
   (let ((copy (copy-tree list)))
-    (cl-labels ((doloop (data template &optional (n 0 np) result-sorters grouper-list grouper-list-results)
+    (cl-labels ((doloop (data template &optional (n 0 np) result-sorters grouper-list grouper-list-results format-string)
 			(let ((grouper (plist-get template :group))
 			      (children (plist-get template :children))
 			      (sorter (plist-get template :sort))
 			      (sort-getter (or (plist-get template :sort-getter)
 					       #'car))
+			      (format-string (or (plist-get template :format-string) format-string))
 			      (pre-filter (plist-get template :pre-filter))
 			      (post-filter (plist-get template :post-filter))
 			      (format-string (plist-get template :format-string))
@@ -640,7 +641,8 @@ keys.  Keys are compared using `equal'."
 						 grouper-list
 						 (append grouper-list-results
 							 (list (plist-get (car (nth y (nth n (cdr data))))
-									  :branch-value)))))))
+									  :branch-value)))
+						 format-string))))
 			    (when result-sorters
 			      (cl-loop for x below (length (nth n (cdr data)))
 				       do (setf (cadr (nth x (nth n (cdr data))))
@@ -868,9 +870,12 @@ get nested properties."
 		    (plist-get plist :id)
 		    val))
 		 'not-current)
-	(progn (when previous (backward-char))
-	       (outline-back-to-heading)
-	       (reorg-edits--update-box-overlay))
+	(let ((point (point)))
+	  (when previous (backward-char))
+	  (outline-back-to-heading)
+	  (reorg-edits--update-box-overlay)
+	  (reorg--unfold-at-point point)
+	  point)
       (if previous
 	  (goto-char (point-max))
 	(goto-char (point-min)))
@@ -1266,6 +1271,15 @@ invoked.")
   (reorg-edits--update-box-overlay)
   (setf (point) (car 
 		 (reorg-edits--get-field-bounds))))
+
+(defun reorg--unfold-at-point (&optional point)
+  "Unfold so the heading at point is visible."
+  (let ((point (or point (point))))
+    (reorg--goto-parent)
+    (outline-show-subtree)
+    (goto-char point)
+    (outline-show-subtree)
+    (goto-char point)))
 
 (defun reorg-edits--update-box-overlay ()
   "Tell the user what field they are on."
