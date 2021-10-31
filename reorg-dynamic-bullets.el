@@ -252,9 +252,10 @@ This function searches the region for the headline regexp and calls
 
 (defun reorg-dynamic-bullets--fontify-heading (&rest _)
   "Fontify the current heading only."
-  (save-excursion 
-    (reorg-dynamic-bullets--fontify (point-at-bol)
-				  (point-at-eol))))
+  (save-excursion
+    (let ((inhibit-field-text-motion t))
+      (reorg-dynamic-bullets--fontify (point-at-bol)
+				      (point-at-eol)))))
 
 (defun reorg-dynamic-bullets--fontify-heading-and-previous-sibling (&rest _)
   "Fontify the current heading and previous sibling."
