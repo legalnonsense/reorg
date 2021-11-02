@@ -874,9 +874,9 @@ get nested properties."
 	  (when previous (backward-char))
 	  (outline-back-to-heading)
 	  (save-excursion 
-	  (reorg--unfold-at-point point)
-	  (reorg-edits--update-box-overlay)
-	  point)
+	    (reorg--unfold-at-point point)
+	    (reorg-edits--update-box-overlay)
+	    point))
       (if previous
 	  (goto-char (point-max))
 	(goto-char (point-min)))
@@ -2018,3 +2018,130 @@ previous branch."
 ;;     :action 
 ;;     #'reorg--parser))
 
+
+
+;;;; new grouping function
+
+;; This buffer is for text that is not saved, and for Lisp evaluation.
+;; To create a file, visit it with <open> and enter text in its buffer.
+
+
+
+(cl-defun reorg--group-and-sort (list template &optional (n 0 np))
+  "Group RESULTS according to TEMPLATE."
+  (let ((copy (copy-tree list)))
+    (cl-labels ((doloop (data
+			 template
+			 &optional (n 0 np)
+			 result-sorters
+			 grouper-list
+			 grouper-list-results
+			 format-string
+			 (level 1))
+			(let ((grouper (plist-get template :group))
+			      (children (plist-get template :children))
+			      (heading-sorter (plist-get template :sort))
+			      (heading-sort-getter (or (plist-get template :sort-getter)
+						       #'car))
+			      (format-string (or format-string
+						 (plist-get template :format-string)
+						 reorg-headline-format))
+			      (result-sort (plist-get template :sort-results)))
+			  
+			  (when result-sort
+			    (setq result-sorters
+				  (append result-sorters					  
+					  (cl-loop for (form . pred) in result-sort
+						   collect (cons `(lambda (x)
+								    (reorg--let-plist x
+										      ,form))
+								 pred)))))
+			  (setq grouper-list
+				(append grouper-list
+					(list `(lambda (x)
+						 (reorg--let-plist x
+								   ,grouper)))))
+			  (unless np
+			    (let ((old (cl-copy-list data)))
+			      (setcar data '_)
+			      (setcdr data (list old))))
+			  (setf (nth n (cdr data))
+				(--> (nth n (cdr data))
+				     (cond ((functionp grouper)
+					    (->> it
+						 (seq-group-by grouper)
+						 (seq-map (lambda (x) (list (car x) (cdr x))))))
+					   ((stringp grouper)
+					    (list (list grouper it)))
+					   (t (->> it
+						   (reorg--seq-group-by grouper)
+						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
+				     
+				     (seq-filter (lambda (x) (and (not (null (car x)))
+								  (not (null (cdr x)))
+								  (not (null x))))
+						 it)
+				     (cl-loop for x in it					      
+					      do (setf (car x) (list :branch-name (car x)
+								     :headline (car x)
+								     :reorg-branch t
+								     :result-sorters result-sorters 
+								     :grouper-list grouper-list
+								     :grouper-list-results (append grouper-list-results
+												   (list (car x)))
+								     :branch-predicate grouper
+								     :result-sorters result-sorters
+								     :branch-sorter heading-sorter
+								     :branch-sort-getter heading-sort-getter
+								     :branch-value (car x)
+								     :reorg-level level))
+					      finally return it)
+				     (seq-filter (lambda (x) (and (not (null (car x)))
+								  (not (null (cdr x)))
+								  (not (null x))))
+						 it)
+				     (if heading-sorter
+					 (seq-sort-by (or heading-sort-getter #'car)
+						      heading-sorter it)
+				       it)))
+			  (if children
+			      (progn 
+				(cl-loop for x below (length (nth n (cdr data)))
+					 do (setcdr (nth x (nth n (cdr data)))
+						    (cl-loop for z below (length children)
+							     collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
+				(cl-loop for x below (length children)
+					 do (cl-loop
+					     for y below (length (nth n (cdr data)))
+					     do (doloop
+						 (nth y (nth n (cdr data)))
+						 (nth x children)
+						 x
+						 result-sorters
+						 grouper-list
+						 (append grouper-list-results
+							 (list (plist-get (car (nth y (nth n (cdr data))))
+									  :branch-value)))
+						 format-string
+						 (1+ level)))))
+			    (when result-sorters
+			      (cl-loop for x below (length (nth n (cdr data)))
+				       do (setf (cadr (nth x (nth n (cdr data))))
+						(reorg--multi-sort result-sorters
+								   (cadr (nth x (nth n (cdr data))))))))))))
+      (doloop copy template)
+      (cadr copy))))
+
+
+(defun xxx-reorg-test-5 ()
+  (reorg-open-sidebar '( :group "test"
+			 :children (( :group .property.legs
+				      :sort (lambda (a b)
+					      (string<
+					       (plist-get a :headline)
+					       (plist-get b :headline))))))
+		      (setq reorg-headline-format '((stars) (" ") (headline)))))
+
+(reorg--group-and-sort yyy
+		       '( :group "test"
+			  :children (( :group .property.legs))))
