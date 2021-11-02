@@ -873,8 +873,9 @@ get nested properties."
 	(let ((point (point)))
 	  (when previous (backward-char))
 	  (outline-back-to-heading)
-	  (reorg-edits--update-box-overlay)
+	  (save-excursion 
 	  (reorg--unfold-at-point point)
+	  (reorg-edits--update-box-overlay)
 	  point)
       (if previous
 	  (goto-char (point-max))
@@ -1052,24 +1053,30 @@ the point and return nil."
 	(id (reorg--get-view-prop :id)))
     (reorg--select-tree-window)
     (setq xxx data)
-    (reorg--map-id id
-		   (reorg-views--replace-heading data)
-		   (reorg-dynamic-bullets--fontify-heading))))
-
+    (save-restriction
+      (save-excursion    
+	(reorg--map-id id
+		       (reorg-views--replace-heading data)
+		       (reorg-dynamic-bullets--fontify-heading))))))
+(let ((id "63d9dca0-30ca-4d60-9aae-f26e1d6cb732"))
+  (macroexpand `(reorg--map-id ,id
+			       (reorg-views--replace-heading data)
+			       (reorg-dynamic-bullets--fontify-heading))))
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
-  `(save-restriction
-     (save-excursion
-       (goto-char (point-min))
-       (while (text-property-search-forward reorg--data-property-name
-					    ,id
-					    (lambda (val plist)
-					      (string= 
-					       (plist-get plist :id)
-					       val))
-					    'not-current)
+  `(progn 
+     (goto-char (point-min))
+     (while (text-property-search-forward reorg--data-property-name
+					  ,id
+					  (lambda (val plist)
+					    (string= 
+					     (plist-get plist :id)
+					     val))
+					  'not-current)
+       (save-excursion 
 	 (outline-back-to-heading)
-	 ,@body))))
+	 ,@body)
+       (forward-char 1))))
 
 ;;;; view mode
 
@@ -1274,7 +1281,7 @@ invoked.")
 
 (defun reorg--unfold-at-point (&optional point)
   "Unfold so the heading at point is visible."
-  (let ((point (or point (point))))
+  (save-excursion 
     (reorg--goto-parent)
     (outline-show-subtree)
     (goto-char point)
@@ -2002,12 +2009,12 @@ previous branch."
 
 
 ;;; new parser
-(setq xxx nil)
-(defun reorg--map-entries (&optional match scope &rest skip)
-  "Run the parser at each heading in the current buffer.
-See `org-map-entries' for explanation of the parameters."
-  (org-ql-select nil
-    '(and (and (todo) (not (todo "done"))) (or (ts-active) (deadline) (scheduled)))
-    :action 
-    #'reorg--parser))
+
+;; (defun reorg--map-entries (&optional match scope &rest skip)
+;;   "Run the parser at each heading in the current buffer.
+;; See `org-map-entries' for explanation of the parameters."
+;;   (org-ql-select nil
+;;     '(and (and (todo) (not (todo "done"))) (or (ts-active) (deadline) (scheduled)))
+;;     :action 
+;;     #'reorg--parser))
 
