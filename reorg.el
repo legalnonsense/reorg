@@ -289,10 +289,26 @@ RANGE is non-nil, only look for timestamp ranges."
 			:display (if (plist-get plist :deadline)
 				     (concat 
 				      (propertize "DEADLINE: "
+
 						  'font-lock-face 'org-special-keyword)
 				      (propertize (plist-get plist :deadline)
 						  'font-lock-face 'org-date))
-				   "____"))
+				   "__________"))
+
+(reorg-create-data-type :name scheduled
+			:parse (org-entry-get (point) "SCHEDULED")
+			:set (lambda ()
+			       (reorg--with-source-and-sync
+				 (if val (org-scheduled nil val)
+				   (org-scheduled '(4)))))
+			:display (if (plist-get plist :scheduled)
+				     (concat 
+				      (propertize "SCHEDULED: "
+
+						  'font-lock-face 'org-special-keyword)
+				      (propertize (plist-get plist :scheduled)
+						  'font-lock-face 'org-date))
+				   "__________"))
 
 (reorg-create-data-type :name headline
 			:set (lambda ()
@@ -340,23 +356,7 @@ RANGE is non-nil, only look for timestamp ranges."
 					 ("S-<right>" . org-shiftright)
 					 ("S-<left>" . org-shiftleft)))
 
-(reorg-create-data-type :name scheduled
-			:parse (org-entry-get (point) "SCHEDULED")
-			:get (org-entry-get (point) "SCHEDULED")
-			;; :set (if val (org-deadline nil val)
-			;;        (org-deadline '(4)))
-			:display (concat (apply #'propertize "SCHEDULED: "
-						'(font-lock-face org-special-keyword))
-					 val)
-			:face org-date
-			:keymap (("S-<up>" . org-timestamp-up)
-				 ("S-<down>" . org-timestamp-down)
-				 ("C-c C-s" . org-schedule))
-			:validate (with-temp-buffer
-				    (insert val)
-				    (beginning-of-buffer)
-				    (org-timestamp-change 0 'day)
-				    (buffer-string)))
+
 
 (reorg-create-data-type :name timestamp
 			:parse (when (reorg--timestamp-parser)
@@ -559,8 +559,7 @@ keys.  Keys are compared using `equal'."
 			      (format-string (or (plist-get template :format-string)
 						 format-string
 						 reorg-headline-format))
-			      (result-sort (plist-get template :sort-results)))
-			  
+			      (result-sort (plist-get template :sort-results)))			  
 			  (when result-sort
 			    (setq result-sorters
 				  (append result-sorters					  
@@ -588,12 +587,7 @@ keys.  Keys are compared using `equal'."
 					    (list (list grouper it)))
 					   (t (->> it
 						   (reorg--seq-group-by grouper)
-						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
-				     
-				     (seq-filter (lambda (x) (and (not (null (car x)))
-								  (not (null (cdr x)))
-								  (not (null x))))
-						 it)
+						   (seq-map (lambda (x) (list (car x) (cdr x)))))))				     
 				     (cl-loop for x in it					      
 					      do (setf (car x)
 						       (list :branch-name (car x)
@@ -604,6 +598,7 @@ keys.  Keys are compared using `equal'."
 							     :grouper-list-results (append grouper-list-results
 											   (list (car x)))
 							     :branch-predicate grouper
+							     :format-string format-string
 							     :result-sorters result-sorters
 							     :branch-sorter heading-sorter
 							     :branch-sort-getter heading-sort-getter
@@ -862,8 +857,6 @@ get nested properties."
     (fundamental-mode)))
 
 ;;; reorg-views
-
-
 ;;;; clone functions
 
 (defun reorg--jump-to-next-clone (&optional id previous)
@@ -1068,10 +1061,7 @@ the point and return nil."
 	(reorg--map-id id
 		       (reorg-views--replace-heading data)
 		       (reorg-dynamic-bullets--fontify-heading))))))
-(let ((id "63d9dca0-30ca-4d60-9aae-f26e1d6cb732"))
-  (macroexpand `(reorg--map-id ,id
-			       (reorg-views--replace-heading data)
-			       (reorg-dynamic-bullets--fontify-heading))))
+
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
   `(progn 
@@ -1133,7 +1123,6 @@ the point and return nil."
     (define-key map (kbd "l") #'recenter-top-bottom)
     map)
   "keymap")
-
 
 (defmacro reorg--with-source-buffer (&rest body)
   "Execute BODY in the source buffer and
@@ -1946,7 +1935,7 @@ comparing it to VAL.
 For example, if (get-text-property (point) PROP) returns a plist, but you
 only want to see if one value is present, the TRANSFORMER:
 
-(lambda (plist) (plist-get plist :interesting-value))
+(lambda (plist) (plist-get plist :interesting-property))
 
 will extract the single value prior to comparing to VAL."
   (let ((func (if backward
@@ -1981,11 +1970,11 @@ will extract the single value prior to comparing to VAL."
 
 	     else do (forward-char (- point (point))))))
 
-(defun reorg--goto-previous-property-field (prop val &optional pred)
+(defun reorg--goto-previous-property-field (prop val &optional pred transformer)
   "Move to the beginning of the buffer position that
 text property PROP that matches VAL.  Check for matching VAL
 using `eq', unless PRED is suppied."
-  (reorg--goto-next-property-field prop val 'backward pred))
+  (reorg--goto-next-property-field prop val 'backward pred transformer))
 
 (defun reorg--goto-next-branch (&optional relative-level previous)
   "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
@@ -2016,28 +2005,3 @@ previous branch."
 (provide 'reorg)
 
 ;;; reorg.el ends here
-
-
-;;; new parser
-
-;; (defun reorg--map-entries (&optional match scope &rest skip)
-;;   "Run the parser at each heading in the current buffer.
-;; See `org-map-entries' for explanation of the parameters."
-;;   (org-ql-select nil
-;;     '(and (and (todo) (not (todo "done"))) (or (ts-active) (deadline) (scheduled)))
-;;     :action 
-;;     #'reorg--parser))
-
-
-
-;;;; new grouping function
-
-;; This buffer is for text that is not saved, and for Lisp evaluation.
-;; To create a file, visit it with <open> and enter text in its buffer.
-
-
-
-
-
-
-
