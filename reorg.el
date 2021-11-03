@@ -600,6 +600,7 @@ keys.  Keys are compared using `equal'."
 							     :branch-predicate grouper
 							     :format-string format-string
 							     :result-sorters result-sorters
+							     :children children
 							     :branch-sorter heading-sorter
 							     :branch-sort-getter heading-sort-getter
 							     :branch-value (car x)
@@ -1062,21 +1063,7 @@ the point and return nil."
 		       (reorg-views--replace-heading data)
 		       (reorg-dynamic-bullets--fontify-heading))))))
 
-(defmacro reorg--map-id (id &rest body)
-  "Execute BODY at each entry that matches ID."
-  `(progn 
-     (goto-char (point-min))
-     (while (text-property-search-forward reorg--data-property-name
-					  ,id
-					  (lambda (val plist)
-					    (string= 
-					     (plist-get plist :id)
-					     val))
-					  'not-current)
-       (save-excursion 
-	 (outline-back-to-heading)
-	 ,@body)
-       (forward-char 1))))
+
 
 ;;;; view mode
 
@@ -1839,6 +1826,13 @@ returns the correct positions."
 	   else do (forward-line)
 	   finally return (reorg-views--insert-before-point data level)))
 
+(defun reorg--get-list-of-child-branches-at-point ()
+  (save-excursion 
+    (let ((level (reorg-outline-level)))
+      (cl-loop while (reorg--goto-next-branch 1 level)
+	       collect (reorg--get-view-props 'reorg-data :branch-name)))))
+    
+
 (defun reorg--insert-into-branch-or-make-new-branch (data)
   (let* ((level (reorg-outline-level))
 	 (grouper (nth (1- level) (reorg--get-view-props 'reorg-data :grouper-list)))
@@ -1894,29 +1888,16 @@ If PLIST is nil, then get the text properties at point."
     (forward-line -1)
     (reorg-dynamic-bullets--fontify-heading)))
 
-(defmacro reorg--map-next-level-sub-branches (&rest body)
-  "map the branches at the current level"
-  `(save-excursion 
-     (reorg--goto-parent)
-     (cl-loop while (reorg--goto-next-branch 1)
-	      do ,@body)))
 
-(defmacro reorg--map-all-sub-branches (&rest body)
-  "map the branches at the current level"
-  `(save-excursion 
-     (reorg--goto-parent)
-     (cl-loop with level = (reorg-outline-level)
-	      while (reorg--goto-next-property-field 'reorg-field-type 'branch)
-	      while (> (reorg-outline-level ) level)
-	      do ,@body)))
 
-(defun reorg--get-list-of-branch-vals (&optional relative-level)
-  "Get a list of the headings of the next generation of branches."
-  (save-excursion 
-    (cl-loop
-     collect (reorg--get-view-props 'reorg-data :branch-name)
-     while (reorg--goto-next-branch (or relative-level 1)))))
 
+;;;; Footer
+
+(provide 'reorg)
+
+;;; reorg.el ends here
+
+;;; reorg-view starts here
 
 ;;;; text property navigation 
 
@@ -1976,7 +1957,46 @@ text property PROP that matches VAL.  Check for matching VAL
 using `eq', unless PRED is suppied."
   (reorg--goto-next-property-field prop val 'backward pred transformer))
 
-(defun reorg--goto-next-branch (&optional relative-level previous)
+
+
+
+(defun reorg--get-next-level-branches ()
+  "Get the headlines of the next level sub-branches."
+  (save-excursion 
+    (let (results)
+      (reorg--map-next-level (push (reorg--get-view-props 'reorg-data :headline)
+				   results))
+      results)))
+
+
+
+;; (defun reorg--goto-previous-branch (&optional relative-level)
+;;   "Wrapper for `reorg--goto-next-branch' which moves to the
+;; previous branch."
+;;   (reorg--goto-next-branch relative-level 'previous))
+
+
+;;;; tree navigation re-write
+
+(defmacro reorg--map-id (id &rest body)
+  "Execute BODY at each entry that matches ID."
+  `(progn 
+     (goto-char (point-min))
+     (while (text-property-search-forward reorg--data-property-name
+					  ,id
+					  (lambda (val plist)
+					    (string= 
+					     (plist-get plist :id)
+					     val))
+					  'not-current)
+       (save-excursion 
+	 (outline-back-to-heading)
+	 ,@body)
+       (forward-char 1))))
+
+
+
+(defmacro reorg--map-next-level (&rest body)
   "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
 level relative to the current one.  For example, if the current outline
 level is 2, and RELATIVE-LEVEL is -1, the function will move to the next
@@ -1986,22 +2006,56 @@ next branch at level 3.
 If PREVIOUS is non-nil, move to the previous branch instead of the next.
 
 Return nil if there is no such branch."
-  (let ((start-level (reorg-outline-level))
+  `(let ((start-level (reorg-outline-level))
+	 (point (point)))
+     (cl-loop while (reorg--goto-next-property-field 'reorg-field-type 'branch)
+	      if (= (1+ start-level) (reorg-outline-level))
+	      do ,@body
+	      else if (>= start-level (reorg-outline-level))
+	      return nil)))
+
+(defmacro reorg--map-next-level (&rest body)
+  "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
+level relative to the current one.  For example, if the current outline
+level is 2, and RELATIVE-LEVEL is -1, the function will move to the next
+branch at level 1.  If RELATIVE-LEVEL is 1, the function will move to the
+next branch at level 3.
+
+If PREVIOUS is non-nil, move to the previous branch instead of the next.
+
+Return nil if there is no such branch."
+  `(let ((start-level (reorg-outline-level))
+	 (point (point)))
+     (cl-loop while (reorg--goto-next-relative-level 1 nil start-level)
+	      if (= (1+ start-level) (reorg-outline-level))
+	      do ,@body
+	      else if (/= start-level (reorg-outline-level))
+	      return nil)
+     (goto-char point)))
+
+;;;; reorg new tree
+
+(defun reorg--children-p ()
+  "Does the current node have sub-branches?"
+  (and (reorg--get-view-props 'reorg-field-type 'branch)
+       (reorg--get-view-props 'reorg-data :children)))
+
+
+(defun reorg--goto-next-relative-level (&optional relative-level previous start-level)
+  "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
+level relative to the current one.  For example, if the current outline
+level is 2, and RELATIVE-LEVEL is -1, the function will move to the next
+branch at level 1.  If RELATIVE-LEVEL is 1, the function will move to the
+next branch at level 3.
+
+If PREVIOUS is non-nil, move to the previous branch instead of the next.
+
+Return nil if there is no such branch."
+  (let ((start-level (or start-level (reorg-outline-level)))
 	(point (point)))
     (cl-loop while (reorg--goto-next-property-field 'reorg-field-type 'branch previous)
-	     if (= start-level (- (reorg-outline-level) (or relative-level 0)))
+	     if (= start-level (abs (- (reorg-outline-level) (or relative-level 0))))
 	     return t
-	     else if (> start-level (+ (reorg-outline-level) (or relative-level 0)))
+	     else if (>= 2 (abs (- start-level (reorg-outline-level))))
 	     return (progn (setf (point) point) nil)
 	     finally (progn (setf (point) point) nil))))
-
-(defun reorg--goto-previous-branch (&optional relative-level)
-  "Wrapper for `reorg--goto-next-branch' which moves to the
-previous branch."
-  (reorg--goto-next-branch relative-level 'previous))
-
-;;;; Footer
-
-(provide 'reorg)
-
-;;; reorg.el ends here
