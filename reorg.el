@@ -787,10 +787,11 @@ get nested properties."
 
 (defun reorg-outline-level ()
   "Get the outline level of the heading at point."
-  (save-excursion 
-    (outline-back-to-heading)
-    (re-search-forward "^*+ " (point-at-eol))
-    (1- (length (match-string 0)))))
+  (save-excursion
+    (let ((search-invisible t))
+      (outline-back-to-heading t)
+      (re-search-forward "^*+ " (point-at-eol))
+      (1- (length (match-string 0))))))
 
 (defun reorg--get-field-at-point (&optional point)
   "Get the reorg-field-type at point."
@@ -1149,6 +1150,7 @@ update the heading at point."
   "Tree view of an Orgmode file. \{keymap}"
   (reorg--initialize-overlay)
   (setq cursor-type 'box)
+  (setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
   (add-hook 'post-command-hook #'reorg-edits--update-box-overlay nil t))
 
@@ -1932,7 +1934,8 @@ will extract the single value prior to comparing to VAL."
 	(limit (if backward
 		   (point-min)
 		 (point-max)))
-	(pred (or pred #'eq)))
+	(pred (or pred #'eq))
+	(search-invisible t))
     
     (cl-loop with point = (point)
 	     with origin = (point)
@@ -2018,7 +2021,7 @@ Return nil if there is no such branch."
 
 (defun reorg--children-p ()
   "Does the current node have sub-branches?"
-  (and (reorg--get-view-props 'reorg-field-type 'branch)
+  (and (eq (reorg--get-view-props 'reorg-field-type) 'branch)
        (reorg--get-view-props 'reorg-data :children)))
 
 (defun reorg--goto-next-relative-level (&optional relative-level previous start-level)
@@ -2030,23 +2033,18 @@ lower level than the current branch."
 	  (relative-level (or relative-level 0)))
       (cl-loop while (and (reorg--goto-next-property-field 'reorg-field-type 'branch previous)
 			  (not (bobp)))
-	       if (< (reorg-outline-level) start-level)
-	       return (progn (setf (point) point) nil)
+	       if (or (< (reorg-outline-level) start-level)
+		      (and (> relative-level 0)
+			   (= (reorg-outline-level) start-level)))
+	       return (progn
+			(setf (point) point)
+			nil)
 	       else if (= (reorg-outline-level)
 			  (abs (+ start-level relative-level)))
 	       return t
-	       finally (progn (setf (point) point) nil)))))
-
-
-  (defun reorg--goto-next-branch-and-test (test-func &optional previous)
-    "Goto the next branch and run TEST-FUNC.  If it returns non-nil,
-then stay there.  Otherwise, return nil and don't move the point."
-    (let ((point (point)))
-      (reorg--goto-next-property-field 'reorg-field-type 'branch previous)
-      (unless (funcall test-func)
-	(setf (point) point)
-	nil)))
-
+	       finally (progn
+			 (setf (point) point)
+			 nil)))))
 
 
 ;; goto next header 
@@ -2060,35 +2058,39 @@ then stay there.  Otherwise, return nil and don't move the point."
 ;;; inserting into branch
 
 (defun reorg--get-list-of-child-branches-at-point ()
-  (save-excursion 
-    (let ((level (reorg-outline-level)))
-      (cl-loop while (reorg--goto-next-branch 1 level)
-	       collect (reorg--get-view-props 'reorg-data :branch-name)))))
+  (save-excursion
+
+    (progn 
+      (let ((level (reorg-outline-level))
+	    (disable-point-adjustment t))
+
+	(when (reorg--goto-next-relative-level 1)
+	  (cl-loop collect (reorg--get-view-props 'reorg-data :branch-name)
+		   while (reorg--goto-next-relative-level 0)))))))
+
+
+
 
 (defun reorg-into--at-branch-p ()
   (eq (reorg--get-view-props 'reorg-field-type)
       'branch))
 
 (defun reorg-into--descend-into-branch-at-point (data)
+  "IDK what to do."
   (when (reorg-into--at-branch-p)   
     (pcase `(,(reorg--children-p) ,(reorg-into--member-of-this-header? data))
-      (`(nil t) (reorg--insert-into-leaves xxx (reorg--get-view-props 'reorg-data :results-sorters)))
+      (`(nil t) (reorg--insert-into-leaves data (reorg--get-view-props 'reorg-data :results-sorters)))
       (`(t t) (reorg--goto-next-relative-level 1) (reorg--into--descend-into-branch-at-point))
       (`(t nil) (reorg--goto-next-relative-level 0) (reorg--into--descend-into-branch-at-point))
       (`(nil nil) (reorg--goto-next-relative-level 
 		   )))))
 
-
-
-
-
-(defun reorg-into--member-of-this-header? (data) 
+(defun reorg-into--member-of-this-header? (data)
+  "Is DATA a member of the header?" 
   (equal
-   (funcall (car (last
-		  (reorg--get-view-props 'reorg-data :grouper-list)))
-	    data)
+   (funcall
+    (car (last (reorg--get-view-props 'reorg-data :grouper-list))) data)
    (car (last (reorg--get-view-props 'reorg-data :grouper-list-results)))))
-
 
 ;;; actions 
 
@@ -2186,3 +2188,11 @@ a list of the results.")
 ;; p.threadNext()
 ;; p.visBack()
 ;; p.visNext()
+
+
+(defun reorg--insert-into-outline (data)
+  (setf (point) (point-min))
+  (setq buffer-invisibility-spec nil)
+  (reorg-into--member-of-this-header? data) 
+  (reorg--goto-next-relative-level 
+  
