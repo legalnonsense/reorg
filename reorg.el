@@ -571,11 +571,6 @@ keys.  Keys are compared using `equal'."
 								    (reorg--let-plist x
 										      ,form))
 								 pred)))))
-			  (setq grouper-list
-				(append grouper-list
-					(list `(lambda (x)
-						 (reorg--let-plist x
-								   ,grouper)))))
 			  (unless np
 			    (let ((old (cl-copy-list data)))
 			      (setcar data '_)
@@ -601,9 +596,10 @@ keys.  Keys are compared using `equal'."
 							     :headline (car x)
 							     :reorg-branch t
 							     :result-sorters result-sorters 
-							     :grouper-list grouper-list
-							     :grouper-list-results (append grouper-list-results
-											   (list (car x)))
+							     :grouper-list `(lambda (x)
+									      (reorg--let-plist x
+												,grouper))
+							     :grouper-list-results (car x)
 							     :branch-predicate grouper
 							     :format-string format-string
 							     :result-sorters result-sorters
@@ -1150,7 +1146,7 @@ update the heading at point."
   "Tree view of an Orgmode file. \{keymap}"
   (reorg--initialize-overlay)
   (setq cursor-type 'box)
-  (setq-local disable-point-adjustment t)
+  ;;(setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
   (add-hook 'post-command-hook #'reorg-edits--update-box-overlay nil t))
 
@@ -2059,14 +2055,21 @@ lower level than the current branch."
 
 (defun reorg--get-list-of-child-branches-at-point ()
   (save-excursion
-
-    (progn 
-      (let ((level (reorg-outline-level))
-	    (disable-point-adjustment t))
-
-	(when (reorg--goto-next-relative-level 1)
-	  (cl-loop collect (reorg--get-view-props 'reorg-data :branch-name)
-		   while (reorg--goto-next-relative-level 0)))))))
+    (let ((level (reorg-outline-level))
+	  (disable-point-adjustment t))
+      (when (reorg--goto-next-relative-level 1)
+	(cl-loop with alist = nil
+		 with current-func = nil
+		 do (setq current-func (reorg--get-view-props 'reorg-data :grouper-list))
+		 and do (setf (alist-get current-func
+					 alist nil nil #'equal)			      
+			      (append
+			       (alist-get current-func
+					  alist nil nil #'equal)
+			       (-list 
+				(reorg--get-view-props 'reorg-data :grouper-list-results))))
+		 while (reorg--goto-next-relative-level 0)
+		 finally return alist)))))
 
 
 
@@ -2190,9 +2193,9 @@ a list of the results.")
 ;; p.visNext()
 
 
-(defun reorg--insert-into-outline (data)
-  (setf (point) (point-min))
-  (setq buffer-invisibility-spec nil)
-  (reorg-into--member-of-this-header? data) 
-  (reorg--goto-next-relative-level 
-  
+;; (defun reorg--insert-into-outline (data)
+;;   (setf (point) (point-min))
+;;   (setq buffer-invisibility-spec nil)
+;;   (reorg-into--member-of-this-header? data) 
+;;   (reorg--goto-next-relative-level 
+
