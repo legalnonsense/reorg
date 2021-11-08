@@ -1,7 +1,7 @@
 
 ;;; -*- lexical-binding: t; -*-
 
-(defun reorg-tree--goto-next-property-field (prop val &optional backward pred transformer level-limit)
+(defun reorg-tree--goto-next-property-field (prop val &optional backward pred transformer)
   "Move to the beginning of the next field of text property PROP that
 matches VAL.
 
@@ -18,10 +18,7 @@ only want to see if one value is present, the TRANSFORMER:
 
 (lambda (plist) (plist-get plist :interesting-property))
 
-will extract the single value prior to comparing to VAL.
-
-LEVEL-LIMIT is a cons cell with a predicate and level number.  The search
-will stop if it's not true."
+will extract the single value prior to comparing to VAL."
   (let ((func (if backward
 		  #'previous-single-property-change
 		#'next-single-property-change))
@@ -29,28 +26,20 @@ will stop if it's not true."
 		   (point-min)
 		 (point-max)))
 	(pred (or pred #'eq))
-	(search-invisible t)
-	(inhibit-field-text-motion t)
-	(disable-point-adjustment t))
+	(search-invisible t))
+
+
     
     (cl-loop with point = (point)
 	     with origin = (point)
-	     with start-level = (or (cdr level-limit) (reorg-outline-level))
 	     while point	     
 
-	     do (setq point (funcall func point prop))
-
-	     when (and level-limit
-		       (not 
-			(funcall (car level-limit)
-				 (reorg-outline-level)
-				 start-level)))
-	     return (progn (goto-char origin) nil)
+	     do (setq point (funcall func point (car (-list prop))))
 	     
 	     if (and (null point)
 		     (funcall pred
 			      (funcall (or transformer #'identity)
-				       (get-text-property limit prop))
+				       (apply #'reorg--get-view-props (-list prop)))
 			      val))
 	     return (goto-char limit)
 
@@ -60,7 +49,7 @@ will stop if it's not true."
 	     else if (funcall pred
 			      val
 			      (funcall (or transformer #'identity)
-				       (get-text-property point prop)))
+				       (apply #'reorg--get-view-props (-list prop))))
 	     return (goto-char point)
 
 	     else do (forward-char (- point (point))))))
