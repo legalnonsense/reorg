@@ -599,13 +599,13 @@ keys.  Keys are compared using `equal'."
 							     :grouper-list `(lambda (x)
 									      (reorg--let-plist x
 												,grouper))
+							     :branch-predicate `(lambda (x)
+										  (reorg--let-plist x
+												    ,grouper))
 							     :grouper-list-results (car x)
-							     :branch-predicate grouper
 							     :format-string format-string
 							     :result-sorters result-sorters
 							     :children children
-							     :branch-sorter heading-sorter
-							     :branch-sort-getter heading-sort-getter
 							     :branch-value (car x)
 							     :reorg-level level))
 					      finally return it)
@@ -1847,62 +1847,13 @@ If PLIST is nil, then get the text properties at point."
 
 ;;;; text property navigation 
 
-(defun reorg--goto-next-property-field (prop val &optional backward pred transformer)
-  "Move to the beginning of the next field of text property PROP that
-matches VAL.
 
-If PRED is specified, compare values using PRED instead of `eq'.
-
-If BACKWARD is non-nil, move backward instead of forward. 
-
-TRANSFORMER is an optional function that accepts one argument
-(the value of the text property at point) and transforms it before
-comparing it to VAL.
-
-For example, if (get-text-property (point) PROP) returns a plist, but you
-only want to see if one value is present, the TRANSFORMER:
-
-(lambda (plist) (plist-get plist :interesting-property))
-
-will extract the single value prior to comparing to VAL."
-  (let ((func (if backward
-		  #'previous-single-property-change
-		#'next-single-property-change))
-	(limit (if backward
-		   (point-min)
-		 (point-max)))
-	(pred (or pred #'eq))
-	(search-invisible t))
-    
-    (cl-loop with point = (point)
-	     with origin = (point)
-	     while point	     
-
-	     do (setq point (funcall func point prop))
-	     
-	     if (and (null point)
-		     (funcall pred
-			      (funcall (or transformer #'identity)
-				       (get-text-property limit prop))
-			      val))
-	     return (goto-char limit)
-
-	     else if (null point)
-	     return (progn (goto-char origin) nil)
-	     
-	     else if (funcall pred
-			      val
-			      (funcall (or transformer #'identity)
-				       (get-text-property point prop)))
-	     return (goto-char point)
-
-	     else do (forward-char (- point (point))))))
 
 (defun reorg--goto-previous-property-field (prop val &optional pred transformer)
   "Move to the beginning of the buffer position that
 text property PROP that matches VAL.  Check for matching VAL
 using `eq', unless PRED is suppied."
-  (reorg--goto-next-property-field prop val 'backward pred transformer))
+  (reorg-tree--goto-next-property-field prop val 'backward pred transformer))
 
 (defun reorg--get-next-level-branches ()
   "Get the headlines of the next level sub-branches."
@@ -1968,7 +1919,7 @@ lower level than the current branch."
     (let ((start-level (or start-level (reorg-outline-level)))
 	  (point (point))
 	  (relative-level (or relative-level 0)))
-      (cl-loop while (and (reorg--goto-next-property-field 'reorg-field-type 'branch previous)
+      (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch previous)
 			  (not (bobp)))
 	       if (or (< (reorg-outline-level) start-level)
 		      (and (> relative-level 0)
@@ -2035,7 +1986,7 @@ lower level than the current branch."
 	     when x
 	     do (if (member x results)
 		    (progn 
-		      (reorg--goto-next-property-field 'reorg-data
+		      (reorg-tree--goto-next-property-field 'reorg-data
 						       x
 						       nil
 						       #'string=
@@ -2047,15 +1998,12 @@ lower level than the current branch."
 		  (reorg--insert-new-branch `( :branch-name x
 					       :headline x
 					       :reorg-branch t
-					       :result-sorters 
+					       :result-sorters ,result-sorters
 					       :grouper-list ,func
 					       :grouper-list-results x
-					       :branch-predicate 'xxx
 					       :format-string 'xxx
 					       :result-sorters 'xxx
 					       :children 'xxx
-					       :branch-sorter 'xxx
-					       :branch-sort-getter 'xxx
 					       :branch-value 'xxx
 					       :reorg-level (reorg-current-level)))
 		  (reorg--insert-into-branch-or-make-new-branch data)))))

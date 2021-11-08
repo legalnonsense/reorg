@@ -1,7 +1,7 @@
 
 ;;; -*- lexical-binding: t; -*-
 
-(defun reorg-tree--goto-next-property-field (prop val &optional backward pred transformer)
+(defun reorg-tree--goto-next-property-field (prop val &optional backward pred transformer level-limit)
   "Move to the beginning of the next field of text property PROP that
 matches VAL.
 
@@ -18,7 +18,10 @@ only want to see if one value is present, the TRANSFORMER:
 
 (lambda (plist) (plist-get plist :interesting-property))
 
-will extract the single value prior to comparing to VAL."
+will extract the single value prior to comparing to VAL.
+
+LEVEL-LIMIT is a cons cell with a predicate and level number.  The search
+will stop if it's not true."
   (let ((func (if backward
 		  #'previous-single-property-change
 		#'next-single-property-change))
@@ -26,13 +29,23 @@ will extract the single value prior to comparing to VAL."
 		   (point-min)
 		 (point-max)))
 	(pred (or pred #'eq))
-	(search-invisible t))
+	(search-invisible t)
+	(inhibit-field-text-motion t)
+	(disable-point-adjustment t))
     
     (cl-loop with point = (point)
 	     with origin = (point)
+	     with start-level = (or (cdr level-limit) (reorg-outline-level))
 	     while point	     
 
 	     do (setq point (funcall func point prop))
+
+	     when (and level-limit
+		       (not 
+			(funcall (car level-limit)
+				 (reorg-outline-level)
+				 start-level)))
+	     return (progn (goto-char origin) nil)
 	     
 	     if (and (null point)
 		     (funcall pred
@@ -52,7 +65,23 @@ will extract the single value prior to comparing to VAL."
 
 	     else do (forward-char (- point (point))))))
 
-(defun reorg-tree--get-by-branch-predicate (predicate)
-  "Move through the tree and gather all branches that
-use PREDICATE for membership."
-  (
+(defun reorg-tree--get-by-branch-predicate (prop val func)
+  "Execute FUNC at each branch that has PROP equal to VAL and
+make a list of the results."
+  (let (results)
+    (save-excursion
+      (cl-loop with level = (reorg-outline-level)
+	       while (and (reorg-tree--goto-next-property-field
+			   'reorg-data val nil #'equal
+			   (lambda (x) (plist-get x prop)))
+			  (> (reorg-outline-level) level))
+	       do (cl-pushnew (funcall func) results :test #'equal)))
+    (reverse results)))
+
+
+(defun yyy ()
+  (reorg-tree--get-by-branch-predicate :branch-predicate
+				       xxx
+				       (lambda ()
+					 (buffer-substring-no-properties (point-at-bol) (point-at-eol)))))
+
