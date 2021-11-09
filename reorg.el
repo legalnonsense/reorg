@@ -755,14 +755,14 @@ switch to that buffer in the window."
 
 ;;; view buffer
 
-(defun reorg--get-view-props (&rest props)
+(defun reorg--get-view-props (&optional point &rest props)
   "Get text property PROPS at point. If there are multiple PROPS,
 get nested properties."
   (cl-labels ((get-props (props &optional payload)
 			 (if props 
 			     (let ((props (if (listp props) props (list props))))
 			       (if (not payload)
-				   (->> (get-text-property (point) (car props))
+				   (->> (get-text-property (or point (point)) (car props))
 					(get-props (cdr props)))
 				 (->> (plist-get payload (car props))
 				      (get-props (cdr props)))))
@@ -770,7 +770,7 @@ get nested properties."
     (if props 
 	(get-props props)
       (let ((inhibit-field-text-motion t))
-	(get-text-property (point-at-bol) reorg--data-property-name)))))
+	(get-text-property (or point (point)) reorg--data-property-name)))))
 
 (defun reorg--get-view-prop (&optional property)
   "Get PROPERTY from the current heading."
@@ -1782,11 +1782,11 @@ returns the correct positions."
 
 (defun reorg--insert-into-leaves (data sorters)
   (let ((disable-point-adjustment t)
-	(format-string (reorg--get-view-props 'reorg-data :format-string)))
+	(format-string (reorg--get-view-props nil 'reorg-data :format-string)))
     (when (and (null (reorg--children-p))
-	       (eq (reorg--get-view-props 'reorg-field-type) 'branch))
+	       (eq (reorg--get-view-props nil 'reorg-field-type) 'branch))
       (forward-line 1)
-      (cl-loop while (not (eq (reorg--get-view-props 'reorg-field-type)
+      (cl-loop while (not (eq (reorg--get-view-props nil 'reorg-field-type)
 			      'branch))
 	       with level = (reorg-outline-level)
 	       if (cl-loop for (func . pred) in sorters
@@ -1827,7 +1827,7 @@ If PLIST is nil, then get the text properties at point."
   (let ((inhibit-field-text-motion t))
     (beginning-of-line)
     (insert 
-     (reorg--create-headline-string (or data (reorg--get-view-props))
+     (reorg--create-headline-string (or data (reorg--get-view-props nil))
 				    (or format reorg-headline-format)
 				    (or level (reorg-outline-level)))
      "\n")
@@ -1853,13 +1853,13 @@ If PLIST is nil, then get the text properties at point."
   "Move to the beginning of the buffer position that
 text property PROP that matches VAL.  Check for matching VAL
 using `eq', unless PRED is suppied."
-  (reorg-tree--goto-next-property-field prop val 'backward pred transformer))
+  (reorg-tree--goto-next-property-field nil prop val 'backward pred transformer))
 
 (defun reorg--get-next-level-branches ()
   "Get the headlines of the next level sub-branches."
   (save-excursion 
     (let (results)
-      (reorg--map-next-level (push (reorg--get-view-props 'reorg-data :headline)
+      (reorg--map-next-level (push (reorg--get-view-props nil 'reorg-data :headline)
 				   results))
       results)))
 
@@ -1909,30 +1909,10 @@ Return nil if there is no such branch."
 
 (defun reorg--children-p ()
   "Does the current node have sub-branches?"
-  (and (eq (reorg--get-view-props 'reorg-field-type) 'branch)
-       (reorg--get-view-props 'reorg-data :children)))
+  (and (eq (reorg--get-view-props nil 'reorg-field-type) 'branch)
+       (reorg--get-view-props nil 'reorg-data :children)))
 
-(defun reorg--goto-next-relative-level (&optional relative-level previous start-level)
-  "Goto the next branch that is at RELATIVE-LEVEL up to any branch that is a
-lower level than the current branch."
-  (when (> (abs (+ (reorg-outline-level) relative-level)) 0)
-    (let ((start-level (or start-level (reorg-outline-level)))
-	  (point (point))
-	  (relative-level (or relative-level 0)))
-      (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch previous)
-			  (not (bobp)))
-	       if (or (< (reorg-outline-level) start-level)
-		      (and (> relative-level 0)
-			   (= (reorg-outline-level) start-level)))
-	       return (progn
-			(setf (point) point)
-			nil)
-	       else if (= (reorg-outline-level)
-			  (abs (+ start-level relative-level)))
-	       return t
-	       finally (progn
-			 (setf (point) point)
-			 nil)))))
+
 
 
 ;; goto next header 
@@ -1945,35 +1925,9 @@ lower level than the current branch."
 
 ;;; inserting into branch
 
-(defun reorg-into--get-list-of-child-branches-at-point ()
-  (save-excursion
-    (let ((level (reorg-outline-level))
-	  (disable-point-adjustment t))
-      (when (reorg--goto-next-relative-level 1)
-	(cl-loop with alist = nil
-		 with current-func = nil
-		 do (setq current-func (reorg--get-view-props 'reorg-data :grouper-list))
-		 and do (setf (alist-get current-func
-					 alist nil nil #'equal)			      
-			      (append
-			       (alist-get current-func
-					  alist nil nil #'equal)
-			       (-list 
-				(reorg--get-view-props 'reorg-data :grouper-list-results))))
-		 while (reorg--goto-next-relative-level 0)
-		 finally return alist)))))
 
-(defun reorg-into--need-to-make-new-branch? (data &optional point)
-  (let* ((children (reorg-into--get-list-of-child-branches-at-point)))
-    (cl-loop with x = nil
-	     with return = nil
-	     for (func . results) in children
-	     do (setq x (funcall func data))
-	     if (and x
-		     (member x results))
-	     do (push (cons func x) return)
-	     else do (push (cons func nil) return)
-	     finally return return)))
+
+
 
 (defun reorg--insert-into-branch-or-make-new-branch (data &optional point)
   (let* ((children (reorg-into--get-list-of-child-branches-at-point)))
@@ -1986,15 +1940,15 @@ lower level than the current branch."
 	     when x
 	     do (if (member x results)
 		    (progn 
-		      (reorg-tree--goto-next-property-field 'reorg-data
-						       x
-						       nil
-						       #'string=
-						       (lambda (y) (plist-get y :headline)))
+		      (reorg-tree--goto-next-property-field nil 'reorg-data
+							    x
+							    nil
+							    #'string=
+							    (lambda (y) (plist-get y :headline)))
 		      (if (reorg--children-p)
 			  (reorg--insert-into-branch-or-make-new-branch data)
 			(reorg--insert-into-leaves data
-						   (reorg--get-view-props 'reorg-data :result-sorters))))
+						   (reorg--get-view-props nil 'reorg-data :result-sorters))))
 		  (reorg--insert-new-branch `( :branch-name x
 					       :headline x
 					       :reorg-branch t
@@ -2023,14 +1977,14 @@ lower level than the current branch."
 
 
 (defun reorg-into--at-branch-p ()
-  (eq (reorg--get-view-props 'reorg-field-type)
+  (eq (reorg--get-view-props nil 'reorg-field-type)
       'branch))
 
 (defun reorg-into--descend-into-branch-at-point (data)
   "IDK what to do."
   (when (reorg-into--at-branch-p)   
     (pcase `(,(reorg--children-p) ,(reorg-into--member-of-this-header? data))
-      (`(nil t) (reorg--insert-into-leaves data (reorg--get-view-props 'reorg-data :results-sorters)))
+      (`(nil t) (reorg--insert-into-leaves data (reorg--get-view-props nil 'reorg-data :results-sorters)))
       (`(t t) (reorg--goto-next-relative-level 1) (reorg--into--descend-into-branch-at-point))
       (`(t nil) (reorg--goto-next-relative-level 0) (reorg--into--descend-into-branch-at-point))
       (`(nil nil) (reorg--goto-next-relative-level 
@@ -2040,8 +1994,8 @@ lower level than the current branch."
   "Is DATA a member of the header?" 
   (equal
    (funcall
-    (car (last (reorg--get-view-props 'reorg-data :grouper-list))) data)
-   (car (last (reorg--get-view-props 'reorg-data :grouper-list-results)))))
+    (car (last (reorg--get-view-props nil 'reorg-data :grouper-list))) data)
+   (car (last (reorg--get-view-props nil 'reorg-data :grouper-list-results)))))
 
 ;;; actions 
 
@@ -2148,58 +2102,3 @@ a list of the results.")
 ;;   (reorg--goto-next-relative-level 
 
 
-(cl-defun reorg--drop-into-template (data template
-					  &optional (n 0 np)
-					  result-sorters
-					  grouper-list
-					  grouper-list-results
-					  format-string
-					  (level 1))
-
-  (let ((grouper (plist-get template :group))
-	(children (plist-get template :children))
-	(heading-sorter (plist-get template :sort))
-	(heading-sort-getter (or (plist-get template :sort-getter)
-				 #'car))
-	(format-string (or (plist-get template :format-string)
-			   format-string
-			   reorg-headline-format))
-	(result-sort (plist-get template :sort-results)))
-    (when result-sort
-      (setq result-sorters
-	    (append result-sorters					  
-		    (cl-loop for (form . pred) in result-sort
-			     collect (cons `(lambda (x)
-					      (reorg--let-plist x
-								,form))
-					   pred)))))
-    (reorg-tree--with-wide-buffer
-     (goto-char (point-min))
-     (if (reorg-into--need-to-make-new-branch? data)
-	 (if children
-	     (progn 
-	       (cl-loop while (reorg--goto-next-relative-level 1)
-			do (cl-loop for child in children
-				    do (reorg--drop-into-template data
-								  (plist-get template :children)
-								  result-sorters
-								  grouper-list
-								  grouper-list-results nil
-								  format-string
-								  (1+ level))))
-
-		(plist-put data 
-	       (cl-loop for x below (length children)
-			do (cl-loop
-			    for y below (length (nth n (cdr data)))
-			    do (doloop
-				(nth y (nth n (cdr data)))
-				(nth x children)
-				x
-				result-sorters
-				grouper-list
-				(append grouper-list-results
-					(list (plist-get (car (nth y (nth n (cdr data))))
-							 :branch-value)))
-				format-string
-				(1+ level)))))
