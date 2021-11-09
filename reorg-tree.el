@@ -76,16 +76,24 @@ lower level than the current branch."
 	     else do (push (cons func nil) return)
 	     finally return (reverse return))))
 
-(defun reorg-tree--map-siblings (prop val func &optional backward pred)
-  (cl-loop with results = nil
-	   initially (push (funcall func) results)
+(defun reorg-tree--map-siblings (func &optional pred pred-val test-fn)
+  (cl-loop initially (push (funcall func) results)
+	   initially (unless pred-val 
+		       (setq pred-val
+			     (funcall pred)))
+	   with results = nil
+
 	   for backward in '(t nil)
 	   do (cl-loop with point = (point)
-		       while (and (not (bobp))
-				  (reorg-tree--goto-next-property-field prop val backward))
+		       while (and (reorg--goto-next-relative-level 0 backward)
+				  (or (not pred)
+				      (funcall (or test-fn #'equal )
+					       (funcall pred)
+					       pred-val)))
 		       do (push (funcall func) results)
-		       finally (goto-char (point)))
-	   finally return (reverse results)))
+		       finally (progn (setq results (reverse results))
+				      (goto-char point)))
+	   finally return results))
 
 (defun reorg-tree--goto-next-property-field (prop val &optional backward pred transformer)
   "Move to the beginning of the next field of text property PROP that
