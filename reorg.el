@@ -591,7 +591,7 @@ keys.  Keys are compared using `equal'."
 								  (not (null x))))
 						 it)
 				     (cl-loop for x in it					      
-					      do (setf (car x)
+					      do (setf (car x) ;;
 						       (list :branch-name (car x)
 							     :headline (car x)
 							     :reorg-branch t

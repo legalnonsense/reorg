@@ -213,7 +213,7 @@ make a list of the results."
 	       return (reorg-tree--insert-new-branch new-data)
 	       while (reorg--goto-next-relative-level 0)))))
 
-;; 
+;; ;;
 (defun reorg-tree--insert-new-branch (data)
   "Insert a new branch using DATA at POINT or (point)."
   (let ((disable-point-adjustment t))
