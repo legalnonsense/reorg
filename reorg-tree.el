@@ -207,14 +207,12 @@ make a list of the results."
 	   (existing-data (copy-tree (reorg--get-view-props)))
 	   (new-data (plist-put existing-data :branch-name name)))
       
-      (cl-loop for (func . pred) in (-zip branch-sort-getter branch-sorter)
-	       unless (equal name
-			     (reorg--get-view-props nil 'reorg-data :branch-name))
-	       when (funcall pred
-			     (funcall func a)
-			     (funcall func b))
+      (cl-loop when (funcall branch-sorter
+			     (funcall branch-sort-getter name)
+			     (funcall branch-sort-getter (reorg--get-view-props nil 'reorg-data :branch-name)))
 	       return (reorg-tree--insert-new-branch new-data)
-	       finally (reorg-tree--insert-new-branch new-data)))))
+	       while (reorg--goto-next-relative-level 0)))))
+
 
 (defun reorg-tree--insert-new-branch (data)
   "Insert a new branch using DATA at POINT or (point)."
@@ -234,21 +232,6 @@ make a list of the results."
 				     grouper-list-results
 				     format-string
 				     (level 1))
-  (let* ((grouper (plist-get template :group))
-	 (children (plist-get template :children))
-	 (heading-sorter (plist-get template :sort))
-	 (heading-sort-getter (or (plist-get template :sort-getter)
-				  #'car))
-	 (format-string (or (plist-get template :format-string)
-			    format-string
-			    reorg-headline-format))
-	 (result-sort (plist-get template :sort-results))
-	 (result-sorters (append result-sorters					  
-				 (cl-loop for (form . pred) in result-sort
-					  collect (cons `(lambda (x)
-							   (reorg--let-plist x
-									     ,form))
-							pred)))))
     (reorg-tree--with-wide-buffer
      (goto-char (point-min))
      (reorg-tree--map-siblings-by-group
