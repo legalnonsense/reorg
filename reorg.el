@@ -602,26 +602,29 @@ keys.  Keys are compared using `equal'."
 							     :branch-predicate `(lambda (x)
 										  (reorg--let-plist x
 												    ,grouper))
+							     :branch-result (car x)
 							     :grouper-list-results (car x)
 							     :format-string format-string
 							     :result-sorters result-sorters
 							     :children children
-							     :branch-value (car x)
+							     :branch-sorter heading-sorter
+							     :branch-sort-getter heading-sort-getter
 							     :reorg-level level))
 					      finally return it)
 				     (seq-filter (lambda (x) (and (not (null (car x)))
 								  (not (null (cdr x)))
 								  (not (null x))))
 						 it)
-				     (if heading-sorter
-					 (seq-sort-by (or heading-sort-getter #'car)
-						      heading-sorter it)
-				       it)
 				     (cl-loop for x in it
 					      do (setf (car x) (reorg--create-headline-string (car x)
 											      format-string
 											      level))
-					      finally return it)))
+					      finally return it)
+				     (if heading-sorter
+					 (seq-sort-by (lambda (y) (funcall heading-sort-getter (car y)))
+						      heading-sorter
+						      it)
+				       it)))
 			  (if children
 			      (progn 
 				(cl-loop for x below (length (nth n (cdr data)))
@@ -772,14 +775,14 @@ get nested properties."
       (let ((inhibit-field-text-motion t))
 	(get-text-property (or point (point)) reorg--data-property-name)))))
 
-(defun reorg--get-view-prop (&optional property)
-  "Get PROPERTY from the current heading."
-  (save-excursion 
-    (beginning-of-line)
-    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
-      (if property 
-	  (plist-get props property)
-	props))))
+;; (defun reorg--get-view-prop (&optional property)
+;;   "Get PROPERTY from the current heading."
+;;   (save-excursion 
+;;     (beginning-of-line)
+;;     (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
+;;       (if property 
+;; 	  (plist-get props property)
+;; 	props))))
 
 (defun reorg-outline-level ()
   "Get the outline level of the heading at point."
@@ -1785,14 +1788,14 @@ returns the correct positions."
 	(format-string (reorg--get-view-props nil 'reorg-data :format-string)))
     (when (and (null (reorg--children-p))
 	       (eq (reorg--get-view-props nil 'reorg-field-type) 'branch))
-      (forward-line 1)
+      (forward-line 1) ;; this should be a text-property forward, not a line forward
       (cl-loop while (not (eq (reorg--get-view-props nil 'reorg-field-type)
 			      'branch))
 	       with level = (reorg-outline-level)
 	       if (cl-loop for (func . pred) in sorters
 			   if (funcall pred
 				       (funcall func data)
-				       (funcall func (reorg--get-view-prop)))
+				       (funcall func (reorg--get-view-props)))
 			   return t
 			   finally return nil)
 	       return (reorg-views--insert-before-point data level format-string)
@@ -1962,17 +1965,7 @@ Return nil if there is no such branch."
 					       :reorg-level (reorg-current-level)))
 		  (reorg--insert-into-branch-or-make-new-branch data)))))
 
-(defun reorg--insert-new-branch (data &optional point)
-  "Insert a new branch using DATA at POINT or (point)."
-  (let ((disable-point-adjustment t))
-    (beginning-of-line)
-    (save-excursion 
-      (insert (reorg--create-headline-string data
-					     (plist-get data :format-string)
-					     (plist-get data :reorg-level))
-	      "\n"))
-    (reorg-dynamic-bullets--fontify-heading)
-    (point)))
+
 
 
 
