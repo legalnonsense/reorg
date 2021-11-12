@@ -50,7 +50,7 @@ to parsed data.  For now, only for debugging.")
 
 ;;; macros
 
-(defmacro reorg-restore-state (&rest body)
+(defmacro reorg--with-restore-state (&rest body)
   "do BODY while saving, excursion, restriction, etc."
   (declare (debug (body)))
   `(save-excursion
@@ -485,7 +485,7 @@ RANGE is non-nil, only look for timestamp ranges."
 (defun reorg--map-entries (&optional match scope &rest skip)
   "Run the parser at each heading in the current buffer.
 See `org-map-entries' for explanation of the parameters."
-  (reorg-restore-state
+  (reorg--with-restore-state   
    (org-map-entries
     #'reorg--parser match scope skip)))
 
@@ -591,7 +591,7 @@ keys.  Keys are compared using `equal'."
 								  (not (null x))))
 						 it)
 				     (cl-loop for x in it					      
-					      do (setf (car x) ;;
+					      do (setf (car x)
 						       (list :branch-name (car x)
 							     :headline (car x)
 							     :reorg-branch t
@@ -832,21 +832,25 @@ get nested properties."
     (org-visual-indent-mode)    
     (goto-char (point-min))))
 
-(defun reorg-open-sidebar (template &optional format-string file)
+(cl-defun reorg-open-sidebar (&key file template)
   "Open this shit in the sidebar."
   (interactive)
-  (let ((results (--> (reorg--map-entries file)
-		      (reorg--group-and-sort it template))))
+  (let ((results (with-current-buffer (find-file-noselect file)
+		   (--> (reorg--map-entries)
+			(setq xxx it)
+			(reorg--group-and-sort it template)))))
     (when (get-buffer reorg-buffer-name)
       (kill-buffer reorg-buffer-name))
     (reorg--open-side-window)
     (reorg--select-tree-window)
     (let ((inhibit-read-only t))
       (erase-buffer))
+    (setq xxx results)
     (reorg--insert-org-headlines results)
     (reorg-view-mode)
     (reorg-dynamic-bullets-mode)
-    (org-visual-indent-mode) 
+    (org-visual-indent-mode)
+    (toggle-truncate-lines -1)
     (goto-char (point-min))))
 
 (defun reorg-open-sidebar-fundamental (template &optional format-string file)
@@ -892,7 +896,7 @@ get nested properties."
 	  (goto-char (point-max))
 	(goto-char (point-min)))
       (reorg--jump-to-next-clone id previous)))
-  (reorg-tree--run-movement-hook))
+  (reorg-edits--post-field-navigation-hook))
 
 (defun reorg--jump-to-previous-clone (&optional id)
   "Jump to previous clone"
@@ -948,7 +952,7 @@ get nested properties."
 (defun reorg-view--source--goto-end-of-meta-data ()
   "Go to the end of the meta data and insert a blank line
 if there is not one."
-  (let ((next-heading (reorg-restore-state
+  (let ((next-heading (reorg--with-restore-state
 		       (outline-next-heading)
 		       (point)))
 	(end-of-meta-data (save-excursion
@@ -963,31 +967,26 @@ if there is not one."
 
 (defun reorg-view--source--narrow-to-heading ()
   "Narrow to the current heading only, i.e., no subtree."
-  (widen)
-  (org-show-all)
-  (reorg-view--source--goto-end-of-meta-data)
-  (narrow-to-region (save-excursion
-		      (org-back-to-heading))
-		    (save-excursion 
-		      (outline-next-heading)
-		      (point))))
+  (org-back-to-heading)
+  (org-narrow-to-element))
 
 (defun reorg-view--goto-source-id (buffer id &optional narrow)
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
+  (with-current-buffer buffer 
+    (let ((old-point (point))
+	  (search-invisible t))
+      (widen)
+      (goto-char (point-min))
+      (if (re-search-forward id nil t)
+	  (when narrow
+	    (reorg-view--source--narrow-to-heading))
+	t)
+      (goto-char old-point)))
   (reorg--select-main-window)
-  (set-window-buffer (selected-window) buffer)
-  (widen)
-  (let ((old-point (point)))
-    (goto-char (point-min))
-    (if (re-search-forward id nil t)
-	(progn (org-back-to-heading)
-	       (when narrow
-		 (reorg-view--source--narrow-to-heading))
-	       t)
-      (goto-char old-point)
-      nil)))
+  (set-window-buffer (selected-window) buffer))
+
 
 (defun reorg-view--goto-source-marker (buffer marker &optional narrow)
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
@@ -1026,6 +1025,7 @@ the point and return nil."
   (reorg-edits--post-field-navigation-hook)
   (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
+  (org-back-to-heading)
   (reorg--select-tree-window))
 
 (defun reorg--move-to-previous-entry-no-follow ()
@@ -1034,6 +1034,7 @@ the point and return nil."
   (reorg-edits--post-field-navigation-hook)
   (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
+  (org-back-to-heading)
   (reorg--select-tree-window)
   (reorg-edits--post-field-navigation-hook))
 
@@ -1056,20 +1057,37 @@ the point and return nil."
 
 ;;;; updating the tree
 
+;; (defun reorg--update-this-heading ()
+;;   "Update heading at point and all clones."
+;;   (let ((data 
+;; 	 (reorg--with-point-at-orig-entry (reorg--get-view-prop :id)
+;; 					  (reorg--get-view-prop :buffer)
+;; 					  (reorg--parser)))
+;; 	(id (reorg--get-view-prop :id)))
+;;     (reorg--select-tree-window)
+;;     (save-restriction
+;;       (save-excursion    
+;; 	(reorg--map-id id
+;; 		       (reorg-views--replace-heading data)
+;; 		       (reorg-dynamic-bullets--fontify-heading))))))
+
 (defun reorg--update-this-heading ()
-  "Update heading at point and all clones."
+  "Delete the heading and all clones, re-insert them into the outline,
+move to the first new entry."
   (let ((data 
 	 (reorg--with-point-at-orig-entry (reorg--get-view-prop :id)
 					  (reorg--get-view-prop :buffer)
 					  (reorg--parser)))
+	(disable-point-adjustment t)
+	(search-invisible t)
 	(id (reorg--get-view-prop :id)))
     (reorg--select-tree-window)
-    (setq xxx data)
-    (save-restriction
-      (save-excursion    
-	(reorg--map-id id
-		       (reorg-views--replace-heading data)
-		       (reorg-dynamic-bullets--fontify-heading))))))
+    (reorg--map-id id
+		   (reorg-views--delete-headers-maybe))
+    (reorg--branch-insert--drop-into-outline data
+					     xxx-reorg-test-3-template)))
+		       
+
 
 
 
@@ -1253,7 +1271,7 @@ invoked.")
   "Execute BODY with point at the heading with ID at point."
   `(when-let ((id ,(or id (reorg--get-view-prop :id))))
      (with-current-buffer ,(or buffer (reorg--get-view-prop :buffer))
-       (reorg-restore-state
+       (reorg--with-restore-state
 	(goto-char (point-min))
 	;; NOTE: Can't use `org-id-goto' here or it will keep the
 	;;       buffer open after the edit.  Getting the buffer
@@ -1542,7 +1560,7 @@ returns the correct positions."
 
 (defun reorg-views--insert-before-point (data &optional level format-string)
   "insert a hearing before the heading at point."
-  (reorg-restore-state
+  (reorg--with-restore-state
    (beginning-of-line)
    (insert "\n")
    (previous-line 1)
@@ -1553,13 +1571,13 @@ returns the correct positions."
 
 
 
-(defun reorg-views--insert-after-point (data)
+(defun reorg-views--insert-after-point (data &optional level format-string)
   "insert a heading after the current point."
   (end-of-line)
   (insert "\n")
   (insert (reorg--create-headline-string data
-					 reorg-headline-format
-					 (reorg-outline-level))))
+					 (or format-string reorg-headline-format)
+					 (or level (reorg-outline-level)))))
 
 (defun reorg-views--delete-heading ()
   "delete the heading at point"
@@ -1567,12 +1585,22 @@ returns the correct positions."
     (delete-region (point-at-bol)
 		   (line-beginning-position 2))))
 
+(defun reorg-views--delete-headers-maybe ()
+  (reorg-views--delete-heading)
+  (cl-loop while (and (reorg--goto-next-property-field 'reorg-field-type 'branch t)
+		      (not (reorg--get-next-level-branches))
+		      (not (reorg-tree--branch-has-leaves-p)))
+	   do (reorg-views--delete-heading)))
+    
+
+
 (defun reorg-views--replace-heading (data)
   "Replace the heading at point with NEW."
   (let ((level (reorg-outline-level))
-	(inhibiit-field-text-motion t))
+	(inhibiit-field-text-motion t)
+	(search-invisible t))
     (save-excursion
-      (reorg-views--delete-heading)
+      (reorg-views--delete-headers-maybe)
       (reorg-views--insert-before-point data level))))
 
 ;;;; edit mode
@@ -1783,25 +1811,36 @@ returns the correct positions."
 
 ;;;;; insert-into-branch 
 
-(defun reorg--insert-into-leaves (data sorters)
+(defun reorg-tree--branch-has-leaves-p ()
+  (save-excursion 
+    (let ((disable-point-adjustment t)
+	  (inhibit-field-text-motion t))
+      (forward-line)
+      (not (eq 'branch
+	       (reorg--get-view-props nil 'reorg-field-type))))))
+
+(defun reorg--insert-into-leaves (data sorters &optional level format-string)
   (let ((disable-point-adjustment t)
-	(format-string (reorg--get-view-props nil 'reorg-data :format-string)))
+	(format-string (or format-string (reorg--get-view-props nil 'reorg-data :format-string))))
     (when (and (null (reorg--children-p))
 	       (eq (reorg--get-view-props nil 'reorg-field-type) 'branch))
-      (forward-line 1) ;; this should be a text-property forward, not a line forward
-      (cl-loop while (not (eq (reorg--get-view-props nil 'reorg-field-type)
-			      'branch))
-	       with level = (reorg-outline-level)
-	       if (cl-loop for (func . pred) in sorters
-			   if (funcall pred
-				       (funcall func data)
-				       (funcall func (reorg--get-view-props)))
-			   return t
-			   finally return nil)
-	       return (reorg-views--insert-before-point data level format-string)
-	       else do (forward-line)
-	       finally return (reorg-views--insert-before-point data level)))))
-
+      (if (reorg-tree--branch-has-leaves-p)
+	  (progn 
+	    (forward-line 1) ;; this should be a text-property forward, not a line forward
+	    (cl-loop while (not (eq (reorg--get-view-props nil 'reorg-field-type)
+				    'branch))
+		     with level = (or level (reorg-outline-level))
+		     if (cl-loop for (func . pred) in sorters
+				 if (funcall pred
+					     (funcall func data)
+					     (funcall func (reorg--get-view-props)))
+				 return t
+				 finally return nil)
+		     return (reorg-views--insert-before-point data level format-string)
+		     else do (forward-line)
+		     finally return (reorg-views--insert-before-point data level format-string)))
+	(reorg-views--insert-after-point data (1+ level) format-string ))))
+  (reorg-dynamic-bullets--fontify-heading))
 
 (defun reorg--set-text-property (plist val &rest props)
   "Set the text property at point to a new value.

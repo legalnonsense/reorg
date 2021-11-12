@@ -1,5 +1,7 @@
-
 ;;; -*- lexical-binding: t; -*-
+
+;;; TODO
+;;;; deal with disappearing headings 
 
 (defun reorg--goto-next-relative-level (&optional relative-level previous start-level)
   "Goto the next branch that is at RELATIVE-LEVEL up to any branch that is a
@@ -74,11 +76,20 @@ lower level than the current branch."
 		 while (reorg--goto-next-relative-level 0)
 		 finally return alist)))))
 
-(defun reorg-tree--goto-next-sibling-group ()
+(defun reorg-tree--goto-first-sibling-in-current-group ()
+  (cl-loop with current = (reorg--get-view-props nil 'reorg-data :branch-predicate)
+	   with point = (point)
+	   while (and (reorg--goto-next-relative-level 0 'previous)
+		      (equal (reorg--get-view-props nil 'reorg-data :branch-predicate)
+			     current))
+	   do (setq point (point))
+	   finally (goto-char point)))
+
+(defun reorg-tree--goto-next-sibling-group (&optional previous)
   "adsf"
   (cl-loop with point = (point)
 	   with current = (reorg--get-view-props nil 'reorg-data :branch-predicate)
-	   while (reorg--goto-next-relative-level 0)
+	   while (reorg--goto-next-relative-level 0 previous)
 	   when (not (equal (reorg--get-view-props nil 'reorg-data :branch-predicate)
 			    current))
 	   return (point)
@@ -115,19 +126,30 @@ and TEST-FN."
 (defun reorg-tree--get-current-group-members ()
   (reorg-tree--map-current-sibling-group
    (lambda ()
-     (reorg--get-view-props nil 'reorg-data :branch-result))))
+     (reorg--get-view-props nil 'reorg-data :branch-name))))
 
 (defun reorg-tree--map-siblings-by-group (func)
-  (cl-loop with results = nil
-	   do (push (reorg-tree--map-siblings
-		     func
-		     (lambda ()
-		       (reorg--get-view-props nil
-					      'reorg-data
-					      :branch-predicate)))
-		    results)
-	   while (reorg-tree--goto-next-sibling-group)
-	   finally return results))
+  (reorg-tree--with-wide-buffer
+   (cl-loop with results = nil
+	    do (push (reorg-tree--map-siblings
+		      func
+		      (lambda ()
+			(reorg--get-view-props nil
+					       'reorg-data
+					       :branch-predicate)))
+		     results)
+	    while (reorg-tree--goto-next-sibling-group)
+	    finally return results)))
+
+(defun reorg-tree--get-sibling-group-markers ()
+  "Get the markers for the starting point of each
+sibling group."
+  (reorg-tree--with-wide-buffer
+   (cl-loop with results = nil
+	    do (push (point-marker)
+		     results)
+	    while (reorg-tree--goto-next-sibling-group)
+	    finally return (reverse results))))
 
 (defun reorg-tree--goto-next-property-field (prop val &optional backward pred transformer)
   "Move to the beginning of the next field of text property PROP that
@@ -193,55 +215,127 @@ make a list of the results."
 	       do (cl-pushnew (funcall func) results :test #'equal)))
     (reverse results)))
 
-(defun reorg-tree--insert-into-branch (data)
+
+(defun reorg-tree--branch-insert--find-location (data)
   "insert into the branch at point."
   (save-excursion
-    (while (reorg--goto-next-relative-level 0 'previous))
+    (reorg-tree--goto-first-sibling-in-current-group)
     (let* ((branch-predicate (reorg--get-view-props nil 'reorg-data :branch-predicate))
 	   (name (funcall branch-predicate data))
-
 	   (level (reorg-outline-level))
 	   (format-string (reorg--get-view-props nil 'reorg-data :format-string))
 	   (branch-sorter (reorg--get-view-props nil 'reorg-data :branch-sorter))
 	   (branch-sort-getter (reorg--get-view-props nil 'reorg-data :branch-sort-getter))
 	   (existing-data (copy-tree (reorg--get-view-props)))
 	   (new-data (plist-put existing-data :branch-name name)))
-      
-      (cl-loop when (funcall branch-sorter
-			     (funcall branch-sort-getter name)
-			     (funcall branch-sort-getter (reorg--get-view-props nil 'reorg-data :branch-name)))
-	       return (reorg-tree--insert-new-branch new-data)
-	       while (reorg--goto-next-relative-level 0)))))
+
+      (if (and branch-sort-getter branch-sorter)
+	  (cl-loop when (funcall branch-sorter
+				 (funcall branch-sort-getter name)
+				 (funcall branch-sort-getter (reorg--get-view-props nil 'reorg-data :branch-name)))
+		   return (reorg-tree--branch-insert--insert-heading new-data)
+		   while (reorg--goto-next-relative-level 0)
+		   finally return (reorg-tree--branch-insert--insert-heading new-data 'after))
+	(reorg-tree--branch-insert--insert-heading new-data)))))
 
 ;; ;;
-(defun reorg-tree--insert-new-branch (data)
+(defun reorg-tree--branch-insert--insert-heading (data &optional after)
   "Insert a new branch using DATA at POINT or (point)."
   (let ((disable-point-adjustment t))
-    (beginning-of-line)
+    (if after
+	(progn (end-of-line) (insert "\n"))
+      (beginning-of-line))
     (save-excursion 
-      (insert (reorg--create-headline-string data format-string level)
-	      "\n"))
+      (insert (reorg--create-headline-string data
+					     (plist-get data :format-string)
+					     (plist-get data :level))
+	      (if after "" "\n")))
     (reorg-dynamic-bullets--fontify-heading)
     (point)))
 
-(cl-defun reorg--drop-into-template (data
-				     template
-				     &optional (n 0 np)
-				     result-sorters
-				     grouper-list
-				     grouper-list-results
-				     format-string
-				     (level 1))
-    (reorg-tree--with-wide-buffer
-     (goto-char (point-min))
-     (reorg-tree--map-siblings-by-group
-      (lambda ()
-	(let ((result (funcall grouper data)))
-	  (unless (member result (reorg-tree--get-current-group-members))
-	    (
-	    
-	      ;; it's a member, goto that header and repeat
-	      ;; it's not a member, add the header and repeat 
-     
+(cl-defun reorg--branch-insert--drop-into-outline (data template)
+  (cl-labels
+      ((doloop
+	(data
+	 template
+	 &optional (n 0 np)
+	 result-sorters
+	 grouper-list
+	 grouper-list-results
+	 format-string
+	 (level 1)
+	 (before t))
+	(let ((grouper `(lambda (x)
+			  (reorg--let-plist x
+					    ,(plist-get template :group))))
+	      (children (plist-get template :children))
+	      (heading-sorter (plist-get template :sort))
+	      (heading-sort-getter (or (plist-get template :sort-getter)
+				       #'car))
+	      (format-string (or (plist-get template :format-string)
+				 format-string
+				 reorg-headline-format))
+	      (result-sort (plist-get template :sort-results)))
+	  (when result-sort
+	    (setq result-sorters
+		  (append result-sorters					  
+			  (cl-loop for (form . pred) in result-sort
+				   collect (cons `(lambda (x)
+						    (reorg--let-plist x
+								      ,form))
+						 pred)))))
+	  (let ((name (funcall grouper data))
+		(members (reorg-tree--get-current-group-members)))
+	    (when name
+	      (if (member name members)
+		  (unless (equal name (reorg--get-view-props nil 'reorg-data :branch-name))
+		    (reorg-tree--goto-next-property-field 'reorg-data name
+							  nil #'equal (lambda (x) (plist-get x :branch-name))))
+		(if (and heading-sort-getter heading-sorter members)
+		    (cl-loop with new-data = `( :name ,name
+						:branch-name ,name
+						:heading-sorter ,heading-sorter
+						:heading-sort-getter ,heading-sort-getter
+						:format-string ,format-string
+						:level ,level
+						:reorg-branch t
+						:branch-predicate ,grouper)		  
+			     when (funcall heading-sorter
+					   (funcall heading-sort-getter name)
+					   (funcall heading-sort-getter (reorg--get-view-props nil 'reorg-data :branch-name)))
+			     return (reorg-tree--branch-insert--insert-heading new-data)
+			     while (reorg--goto-next-relative-level 0)
+			     finally return (reorg-tree--branch-insert--insert-heading new-data))
+		  (reorg-tree--branch-insert--insert-heading `( :name ,name
+								:branch-name ,name
+								:heading-sorter ,heading-sorter
+								:heading-sort-getter ,heading-sort-getter
+								:format-string ,format-string
+								:level ,level
+								:reorg-branch t
+								:branch-predicate ,grouper)
+							     (not before))))	  
+	      (if children 
+		  (cl-loop with before = nil
+			   for x below (length children)
+			   for marker in (save-excursion
+					   (setq before (reorg--goto-next-relative-level 1))
+					   (reorg-tree--get-sibling-group-markers))
+			   do (goto-char marker)
+			   and do (doloop
+				   data
+				   (nth x children)
+				   x
+				   result-sorters
+				   nil
+				   nil
+				   format-string
+				   (1+ level)
+				   before))	      
 
-(provide 'reorg-tree)
+		(reorg--insert-into-leaves data result-sorters (if before (1+ level) level)
+					   format-string)))))))
+    (goto-char (point-min))
+    (doloop data template)))
+
+  (provide 'reorg-tree)
