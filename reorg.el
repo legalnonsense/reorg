@@ -2,6 +2,7 @@
 
 ;;; TODOs
 ;;;; write branch inserter
+
 ;;; requires
 
 (require 'let-alist)
@@ -28,6 +29,9 @@
   "Headline format.")
 
 ;;; variables 
+
+(defvar-local reorg-current-template nil
+  "the current template in this buffer")
 
 (defvar reorg-parser-list nil
   "parser list")
@@ -289,15 +293,22 @@ RANGE is non-nil, only look for timestamp ranges."
 			       (reorg--with-source-and-sync
 				 (if val (org-deadline nil val)
 				   (org-deadline '(4)))))
-			:display (if (plist-get plist :deadline)
-				     (concat 
-				      (propertize "DEADLINE: "
+			;; :display (if (plist-get plist :deadline)
+			;; 	     (concat 
+			;; 	      (propertize "DEADLINE: "
 
-						  'font-lock-face 'org-special-keyword)
-				      (propertize (plist-get plist :deadline)
-						  'font-lock-face 'org-date))
-				   "__________"))
+			;; 			  'font-lock-face 'org-special-keyword)
+			;; 	      (propertize (plist-get plist :deadline)
+			;; 			  'font-lock-face 'org-date))
+			;; 	   "__________")
+			:display (when (plist-get plist :deadline)
+				   (string-pad 
+				    (ts-format "%B %e, %Y" ;
+					       (ts-parse-org (plist-get plist :deadline)))
+				    18
+				    nil t)))
 
+			
 (reorg-create-data-type :name scheduled
 			:parse (org-entry-get (point) "SCHEDULED")
 			:set (lambda ()
@@ -473,6 +484,15 @@ RANGE is non-nil, only look for timestamp ranges."
 (reorg-create-data-type :name level
 			:parse (org-current-level))
 
+(reorg-create-data-type :name priority
+			:parse (org-entry-get (point) "PRIORITY")
+			:display (pcase (plist-get plist :priority)
+				   ("A" "⚡")
+				   ("B" "⚐")
+				   ("C" "")
+				   (_ " ")))
+
+
 ;;; parsing org file
 
 (defun reorg--parser ()
@@ -606,6 +626,7 @@ keys.  Keys are compared using `equal'."
 							     :grouper-list-results (car x)
 							     :format-string format-string
 							     :result-sorters result-sorters
+							     :template template 
 							     :children children
 							     :branch-sorter heading-sorter
 							     :branch-sort-getter heading-sort-getter
@@ -655,7 +676,8 @@ keys.  Keys are compared using `equal'."
 					      (cl-loop for each in (cadr (nth x (nth n (cdr data))))
 						       collect (reorg--create-headline-string each format-string (1+ level)))))))))
       (doloop copy template)
-      (caadr copy))))
+      (setq yyy copy)
+      (cadr copy))))
 
 ;;; Generating the outline
 
@@ -845,28 +867,28 @@ get nested properties."
     (reorg--select-tree-window)
     (let ((inhibit-read-only t))
       (erase-buffer))
-    (setq xxx results)
     (reorg--insert-org-headlines results)
     (reorg-view-mode)
     (reorg-dynamic-bullets-mode)
     (org-visual-indent-mode)
-    (toggle-truncate-lines -1)
+    (toggle-truncate-lines 1)
+    (setq reorg-current-template template)
     (goto-char (point-min))))
 
-(defun reorg-open-sidebar-fundamental (template &optional format-string file)
-  "Open this shit in the sidebar."
-  (interactive)
-  (let ((results (--> (reorg--map-entries file)
-		      (reorg--group-and-sort it template)
-		      (reorg--process-results it format-string))))
-    (when (get-buffer reorg-buffer-name)
-      (kill-buffer reorg-buffer-name))
-    (reorg--open-side-window)
-    (reorg--select-tree-window)
-    (let ((inhibit-read-only t))
-      (erase-buffer))
-    (reorg--insert-org-headlines results)
-    (fundamental-mode)))
+  (defun reorg-open-sidebar-fundamental (template &optional format-string file)
+    "Open this shit in the sidebar."
+    (interactive)
+    (let ((results (--> (reorg--map-entries file)
+			(reorg--group-and-sort it template)
+			(reorg--process-results it format-string))))
+      (when (get-buffer reorg-buffer-name)
+	(kill-buffer reorg-buffer-name))
+      (reorg--open-side-window)
+      (reorg--select-tree-window)
+      (let ((inhibit-read-only t))
+	(erase-buffer))
+      (reorg--insert-org-headlines results)
+      (fundamental-mode)))
 
 ;;; reorg-views
 ;;;; clone functions
@@ -1071,21 +1093,18 @@ the point and return nil."
 ;; 		       (reorg-views--replace-heading data)
 ;; 		       (reorg-dynamic-bullets--fontify-heading))))))
 
-(defun reorg--update-this-heading ()
+(defun reorg--update-this-heading (data template)
   "Delete the heading and all clones, re-insert them into the outline,
 move to the first new entry."
-  (let ((data 
-	 (reorg--with-point-at-orig-entry (reorg--get-view-prop :id)
-					  (reorg--get-view-prop :buffer)
-					  (reorg--parser)))
-	(disable-point-adjustment t)
+  (let ((disable-point-adjustment t)
 	(search-invisible t)
 	(id (reorg--get-view-prop :id)))
     (reorg--select-tree-window)
-    (reorg--map-id id
+    (reorg--map-id (plist-get data :id)
+		   (reorg-views--delete-leaf)
 		   (reorg-views--delete-headers-maybe))
     (reorg--branch-insert--drop-into-outline data
-					     xxx-reorg-test-3-template)))
+					     template)))
 		       
 
 
@@ -1153,13 +1172,22 @@ update the heading at point."
 update the heading at point."
   (declare (indent defun))
   `(progn
-     (let ((val (field-string-no-properties)))
+     (let ((val (field-string-no-properties))
+	   (inhibit-field-text-motion t)
+	   (search-invisible t)
+	   data)
        (reorg-view--tree-to-source--goto-heading)
        (org-with-wide-buffer
 	(org-back-to-heading)
-	,@body)
+	,@body
+	(setq data (reorg--parser)))
        (reorg--select-tree-window)
-       (reorg--update-this-heading))))
+       (reorg--map-id (plist-get data :id)
+		      (reorg-views--delete-leaf)
+		      (reorg-views--delete-headers-maybe))
+       (reorg--branch-insert--drop-into-outline data
+						reorg-current-template))))
+
 
 (define-derived-mode reorg-view-mode
   fundamental-mode
@@ -1564,29 +1592,35 @@ returns the correct positions."
    (beginning-of-line)
    (insert "\n")
    (previous-line 1)
-   (insert (reorg--create-headline-string data
-					  (or format-string reorg-headline-format)
-					  (or level (reorg-outline-level))))
-   (reorg-dynamic-bullets--fontify-heading)))
+   (let ((string (reorg--create-headline-string data
+						(or format-string reorg-headline-format)
+						(or level (reorg-outline-level)))))
+     (insert string)
+     (reorg-dynamic-bullets--fontify-heading)
+     (1+ (length string)))))
 
 
 
 (defun reorg-views--insert-after-point (data &optional level format-string)
   "insert a heading after the current point."
-  (end-of-line)
-  (insert "\n")
-  (insert (reorg--create-headline-string data
-					 (or format-string reorg-headline-format)
-					 (or level (reorg-outline-level)))))
+  (reorg--with-restore-state
+   (end-of-line)
+   (insert "\n")
+   (previous-line 1)
+   (let ((string (reorg--create-headline-string data
+						(or format-string reorg-headline-format)
+						(or level (reorg-outline-level)))))
+     (insert string)
+     (reorg-dynamic-bullets--fontify-heading)
+     (1+ (length string)))))
 
-(defun reorg-views--delete-heading ()
+(defun reorg-views--delete-leaf ()
   "delete the heading at point"
   (let ((inhibit-field-text-motion t))
     (delete-region (point-at-bol)
 		   (line-beginning-position 2))))
 
 (defun reorg-views--delete-headers-maybe ()
-  (reorg-views--delete-heading)
   (cl-loop while (and (reorg--goto-next-property-field 'reorg-field-type 'branch t)
 		      (not (reorg--get-next-level-branches))
 		      (not (reorg-tree--branch-has-leaves-p)))
@@ -1786,6 +1820,7 @@ returns the correct positions."
 (reorg--create-org-shortcut deadline org-deadline "C-c C-d")
 (reorg--create-org-shortcut schedule org-schedule "C-c C-s")
 (reorg--create-org-shortcut property org-set-property "C-c C-x p")
+(reorg--create-org-shortcut priority org-priority "C-c C-p")
 
 ;;;; inserting headers into the appropriate location
 
@@ -2038,53 +2073,12 @@ Return nil if there is no such branch."
        (let ((disable-point-adjustment t))
 	 ,@body))))
 
-;; p.contract()
-;; p.expand()
-
 (defun reorg-tree--contract-node ()
   (outline-hide-subtree))
 
 (defun reorg-tree--expand-node ()
   (outline-show-subtree))
 
-;; p.doDelete(new_position)
-
-;; p.insertAfter()
-;; p.insertAsNthChild(n)
-;; p.insertBefore()
-;; p.moveAfter(p2)
-;; p.moveToFirstChildOf(parent,n)
-;; p.moveToLastChildOf(parent,n)
-;; p.moveToNthChildOf(parent,n)
-;; p.moveToRoot(oldRoot=None)
-
-;; p.children()
-;; p.parents()
-;; p.self_and_parents()
-;; p.self_and_siblings()
-;; p.following_siblings()
-;; p.subtree()
-;; p.self_and_subtree()
-
-
-;; p.back()
-;; p.children()
-
-(defmacro reorg-tree--for-each-child (&rest body)
-  "Iteratve over children and run BODY, making
-a list of the results.")
-
-;; p.copy()
-;; p.firstChild()
-;; p.hasChildren()
-;; p.hasNext()
-;; p.hasParent()
-
-;; p.isAncestorOf(p2)
-
-;; p.isAt...Node()
-
-;; p.isCloned()
 
 (defun reorg-tree--is-cloned-p ()
   (when-let ((id (reorg--get-view-prop :id)))
@@ -2098,39 +2092,20 @@ a list of the results.")
 				  'not-current)))
 
 
-;; p.isExpanded()
-
 (defun reorg-tree--is-folded-p ()
   "Is the current heading folded?"
   (let ((inhibit-field-text-motion t))
     (invisible-p (point-at-eol))))
 
-;; p.isMarked()
-;; p.isRoot()
-
 (defun reorg-tree--is-root-p ()
   (= (reorg-outline-level 1)))
 
-
-;; p.isVisible()
-;; p.lastChild()
-;; p.level()
-;; p.next()
-;; p.nodeAfterTree()
-;; p.nthChild()
-;; p.numberOfChildren()
-;; p.parent()
-;; p.parents()
-;; p.threadBack()
-;; p.threadNext()
-;; p.visBack()
-;; p.visNext()
-
-
-;; (defun reorg--insert-into-outline (data)
-;;   (setf (point) (point-min))
-;;   (setq buffer-invisibility-spec nil)
-;;   (reorg-into--member-of-this-header? data) 
-;;   (reorg--goto-next-relative-level 
-
-
+(defun reorg--org-shortcut-deadline
+    (arg)
+  "Execute org-deadline in the source buffer and update the heading at point."
+  (interactive "P")
+  (reorg--with-source-and-sync
+    (if
+	(eq 'org-set-property 'org-deadline)
+	(funcall-interactively #'org-deadline arg nil)
+      (funcall-interactively #'org-deadline arg))))

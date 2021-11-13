@@ -11,7 +11,7 @@ lower level than the current branch."
 	  (point (point))
 	  (relative-level (or relative-level 0)))
       (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch previous)
-			  (not (bobp)))
+			  (if previous (not (bobp)) (not eobp)))
 	       if (or (< (reorg-outline-level) start-level)
 		      (and (> relative-level 0)
 			   (= (reorg-outline-level) start-level)))
@@ -316,25 +316,33 @@ make a list of the results."
 								:branch-predicate ,grouper)
 							     (not before))))	  
 	      (if children 
-		  (cl-loop with before = nil
-			   for x below (length children)
-			   for marker in (save-excursion
-					   (setq before (reorg--goto-next-relative-level 1))
-					   (reorg-tree--get-sibling-group-markers))
-			   do (goto-char marker)
-			   and do (doloop
-				   data
-				   (nth x children)
-				   x
-				   result-sorters
-				   nil
-				   nil
-				   format-string
-				   (1+ level)
-				   before))	      
+		  (cl-loop 
+		   with before = nil
+		   for x below (length children)
+		   for marker in (save-excursion
+				   (setq before (reorg--goto-next-relative-level 1))
+				   (reorg-tree--get-sibling-group-markers))
+		   do (goto-char marker)
+		   and do (doloop
+			   data
+			   (nth x children)
+			   x
+			   result-sorters
+			   nil
+			   nil
+			   format-string
+			   (1+ level)
+			   before))
+		(reorg--insert-into-leaves data
+					   result-sorters
+					   (if before (1+ level) level)
+					   format-string)
+		(redraw-display)
+		
 
-		(reorg--insert-into-leaves data result-sorters (if before (1+ level) level)
-					   format-string)))))))
+		))))))
+
+
     (goto-char (point-min))
     (doloop data template)))
 
