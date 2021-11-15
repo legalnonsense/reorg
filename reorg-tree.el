@@ -3,27 +3,47 @@
 ;;; TODO
 ;;;; deal with disappearing headings 
 
-(defun reorg--goto-next-relative-level (&optional relative-level previous start-level)
+(defun reorg--goto-next-relative-level (&optional relative-level backward start-level no-error)
   "Goto the next branch that is at RELATIVE-LEVEL up to any branch that is a
 lower level than the current branch."
-  (when (> (abs (+ (reorg-outline-level) relative-level)) 0)
-    (let ((start-level (or start-level (reorg-outline-level)))
-	  (point (point))
-	  (relative-level (or relative-level 0)))
-      (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch previous)
-			  (if previous (not (bobp)) (not eobp)))
-	       if (or (< (reorg-outline-level) start-level)
-		      (and (> relative-level 0)
-			   (= (reorg-outline-level) start-level)))
-	       return (progn
-			(setf (point) point)
-			nil)
-	       else if (= (reorg-outline-level)
-			  (abs (+ start-level relative-level)))
-	       return t
-	       finally (progn
-			 (setf (point) point)
-			 nil)))))
+  ;; Outline levels start at 1, so make sure the destination is not out of bounds. 
+  (let* ((start-level (or start-level (reorg-outline-level)))
+	 (point (point)))
+    (cond  ((>= 0 (abs (+ (reorg-outline-level) (or relative-level 0))))
+	    (if no-error nil
+	      (error "Cannot move to relative-level %d from current level %d"
+		     relative-level
+		     start-level)))
+	   (t
+	    (cl-flet ((looking-for (thing)
+				   (eq thing 
+				       (pcase (or relative-level 0)
+					 ((pred (< 0)) 'descendant)
+					 ((pred (> 0)) 'ancestor)
+					 ((pred (= 0)) 'sibling))))
+		      (current-level () (reorg-outline-level))
+		      (exit () (progn (setf (point) point) nil))
+		      (goto-next () (reorg-tree--goto-next-property-field
+				     'reorg-field-type
+				     'branch
+				     backward)))
+	      
+	      (cl-loop while (and (goto-next)
+				  (if backward (not (bobp)) (not (eobp))))
+		       if (if backward
+			      (or (and (looking-for 'descendant)
+				       (<= (current-level) start-level))
+				  (and (looking-for 'sibling)
+				       (< (current-level) start-level)))			    
+			    (or (and (looking-for 'descendant)
+				     (= (current-level) start-level))
+				(and (looking-for 'sibling)
+				     (< (current-level) start-level))))
+		       return (exit)
+		       else if (= (current-level)
+				  (abs (+ start-level (or relative-level 0))))
+		       return point
+		       finally (exit)))))))
 
 (defun reorg-into--need-to-make-new-branch? (data &optional point)
   "asdf"
@@ -346,4 +366,103 @@ make a list of the results."
     (goto-char (point-min))
     (doloop data template)))
 
-  (provide 'reorg-tree)
+(provide 'reorg-tree)
+;;;; there 
+;;; new drop into
+;;;; Is HEADING present?
+;;;; make a new HEADLINE
+;;;; insert HEADLINE at LOCATION
+;;;; 
+
+(cl-defun reorg--drop-into (data template)
+  (cl-labels ((doloop
+	       (data
+		template
+		&optional (n 0 np)
+		result-sorters
+		grouper-list
+		grouper-list-results
+		format-string
+		(level 1)
+		(before t))
+	       (let ((grouper `(lambda (x)
+				 (reorg--let-plist x
+						   ,(plist-get template :group))))
+		     (children (plist-get template :children))
+		     (heading-sorter (plist-get template :sort))
+		     (heading-sort-getter (or (plist-get template :sort-getter)
+					      #'car))
+		     (format-string (or (plist-get template :format-string)
+					format-string
+					reorg-headline-format))
+		     (result-sort (plist-get template :sort-results)))
+		 (when result-sort
+		   (setq result-sorters
+			 (append result-sorters					  
+				 (cl-loop for (form . pred) in result-sort
+					  collect (cons `(lambda (x)
+							   (reorg--let-plist x
+									     ,form))
+							pred)))))
+		 (let ((name (funcall grouper data))
+		       (members (reorg-tree--get-current-group-members))
+		       (current-level (reorg-outline-level)))
+		   (when name
+		     (if (member name members)
+			 (unless (equal name (reorg--get-view-props nil 'reorg-data :branch-name))
+			   (reorg-tree--goto-next-property-field 'reorg-data name
+								 nil #'equal (lambda (x) (plist-get x :branch-name))))
+		       (if (and heading-sort-getter heading-sorter members)
+			   (cl-loop with new-branch = `( :name ,name
+							 :branch-name ,name
+							 :heading-sorter ,heading-sorter
+							 :heading-sort-getter ,heading-sort-getter
+							 :format-string ,format-string
+							 :level ,level
+							 :reorg-branch t
+							 :branch-predicate ,grouper)		  
+				    when (funcall heading-sorter
+						  (funcall heading-sort-getter name)
+						  (funcall heading-sort-getter (reorg--get-view-props nil 'reorg-data :branch-name)))
+				    return (reorg-tree--branch-insert--insert-heading new-branch)
+				    while (reorg--goto-next-relative-level 0)
+				    finally return (reorg-tree--branch-insert--insert-heading new-branch))
+			 (reorg-tree--branch-insert--insert-heading `( :name ,name
+								       :branch-name ,name
+								       :heading-sorter ,heading-sorter
+								       :heading-sort-getter ,heading-sort-getter
+								       :format-string ,format-string
+								       :level ,level
+								       :reorg-branch t
+								       :branch-predicate ,grouper)
+								    (not before))))	  
+		     (if children 
+			 (cl-loop 
+			  with before = nil
+			  for x below (length children)
+			  for marker in (save-excursion
+					  (setq before (reorg--goto-next-relative-level 1))
+					  (reorg-tree--get-sibling-group-markers))
+			  do (goto-char marker)
+			  and do (doloop
+				  data
+				  (nth x children)
+				  x
+				  result-sorters
+				  nil
+				  nil
+				  format-string
+				  (1+ level)
+				  before))
+		       (reorg--insert-into-leaves data
+						  result-sorters
+						  (if before (1+ level) level)
+						  format-string)
+		       (redraw-display)
+		       
+
+		       ))))))
+
+
+    (goto-char (point-min))
+    (doloop data template)))

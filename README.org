@@ -93,3 +93,28 @@ Each definition has the following components.
 We can talk about making it better.
 - The sorting and grouping function
 - The 
+* Terms
+** Branch
+*** Heading node
+** Leaf 
+*** Data node 
+** Child 
+*** Map children
+** Sibliing
+*** Map siblings
+** Parent
+** Movement
+*** To parent 
+*** To previous/next sibling
+*** To nth child 
+*** To next parent
+*** To next level 
+*** CDR equivalent = org-next-heading, org-narrow-to-subtree 
+** Ancestor
+** Descendant 
+** Other functions
+*** Map by generation 
+*** Map by generation within subtree 
+*** 
+** Branch properties
+*** 
