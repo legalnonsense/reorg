@@ -55,6 +55,7 @@
 						(ts-parse-org .timestamp)))))
 			 .category-inherited)
 		:sort string<
+		:format-string ((stars) (" ") (todo) (" ") (headline) (align-to 30) (deadline))
 		:sort-getter identity
 		:children (( :group (when (and .todo
 					       (or (string= .todo "task")
