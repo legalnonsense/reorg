@@ -13,7 +13,7 @@
 
 (defconst reorg--data-property-name 'reorg-data)
 ;;(defconst reorg--id-property-name 'reorg-id)
-(defconst reorg--field-property-name 'reorg-node-type)
+(defconst reorg--field-property-name 'reorg-field-type)
 
 ;;; customs
 
@@ -713,18 +713,21 @@ keys.  Keys are compared using `equal'."
 
 ;;;; Creating headlines from headline template 
 
-(defun reorg--create-headline-string (data format-string &optional level)
+(defun reorg--create-headline-string (data &optional format-string level)
+  (setq format-string (or format-string (plist-get data :format-string))
+	level (or level (plist-get data :level)))
   (cl-flet ((create-stars (num &optional data)
 			  (make-string (if (functionp num)
 					   (funcall num data)
 					 num)
 				       ?*)))
-    (if (eq (plist-get data 'reorg-node-type) 'branch)
+    (if (eq (plist-get data :node-type) 'branch)
 	(apply #'propertize 
-	       (concat (create-stars level) " " (plist-get data 'reorg-branch-name))
+	       (concat (create-stars level) " " (plist-get data :branch-name))
 	       data)
       (propertize 
-       (cl-loop for each in format-string
+       (cl-loop with data = (plist-get data :reorg-data)
+		for each in format-string
 		if (stringp (car each))
 		concat (car each)
 		else if (eq 'stars (car each))
@@ -741,9 +744,9 @@ keys.  Keys are compared using `equal'."
 		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
 			      data
 			      (cdr each)))
-       'reorg-data data
-       'reorg-node-type 'data
-       'reorg-level level))))
+       :data (plist-get data :data)
+       :node-type 'data
+       :level level))))
 
 
 ;;; Insert headlines into buffer
