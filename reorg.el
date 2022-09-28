@@ -200,53 +200,61 @@ RANGE is non-nil, only look for timestamp ranges."
 					       pre-edit-hook
 					       &allow-other-keys)
   `(progn
-     (let ((data (list 
-		  :parse (lambda () ,parse)
-		  :get (lambda (id &rest args)			 
-			 (reorg--with-point-at-orig-entry id buffer
-							  ,get))
-		  :getter (lambda (plist arg)
-			    ,getter)		  
-		  :get-view-string (lambda ()
-				     (pcase-let ((`(,start . ,end)
-						  (reorg--get-field-bounds)))
-				       (buffer-substring start end)))
-		  :validate (lambda (val &rest args)
-			      ,validate)
-		  :orig-entry-func (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name name))) (plist &rest args)
-				     ,@orig-entry-func)
-		  :display (cl-defun ,(intern (concat "reorg-display--"  (symbol-name name))) (plist &rest args)
-			     (let ((val (plist-get plist (or (when ',getter
-							       ,getter)
-							     ,(reorg--add-remove-colon name)))))
-			       (when ',display (setq val (apply (lambda (&rest args) ,display) args)))
-			       (when ',face (setq val (propertize
-						       val
-						       'font-lock-face
-						       (cond ((internal-lisp-face-p ',face)
-							      ',face)
-							     ((functionp ',face)
-							      (funcall ',face plist))
-							     (t (error "invalid face specification"))))))
-			       (setq val (concat ,display-prefix val ,display-suffix))
-			       (setq val (propertize val 'reorg-field-type ',name))
-			       (setq val (propertize val 'field (list 'reorg ',name)))
-			       (setq val (propertize val 'front-sticky t))
-			       (when ',field-keymap 
-				 (setq val (propertize
-					    val
-					    'keymap
-					    (let ((map (make-sparse-keymap)))
-					      ,@(cl-loop
-						 for key in field-keymap
-						 collect `(define-key map
-							    (kbd ,(car key))
-							    ',(cdr key)))
-					      map))))
-			       val
-			       )))))
+     (let ((data
+	    (list 
+	     :parse
+	     (lambda () ,parse)
+	     :get
+	     (lambda (id &rest args)			 
+	       (reorg--with-point-at-orig-entry id buffer
+						,get))
+	     :getter
+	     (lambda (plist arg)
+	       ,getter)		  
+	     :get-view-string
+	     (lambda ()
+	       (pcase-let ((`(,start . ,end)
+			    (reorg--get-field-bounds)))
+		 (buffer-substring start end)))
+	     :validate
+	     (lambda (val &rest args)
+	       ,validate)
+	     :orig-entry-func
+	     (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name name)))
+		 (plist &rest args)
+	       ,@orig-entry-func)
+	     :display
+	     (cl-defun ,(intern (concat "reorg-display--"  (symbol-name name)))
+		 (plist &rest args)
+	       (let ((val (plist-get plist (or (when ',getter
+						 ,getter)
+					       ,(reorg--add-remove-colon name)))))
+		 (when ',display (setq val (apply (lambda (&rest args) ,display) args)))
+		 (when ',face (setq val (propertize
+					 val
+					 'font-lock-face
+					 (cond ((internal-lisp-face-p ',face)
+						',face)
+					       ((functionp ',face)
+						(funcall ',face plist))
+					       (t (error "invalid face specification"))))))
+		 (setq val (concat ,display-prefix val ,display-suffix))
+		 (setq val (propertize val 'reorg-field-type ',name))
+		 (setq val (propertize val 'field (list 'reorg ',name)))
+		 (setq val (propertize val 'front-sticky t))
+		 (when ',field-keymap 
+		   (setq val (propertize
+			      val
+			      'keymap
+			      (let ((map (make-sparse-keymap)))
+				,@(cl-loop
+				   for key in field-keymap
+				   collect `(define-key map
+					      (kbd ,(car key))
+					      ',(cdr key)))
+				map))))
+		 val)))))
        ;; header keymaps come last
-
        (if ',disabled
 	   (progn 
 	     (cl-loop for (key . func) in ',field-keymap
