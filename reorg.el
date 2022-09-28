@@ -859,6 +859,7 @@ get nested properties."
   "Open this shit in the sidebar."
   (interactive)
   (let ((results (with-current-buffer (find-file-noselect file)
+		   (org-show-all)
 		   (--> (reorg--map-entries)
 			(reorg--group-and-sort it template)))))
     (when (get-buffer reorg-buffer-name)
