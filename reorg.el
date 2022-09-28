@@ -797,14 +797,14 @@ get nested properties."
       (let ((inhibit-field-text-motion t))
 	(get-text-property (or point (point)) reorg--data-property-name)))))
 
-;; (defun reorg--get-view-prop (&optional property)
-;;   "Get PROPERTY from the current heading."
-;;   (save-excursion 
-;;     (beginning-of-line)
-;;     (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
-;;       (if property 
-;; 	  (plist-get props property)
-;; 	props))))
+(defun reorg--get-view-prop (&optional property)
+  "Get PROPERTY from the current heading."
+  (save-excursion 
+    (beginning-of-line)
+    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
+      (if property 
+	  (plist-get props property)
+	props))))
 
 (defun reorg-outline-level ()
   "Get the outline level of the heading at point."
@@ -1137,7 +1137,7 @@ move to the first new entry."
 ;;      (org-priority-down))))
 
 (defvar reorg-view-mode-map 
-  (let ((map (make-sparse-keymap)))
+  (let ((map (make-keymap)))
     (define-key map (kbd "RET") #'reorg-view--tree-to-source--goto-heading)
     (define-key map (kbd "e") #'reorg-edits--start-edit)
     (define-key map (kbd "u") #'reorg--goto-parent)

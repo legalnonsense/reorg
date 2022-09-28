@@ -3,7 +3,7 @@
 (defun xxx-reorg-test-4 ()
   (interactive)
   (reorg-open-sidebar
-   :file "~/.emacs.d/lisp/reorg/short-zoo.org"
+   :file "~/.emacs.d/lisp/reorg/TESTS/zoo-short.org"
    :template '( :group "Reorg test"
 		:sort-results ((.headline . string>))
 		:children (( :group (when-let ((legs .property.legs)
