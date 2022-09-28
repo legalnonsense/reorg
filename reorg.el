@@ -855,7 +855,6 @@ get nested properties."
   (interactive)
   (let ((results (with-current-buffer (find-file-noselect file)
 		   (--> (reorg--map-entries)
-			(setq xxx it)
 			(reorg--group-and-sort it template)))))
     (when (get-buffer reorg-buffer-name)
       (kill-buffer reorg-buffer-name))
