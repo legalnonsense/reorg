@@ -262,15 +262,12 @@ RANGE is non-nil, only look for timestamp ranges."
 	     (setq reorg-parser-list (remove ',name reorg-parser-list)))
 	 ;; (cl-loop for (key . func) in ',field-keymap
 	 ;; 	  do (advice-add func :around #'reorg--refresh-advice))
-
 	 (if (alist-get ',name reorg-setter-alist)
 	     (setf (alist-get ',name reorg-setter-alist) ,set)
 	   (push (cons ',name ,set) reorg-setter-alist))
-	 
 	 (if (alist-get ',name reorg-parser-list)
 	     (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
 	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
-
 
 ;;; data macro application 
 
