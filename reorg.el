@@ -1101,10 +1101,6 @@ the point and return nil."
 ;;     (reorg--branch-insert--drop-into-outline data
 ;; 					     template)))
 
-
-
-
-
 ;;;; view mode
 
 ;; (defun reorg--shift-up (arg)
@@ -1621,10 +1617,8 @@ returns the correct positions."
 		      (not (reorg-tree--branch-has-leaves-p)))
 	   do (reorg-views--delete-heading)))
 
-
-
 (defun reorg-views--replace-heading (data)
-  "Replace the heading at point with NEW."
+  "Replace the heading at point with DATA."
   (let ((level (reorg-outline-level))
 	(inhibiit-field-text-motion t)
 	(search-invisible t))
