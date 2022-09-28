@@ -1616,7 +1616,7 @@ returns the correct positions."
 		   (line-beginning-position 2))))
 
 (defun reorg-views--delete-headers-maybe ()
-  (cl-loop while (and (reorg--goto-next-property-field 'reorg-field-type 'branch t)
+  (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
 		      (not (reorg--get-next-level-branches))
 		      (not (reorg-tree--branch-has-leaves-p)))
 	   do (reorg-views--delete-heading)))
