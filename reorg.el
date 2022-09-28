@@ -1075,32 +1075,32 @@ the point and return nil."
 
 ;;;; updating the tree
 
-;; (defun reorg--update-this-heading ()
-;;   "Update heading at point and all clones."
-;;   (let ((data 
-;; 	 (reorg--with-point-at-orig-entry (reorg--get-view-prop :id)
-;; 					  (reorg--get-view-prop :buffer)
-;; 					  (reorg--parser)))
-;; 	(id (reorg--get-view-prop :id)))
-;;     (reorg--select-tree-window)
-;;     (save-restriction
-;;       (save-excursion    
-;; 	(reorg--map-id id
-;; 		       (reorg-views--replace-heading data)
-;; 		       (reorg-dynamic-bullets--fontify-heading))))))
-
-(defun reorg--update-this-heading (data template)
-  "Delete the heading and all clones, re-insert them into the outline,
-move to the first new entry."
-  (let ((disable-point-adjustment t)
-	(search-invisible t)
+(defun reorg--update-this-heading ()
+  "Update heading at point and all clones."
+  (let ((data 
+	 (reorg--with-point-at-orig-entry (reorg--get-view-prop :id)
+					  (reorg--get-view-prop :buffer)
+					  (reorg--parser)))
 	(id (reorg--get-view-prop :id)))
     (reorg--select-tree-window)
-    (reorg--map-id (plist-get data :id)
-		   (reorg-views--delete-leaf)
-		   (reorg-views--delete-headers-maybe))
-    (reorg--branch-insert--drop-into-outline data
-					     template)))
+    (save-restriction
+      (save-excursion    
+	(reorg--map-id id
+		       (reorg-views--replace-heading data)
+		       (reorg-dynamic-bullets--fontify-heading))))))
+
+;; (defun reorg--update-this-heading (data template)
+;;   "Delete the heading and all clones, re-insert them into the outline,
+;; move to the first new entry."
+;;   (let ((disable-point-adjustment t)
+;; 	(search-invisible t)
+;; 	(id (reorg--get-view-prop :id)))
+;;     (reorg--select-tree-window)
+;;     (reorg--map-id (plist-get data :id)
+;; 		   (reorg-views--delete-leaf)
+;; 		   (reorg-views--delete-headers-maybe))
+;;     (reorg--branch-insert--drop-into-outline data
+;; 					     template)))
 
 
 
