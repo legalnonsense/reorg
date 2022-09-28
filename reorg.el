@@ -63,23 +63,6 @@ to parsed data.  For now, only for debugging.")
        (let ((inhibit-field-text-motion t))
 	 ,@body))))
 
-(defmacro reorg-set-when (var &rest body)
-  "Example:
-(let ((x 5))
-  (reorg-set-when x
-   		  ((< x 10) (+ 10 x))
-		  ((> x 20) 'a)
-		  ((< x 100) 'b)
-		  ((eq 'b x) \"fuck you\"))
-  x)
-;; => \"fuck you\"
-"
-  `(progn
-     ,@(cl-loop for each in body
-		collect `(if ,(car each)
-			     (setf ,var ,@(cdr each))
-			   ,var))))
-
 ;;; utilites
 
 (defun reorg--add-remove-colon (prop &optional remove)
