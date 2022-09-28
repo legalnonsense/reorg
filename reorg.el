@@ -1186,7 +1186,6 @@ update the heading at point."
        (reorg--branch-insert--drop-into-outline data
 						reorg-current-template))))
 
-
 (define-derived-mode reorg-view-mode
   fundamental-mode
   "Org tree view"
