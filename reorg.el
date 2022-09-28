@@ -713,19 +713,21 @@ keys.  Keys are compared using `equal'."
 
 ;;;; Creating headlines from headline template 
 
-(defun reorg--create-headline-string (data format-string &optional level)
+(defun reorg--create-headline-string (data &optional format-string level)
+  (setq format-string (or format-string (plist-get data :format-string))
+	level (or level (plist-get data :level)))
   (cl-flet ((create-stars (num &optional data)
 			  (make-string (if (functionp num)
 					   (funcall num data)
 					 num)
 				       ?*)))
-    (propertize 
-     (if (plist-get data :reorg-branch)
-	 (propertize 
-	  (concat (create-stars level) " " (plist-get data :branch-name))
-	  reorg--field-property-name
-	  'branch)
-       (cl-loop for each in format-string
+    (if (eq (plist-get data :node-type) 'branch)
+	(apply #'propertize 
+	       (concat (create-stars level) " " (plist-get data :branch-name))
+	       data)
+      (propertize 
+       (cl-loop with data = (plist-get data :reorg-data)
+		for each in format-string
 		if (stringp (car each))
 		concat (car each)
 		else if (eq 'stars (car each))
@@ -735,15 +737,17 @@ keys.  Keys are compared using `equal'."
 			      data
 			      (cdr each))
 		else if (eq 'align-to (car each))
-        	concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
+		concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
 		else if (eq 'pad (car each))
 		concat (make-string (cadr each) ? )
 		else
 		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
 			      data
-			      (cdr each))))
-     reorg--data-property-name
-     data)))
+			      (cdr each)))
+       :data (plist-get data :data)
+       :node-type 'data
+       :level level))))
+
 
 ;;; Insert headlines into buffer
 
@@ -808,11 +812,12 @@ get nested properties."
 
 (defun reorg-outline-level ()
   "Get the outline level of the heading at point."
-  (save-excursion
-    (let ((search-invisible t))
-      (outline-back-to-heading t)
-      (re-search-forward "^*+ " (point-at-eol))
-      (1- (length (match-string 0))))))
+  (unless (org-before-first-heading-p)
+    (save-excursion
+      (let ((search-invisible t))
+	(outline-back-to-heading t)
+	(re-search-forward "^*+ " (point-at-eol))
+	(1- (length (match-string 0)))))))
 
 (defun reorg--get-field-at-point (&optional point)
   "Get the reorg-field-type at point."
@@ -858,21 +863,22 @@ get nested properties."
   "Open this shit in the sidebar."
   (interactive)
   (let ((results (with-current-buffer (find-file-noselect file)
-		   (--> (reorg--map-entries)
-			(setq xxx it)
-			(reorg--group-and-sort it template)))))
+		   (reorg--map-entries))))
+    (setq xxx-data results)
     (when (get-buffer reorg-buffer-name)
       (kill-buffer reorg-buffer-name))
     (reorg--open-side-window)
     (reorg--select-tree-window)
     (let ((inhibit-read-only t))
       (erase-buffer))
-    (reorg--insert-org-headlines results)
+    ;;(reorg--insert-org-headlines results)
+    (cl-loop for r in results
+	     do (reorg--drop-into-outline r template))
     (reorg-view-mode)
     (reorg-dynamic-bullets-mode)
     (org-visual-indent-mode)
     (toggle-truncate-lines 1)
-    (setq reorg-current-template template)
+    (setq-local reorg-current-template template)
     (goto-char (point-min))))
 
   (defun reorg-open-sidebar-fundamental (template &optional format-string file)
@@ -899,7 +905,7 @@ get nested properties."
   (let ((func (if previous
 		  #'text-property-search-backward
 		#'text-property-search-forward))
-	(id (or id (reorg--get-view-prop :id))))
+	(id (or id (reorg--get-view-props nil 'reorg-data :id))))
     (if (funcall func reorg--data-property-name
 		 id
 		 (lambda (val plist)
@@ -959,16 +965,16 @@ get nested properties."
 (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
   (interactive)
-  (when  (and (or buffer (reorg--get-view-prop :buffer))
-	      (or id (reorg--get-view-prop :id)))
+  (when  (and (or buffer (reorg--get-view-props nil 'reorg-data :buffer))
+	      (or id (reorg--get-view-props nil 'reorg-data :id)))
     (if reorg-parser-use-id-p 
 	(reorg-view--goto-source-id
-	 (or buffer (reorg--get-view-prop :buffer))
-	 (or id (reorg--get-view-prop :id))
+	 (or buffer (reorg--get-view-props nil 'reorg-data :buffer))
+	 (or id (reorg--get-view-props nil 'reorg-data :id))
 	 (not no-narrow))
       (reorg-view--goto-source-marker 
-       (or buffer (reorg--get-view-prop :buffer))
-       (or id (reorg--get-view-prop :marker))
+       (or buffer (reorg--get-view-props nil 'reorg-data :buffer))
+       (or id (reorg--get-view-props nil 'reorg-data :marker))
        (not no-narrow)))))
 
 (defun reorg-view--source--goto-end-of-meta-data ()
@@ -1098,7 +1104,7 @@ the point and return nil."
 move to the first new entry."
   (let ((disable-point-adjustment t)
 	(search-invisible t)
-	(id (reorg--get-view-prop :id)))
+	(id (reorg--get-view-props nil 'reorg-data :id)))
     (reorg--select-tree-window)
     (reorg--map-id (plist-get data :id)
 		   (reorg-views--delete-leaf)
@@ -1185,8 +1191,8 @@ update the heading at point."
        (reorg--map-id (plist-get data :id)
 		      (reorg-views--delete-leaf)
 		      (reorg-views--delete-headers-maybe))
-       (reorg--branch-insert--drop-into-outline data
-						reorg-current-template))))
+       (reorg--drop-into-outline data
+				 reorg-current-template))))
 
 
 (define-derived-mode reorg-view-mode
@@ -1297,8 +1303,8 @@ invoked.")
 
 (defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
   "Execute BODY with point at the heading with ID at point."
-  `(when-let ((id ,(or id (reorg--get-view-prop :id))))
-     (with-current-buffer ,(or buffer (reorg--get-view-prop :buffer))
+  `(when-let ((id ,(or id (reorg--get-view-props nil 'reorg-data :id))))
+     (with-current-buffer ,(or buffer (reorg--get-view-props nil 'reorg-data :buffer))
        (reorg--with-restore-state
 	(goto-char (point-min))
 	;; NOTE: Can't use `org-id-goto' here or it will keep the
@@ -1606,7 +1612,6 @@ returns the correct positions."
   (reorg--with-restore-state
    (end-of-line)
    (insert "\n")
-   (previous-line 1)
    (let ((string (reorg--create-headline-string data
 						(or format-string reorg-headline-format)
 						(or level (reorg-outline-level)))))
@@ -1621,7 +1626,7 @@ returns the correct positions."
 		   (line-beginning-position 2))))
 
 (defun reorg-views--delete-headers-maybe ()
-  (cl-loop while (and (reorg--goto-next-property-field 'reorg-field-type 'branch t)
+  (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
 		      (not (reorg--get-next-level-branches))
 		      (not (reorg-tree--branch-has-leaves-p)))
 	   do (reorg-views--delete-heading)))
@@ -1851,19 +1856,20 @@ returns the correct positions."
     (let ((disable-point-adjustment t)
 	  (inhibit-field-text-motion t))
       (forward-line)
-      (not (eq 'branch
-	       (reorg--get-view-props nil 'reorg-field-type))))))
+      (and (reorg--get-view-props nil 'reorg-node-type)
+	   (not (eq 'branch
+		    (reorg--get-view-props nil 'reorg-node-type)))))))
 
 (defun reorg--insert-into-leaves (data sorters &optional level format-string)
-  (let ((disable-point-adjustment t)
-	(format-string (or format-string (reorg--get-view-props nil 'reorg-data :format-string))))
+  (let ((disable-point-adjustment t))
     (when (and (null (reorg--children-p))
 	       (eq (reorg--get-view-props nil 'reorg-field-type) 'branch))
       (if (reorg-tree--branch-has-leaves-p)
 	  (progn 
 	    (forward-line 1) ;; this should be a text-property forward, not a line forward
-	    (cl-loop while (not (eq (reorg--get-view-props nil 'reorg-field-type)
-				    'branch))
+	    (cl-loop while (and (reorg--get-view-props nil 'reorg-field-type)
+				(not (eq (reorg--get-view-props nil 'reorg-field-type)
+					 'branch)))
 		     with level = (or level (reorg-outline-level))
 		     if (cl-loop for (func . pred) in sorters
 				 if (funcall pred
@@ -1984,10 +1990,10 @@ Return nil if there is no such branch."
 
 ;;;; reorg new tree
 
-(defun reorg--children-p ()
-  "Does the current node have sub-branches?"
-  (and (eq (reorg--get-view-props nil 'reorg-field-type) 'branch)
-       (reorg--get-view-props nil 'reorg-data :children)))
+;; (defun reorg--children-p ()
+;;   "Does the current node have sub-branches?"
+;;   (and (eq (reorg--get-view-props nil 'reorg-field-type) 'branch)
+;;        (reorg--get-view-props nil 'reorg-data :children)))
 
 
 
@@ -2081,7 +2087,7 @@ Return nil if there is no such branch."
 
 
 (defun reorg-tree--is-cloned-p ()
-  (when-let ((id (reorg--get-view-prop :id)))
+  (when-let ((id (reorg--get-view-props nil 'reorg-data :id)))
     (setf (point) (point-min))
     (text-property-search-forward reorg--data-property-name
 				  id
