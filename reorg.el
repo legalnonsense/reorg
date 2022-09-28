@@ -578,63 +578,72 @@ keys.  Keys are compared using `equal'."
 			    (let ((old (cl-copy-list data)))
 			      (setcar data '_)
 			      (setcdr data (list old))))
-			  (setf (nth n (cdr data))
-				(--> (nth n (cdr data))
-				     (cond ((functionp grouper)
-					    (->> it
-						 (seq-group-by grouper)
-						 (seq-map (lambda (x) (list (car x) (cdr x))))))
-					   ((stringp grouper)
-					    (list (list grouper it)))
-					   (t (->> it
-						   (reorg--seq-group-by grouper)
-						   (seq-map (lambda (x) (list (car x) (cdr x)))))))
-				     (seq-filter (lambda (x) (and (not (null (car x)))
-								  (not (null (cdr x)))
-								  (not (null x))))
+			  (setf
+			   (nth n (cdr data))
+			   (--> (nth n (cdr data))
+				(cond ((functionp grouper)
+				       (->> it
+					    (seq-group-by grouper)
+					    (seq-map (lambda (x) (list (car x) (cdr x))))))
+				      ((stringp grouper)
+				       (list (list grouper it)))
+				      (t (->> it
+					      (reorg--seq-group-by grouper)
+					      (seq-map (lambda (x) (list (car x) (cdr x)))))))
+				(seq-filter (lambda (x) (and (not (null (car x)))
+							     (not (null (cdr x)))
+							     (not (null x))))
+					    it)
+				(cl-loop
+				 for x in it
+				 do (setf
+				     (car x)
+				     (list
+				      :branch-name (car x) 
+				      :headline (car x)
+				      :reorg-branch t
+				      :result-sorters result-sorters 
+				      :grouper-list `(lambda (x)
+						       (reorg--let-plist x
+									 ,grouper))
+				      :branch-predicate `(lambda (x)
+							   (reorg--let-plist x
+									     ,grouper))
+				      :branch-result (car x)
+				      :grouper-list-results (car x)
+				      :format-string format-string
+				      :result-sorters result-sorters
+				      :template template 
+				      :children children
+				      :branch-sorter heading-sorter
+				      :branch-sort-getter heading-sort-getter
+				      :reorg-level level))
+				 finally return it)
+				(seq-filter (lambda (x) (and (not (null (car x)))
+							     (not (null (cdr x)))
+							     (not (null x))))
+					    it)
+				(cl-loop for x in it
+					 do (setf (car x)
+						  (reorg--create-headline-string (car x)
+										 format-string
+										 level))
+					 finally return it)
+				(if heading-sorter
+				    (seq-sort-by (lambda (y)
+						   (funcall heading-sort-getter (car y)))
+						 heading-sorter
 						 it)
-				     (cl-loop for x in it					      
-					      do (setf (car x)
-						       (list :branch-name (car x)
-							     :headline (car x)
-							     :reorg-branch t
-							     :result-sorters result-sorters 
-							     :grouper-list `(lambda (x)
-									      (reorg--let-plist x
-												,grouper))
-							     :branch-predicate `(lambda (x)
-										  (reorg--let-plist x
-												    ,grouper))
-							     :branch-result (car x)
-							     :grouper-list-results (car x)
-							     :format-string format-string
-							     :result-sorters result-sorters
-							     :template template 
-							     :children children
-							     :branch-sorter heading-sorter
-							     :branch-sort-getter heading-sort-getter
-							     :reorg-level level))
-					      finally return it)
-				     (seq-filter (lambda (x) (and (not (null (car x)))
-								  (not (null (cdr x)))
-								  (not (null x))))
-						 it)
-				     (cl-loop for x in it
-					      do (setf (car x) (reorg--create-headline-string (car x)
-											      format-string
-											      level))
-					      finally return it)
-				     (if heading-sorter
-					 (seq-sort-by (lambda (y) (funcall heading-sort-getter (car y)))
-						      heading-sorter
-						      it)
-				       it)))
+				  it)))
 			  (if children
 			      (progn 
 				(cl-loop for x below (length (nth n (cdr data)))
-					 do (setcdr (nth x (nth n (cdr data)))
-						    (cl-loop for z below (length children)
-							     collect (seq-copy (cadr (nth x (nth n (cdr data))))))))
+					 do (setcdr
+					     (nth x (nth n (cdr data)))
+					     (cl-loop
+					      for z below (length children)
+					      collect (seq-copy
+						       (cadr (nth x (nth n (cdr data))))))))
 				(cl-loop for x below (length children)
 					 do (cl-loop
 					     for y below (length (nth n (cdr data)))
@@ -644,20 +653,23 @@ keys.  Keys are compared using `equal'."
 						 x
 						 result-sorters
 						 grouper-list
-						 (append grouper-list-results
-							 (list (plist-get (car (nth y (nth n (cdr data))))
-									  :branch-value)))
+						 (append
+						  grouper-list-results
+						  (list (plist-get (car (nth y (nth n (cdr data))))
+								   :branch-value)))
 						 format-string
 						 (1+ level)))))
 			    (when result-sorters
 			      (cl-loop for x below (length (nth n (cdr data)))
-				       do (setf (cadr (nth x (nth n (cdr data))))
-						(reorg--multi-sort result-sorters
-								   (cadr (nth x (nth n (cdr data))))))))
+				       do (setf
+					   (cadr (nth x (nth n (cdr data))))
+					   (reorg--multi-sort result-sorters
+							      (cadr (nth x (nth n (cdr data))))))))
 			    (cl-loop for x below (length (nth n (cdr data)))
-				     do (setf (cadr (nth x (nth n (cdr data))))
-					      (cl-loop for each in (cadr (nth x (nth n (cdr data))))
-						       collect (reorg--create-headline-string each format-string (1+ level)))))))))
+				     do (setf
+					 (cadr (nth x (nth n (cdr data))))
+					 (cl-loop for each in (cadr (nth x (nth n (cdr data))))
+						  collect (reorg--create-headline-string each format-string (1+ level)))))))))
       (doloop copy template)
       (setq yyy copy)
       (cadr copy))))
@@ -684,11 +696,12 @@ keys.  Keys are compared using `equal'."
 									  level)
 					   results)
 				  if (reorg--plist-p (caadr entry))
-				  do (cl-loop for x in (cadr entry)
-					      do (push (reorg--create-headline-string x
-										      format-string
-										      (1+ level))
-						       results))
+				  do (cl-loop
+				      for x in (cadr entry)
+				      do (push (reorg--create-headline-string x
+									      format-string
+									      (1+ level))
+					       results))
 				  else do (cl-loop for e in (cdr entry)
 						   do (recurse e (1+ level))))))
       (recurse data 1))
