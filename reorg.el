@@ -1064,7 +1064,8 @@ the point and return nil."
 (defun reorg--goto-next-parent ()
   "Goto the next parent."
   (interactive)
-  (when (re-search-forward (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
+  (when (re-search-forward
+	 (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
     (beginning-of-line)
     (reorg-edits--post-field-navigation-hook)
     (reorg-view--update-highlight-overlay)
