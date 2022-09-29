@@ -954,13 +954,19 @@ get nested properties."
 
 (defun reorg-view--update-view-headline ()
   "Goto source buffer, re-parse, update."
-  (let ((props (reorg--with-point-at-orig-entry nil nil
+  (let ((level (reorg-outline-level))
+	(format (or (save-excursion
+		      (reorg--goto-parent)
+		      (reorg--get-view-prop :format-string))
+		    reorg-headline-format))
+	(props (reorg--with-point-at-orig-entry nil nil
 						(reorg--parser)))
 	(inhibit-modification-hooks t))
-
+    (reorg-views--delete-leaf)
+    (reorg--insert-heading props level format)))
     
-    (reorg-props 'headline :val (propertize (plist-get props :headline)
-					    reorg--data-property-name props))))
+    ;; (reorg-props 'headline :val (propertize (plist-get props :headline)
+    ;; 					    reorg--data-property-name props))))
 
 (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
