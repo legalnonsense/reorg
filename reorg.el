@@ -490,6 +490,9 @@ RANGE is non-nil, only look for timestamp ranges."
 	   append (list (reorg--add-remove-colon name) (funcall func)) into result
 	   finally return result)) 
 
+(defcustom reorg-mapping-function #'reorg--map-entries "mapping function")
+;; (setq reorg-mapping-function #'reorg--org-ql)
+
 (defun reorg--map-entries (&optional match scope &rest skip)
   "Run the parser at each heading in the current buffer.
 See `org-map-entries' for explanation of the parameters."
@@ -952,8 +955,10 @@ get nested properties."
 (defun reorg-view--update-view-headline ()
   "Goto source buffer, re-parse, update."
   (let ((props (reorg--with-point-at-orig-entry nil nil
-						(reorg-parser--headline-parser)))
+						(reorg--parser)))
 	(inhibit-modification-hooks t))
+
+    
     (reorg-props 'headline :val (propertize (plist-get props :headline)
 					    reorg--data-property-name props))))
 

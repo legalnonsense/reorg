@@ -37,7 +37,10 @@
 						     "Mammal")))))
 			   ( :group (substring .headline 0 1)
 			     :sort-getter identity
-			     :sort string<)))))
+			     :sort string<)))))nn
+
+
+
 
 (defun xxx-reorg-test-5 ()
   (interactive)
@@ -75,6 +78,53 @@
 			     :sort-results ((.deadline . string<)
 					    (.timestamp . string<)))))))
 
-(ts>= (ts-now) (ts-parse-org "<2021-10-15 Fri 14:00>"))
+(defun xxx-reorg-test-5 ()
+  (interactive)
+  (reorg-open-sidebar
+   :file "~/legal/Dropbox/DropsyncFiles/taskclone.org"
+   :template '( :group (when (or (and .todo
+				      (or (string= .todo "task")
+					  (string= .todo "waiting")
+					  (string= .todo "opp_due")))
+				 (or (and .deadline
+					  (ts<= (ts-now)
+						(ts-parse-org .deadline)))
+				     (and .timestamp
+					  (ts<= (ts-now)
+						(ts-parse-org .timestamp)))))
+			 .category-inherited)
+		:sort string<
+		:format-string ((stars) (" ") (todo) (" ") (headline) (align-to 30) (deadline))
+		:sort-getter identity
+		:children (( :group (when (and .todo
+					       (or (string= .todo "task")
+						   (string= .todo "waiting")
+						   (string= .todo "opp_due")))
+				      "TASKS")
+			     :sort string<
+			     :format-string ((stars) (align-to 10) (priority) (align-to 15) (todo) (align-to 25) (headline)))
+			   ( :group (when (or (and .deadline
+						   (ts<= (ts-now)
+							 (ts-parse-org .deadline)))
+					      (and .timestamp
+						   (ts<= (ts-now)
+							 (ts-parse-org .timestamp))))
+				      "CALENDAR")
+			     :format-string ((stars) (align-to 10) (deadline) (align-to 35) (timestamp) (align-to 70) (headline))
+			     :sort-results ((.deadline . string<)
+					    (.timestamp . string<)))))))
 
 
+
+
+
+
+(defun xxx-reorg-test-6 ()
+  (interactive)
+  (reorg-open-sidebar
+   :file "~/legal/Dropbox/DropsyncFiles/taskclone.org"
+   :template '( :group (when .timestamp-ia
+			 .timestamp-ia)
+		:format-string ((stars) (priority) (headline))
+		:sort-getter identity
+		:sort string<)))
