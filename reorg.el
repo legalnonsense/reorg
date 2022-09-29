@@ -1083,7 +1083,7 @@ the point and return nil."
 
 ;;;; updating the tree
 
-(defun reorg--update-this-heading ()
+(defun reorg--update-this-heading-all ()
   "Update heading at point and all clones."
   (let ((data 
 	 (reorg--with-point-at-orig-entry (reorg--get-view-prop :id)
