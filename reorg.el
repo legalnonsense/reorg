@@ -952,24 +952,12 @@ get nested properties."
 ;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
 ;; (delete-overlay reorg-current-heading-overlay))
 
-(macroexpand '(reorg--with-point-at-orig-entry nil nil
-					       (reorg--parser)))
 
-(defun reorg-view--update-view-headline ()
-  "Goto source buffer, re-parse, update."
-  (let ((inhibit-modification-hooks t)
-	(props (reorg--with-point-at-orig-entry nil nil
-						(reorg--parser)))
-	(level (reorg-outline-level))
-	(format (or (save-excursion
-		      (reorg--goto-parent)
-		      (reorg--get-view-prop :format-string))
-		    reorg-headline-format)))
-    (reorg-views--delete-leaf)
-    (reorg--insert-heading props level format)))
-    
-    ;; (reorg-props 'headline :val (propertize (plist-get props :headline)
-    ;; 					    reorg--data-property-name props))))
+
+
+
+;; (reorg-props 'headline :val (propertize (plist-get props :headline)
+;; 					    reorg--data-property-name props))))
 
 (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
@@ -1106,7 +1094,7 @@ the point and return nil."
     (save-restriction
       (save-excursion    
 	(reorg--map-id id
-		       (reorg-views--replace-heading data)
+		       (reorg-view--update-view-headline)
 		       (reorg-dynamic-bullets--fontify-heading))))))
 
 ;; (defun reorg--update-this-heading (data template)
@@ -1610,8 +1598,6 @@ returns the correct positions."
      (reorg-dynamic-bullets--fontify-heading)
      (1+ (length string)))))
 
-
-
 (defun reorg-views--insert-after-point (data &optional level format-string)
   "insert a heading after the current point."
   (reorg--with-restore-state
@@ -1631,20 +1617,36 @@ returns the correct positions."
     (delete-region (point-at-bol)
 		   (line-beginning-position 2))))
 
-(defun reorg-views--delete-headers-maybe ()
+(defun reorg-views--delete-headers-maybe () ;; SUSPECT
+  "VERY SUSPECT"
   (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
 		      (not (reorg--get-next-level-branches))
 		      (not (reorg-tree--branch-has-leaves-p)))
 	   do (reorg-views--delete-heading)))
 
-(defun reorg-views--replace-heading (data)
-  "Replace the heading at point with DATA."
+(defun reorg-views--replace-heading (data) ;; SUSPECT
+  "Replace the heading at point with DATA. SUSPECT"
   (let ((level (reorg-outline-level))
 	(inhibiit-field-text-motion t)
 	(search-invisible t))
     (save-excursion
-      (reorg-views--delete-headers-maybe)
+      (reorg-views--delete-leaf)
+      ;; (reorg-views--delete-headers-maybe)
       (reorg-views--insert-before-point data level))))
+
+(defun reorg-view--update-view-headline ()
+  "Goto source buffer, re-parse, update. WORKS"
+  (let ((inhibit-modification-hooks t)
+	(props (reorg--with-point-at-orig-entry nil nil
+						(reorg--parser)))
+	(level (reorg-outline-level))
+	(format (save-excursion
+		  (cl-loop while (org-up-heading-safe)
+			   when (reorg--get-view-prop :format-string)
+			   return (reorg--get-view-prop :format-string)
+			   finally return reorg-headline-format))))
+    (reorg-views--delete-leaf)
+    (reorg--insert-heading props level format)))
 
 ;;;; edit mode
 ;;;;; minor mode
