@@ -952,16 +952,19 @@ get nested properties."
 ;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
 ;; (delete-overlay reorg-current-heading-overlay))
 
+(macroexpand '(reorg--with-point-at-orig-entry nil nil
+					       (reorg--parser)))
+
 (defun reorg-view--update-view-headline ()
   "Goto source buffer, re-parse, update."
-  (let ((level (reorg-outline-level))
+  (let ((inhibit-modification-hooks t)
+	(props (reorg--with-point-at-orig-entry nil nil
+						(reorg--parser)))
+	(level (reorg-outline-level))
 	(format (or (save-excursion
 		      (reorg--goto-parent)
 		      (reorg--get-view-prop :format-string))
-		    reorg-headline-format))
-	(props (reorg--with-point-at-orig-entry nil nil
-						(reorg--parser)))
-	(inhibit-modification-hooks t))
+		    reorg-headline-format)))
     (reorg-views--delete-leaf)
     (reorg--insert-heading props level format)))
     
@@ -1305,8 +1308,8 @@ invoked.")
 
 (defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
   "Execute BODY with point at the heading with ID at point."
-  `(when-let ((id ,(or id (reorg--get-view-prop :id))))
-     (with-current-buffer ,(or buffer (reorg--get-view-prop :buffer))
+  `(when-let ((id (or ,id (reorg--get-view-prop :id))))
+     (with-current-buffer (or ,buffer (reorg--get-view-prop :buffer))
        (reorg--with-restore-state
 	(goto-char (point-min))
 	;; NOTE: Can't use `org-id-goto' here or it will keep the
