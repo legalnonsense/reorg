@@ -446,7 +446,7 @@ RANGE is non-nil, only look for timestamp ranges."
 				    (beginning-of-buffer)
 				    (org-timestamp-change 0 'day)
 				    (buffer-string))
-			:disabled t)
+			:disabled nil)
 
 (reorg-create-data-type :name id
 			:parse (org-id-get-create))
@@ -1185,8 +1185,9 @@ update the heading at point."
        (reorg--map-id (plist-get data :id)
 		      (reorg-views--delete-leaf)
 		      (reorg-views--delete-headers-maybe))
-       (reorg--branch-insert--drop-into-outline data
-						reorg-current-template))))
+       (save-excursion 
+	 (reorg--branch-insert--drop-into-outline data
+						  reorg-current-template)))))
 
 (define-derived-mode reorg-view-mode
   fundamental-mode
@@ -1379,10 +1380,15 @@ invoked.")
 (defun reorg--kill-field ()
   "Temporary replacement for kill-line when editing a field."
   (interactive)
-  (goto-char (field-beginning))
-  (funcall-interactively #'self-insert-command 1 ? )
-  (delete-region (point) (field-end))
-  (backward-char 1))
+  (delete-region (point) (field-end)))
+
+;; (defun reorg--kill-field ()
+;;   "Temporary replacement for kill-line when editing a field."
+;;   (interactive)
+;;   (goto-char (field-beginning))
+;;   (funcall-interactively #'self-insert-command 1 ? )
+;;   (delete-region (point) (field-end))
+;;   (backward-char 1))
 
 (defun reorg-edits--get-field-type ()
   "Get the field type at point, if any."
@@ -1591,6 +1597,7 @@ returns the correct positions."
    (beginning-of-line)
    (insert "\n")
    (previous-line 1)
+   (beginning-of-line)
    (let ((string (reorg--create-headline-string data
 						(or format-string reorg-headline-format)
 						(or level (reorg-outline-level)))))
@@ -1603,7 +1610,8 @@ returns the correct positions."
   (reorg--with-restore-state
    (end-of-line)
    (insert "\n")
-   (previous-line 1)
+   ;; (previous-line 1)
+   ;; (end-of-line)
    (let ((string (reorg--create-headline-string data
 						(or format-string reorg-headline-format)
 						(or level (reorg-outline-level)))))
@@ -1619,19 +1627,21 @@ returns the correct positions."
 
 (defun reorg-views--delete-headers-maybe () ;; SUSPECT
   "VERY SUSPECT"
-  (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
-		      (not (reorg--get-next-level-branches))
-		      (not (reorg-tree--branch-has-leaves-p)))
-	   do (reorg-views--delete-heading)))
+  (save-excursion 
+    (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
+			(not (reorg--get-next-level-branches))
+			(not (reorg-tree--branch-has-leaves-p)))
+	     do (reorg-views--delete-leaf))))
+	     ;; do (reorg-views--delete-heading))))
 
-(defun reorg-views--replace-heading (data) ;; SUSPECT
+(defun reorg-views--replace-heading (data) 
   "Replace the heading at point with DATA. SUSPECT"
   (let ((level (reorg-outline-level))
 	(inhibiit-field-text-motion t)
 	(search-invisible t))
     (save-excursion
-      (reorg-views--delete-leaf)
-      ;; (reorg-views--delete-headers-maybe)
+      ;; (reorg-views--delete-leaf)
+      (reorg-views--delete-headers-maybe)
       (reorg-views--insert-before-point data level))))
 
 (defun reorg-view--update-view-headline ()
@@ -1828,6 +1838,11 @@ returns the correct positions."
 
 (reorg--create-org-shortcut tag org-set-tags-command "C-c C-c")
 (reorg--create-org-shortcut todo org-todo "C-c C-t")
+(reorg--create-org-shortcut
+ headline
+ (lambda (_arg) (org-edit-headline (read-string "New headline: "
+						(org-get-heading t t t t))))
+ "C-c C-e")
 (reorg--create-org-shortcut deadline org-deadline "C-c C-d")
 (reorg--create-org-shortcut schedule org-schedule "C-c C-s")
 (reorg--create-org-shortcut property org-set-property "C-c C-x p")
@@ -1960,7 +1975,7 @@ using `eq', unless PRED is suppied."
 
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
-  `(progn 
+  `(save-excursion  
      (goto-char (point-min))
      (while (text-property-search-forward reorg--data-property-name
 					  ,id
