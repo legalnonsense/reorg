@@ -3,31 +3,45 @@
 (defun xxx-reorg-test-6 ()
   (interactive)
   (reorg-open-sidebar
-   :file "~/legal/Dropbox/DropsyncFiles/taskclone.org"
-   :template '( :group "SOME TITLE"
-		:children (( :group (when (or .timestamp .timestamp-ia)
+   :file "~/legal/Dropbox/DropsyncFiles/taskmaster.org"
+   :template '( :group "DATE TREE"
+		:children (( :group (when-let ((time (or .timestamp
+							 .deadline
+							 .scheduled
+							 .timestamp-ia)))
 				      (number-to-string
 				       (ts-year
-					(ts-parse (or .timestamp .timestamp-ia)))))
+					(ts-parse time))))
 			     :sort string< 
 			     :sort-getter identity
-			     :children (( :group (concat
-						  (s-pad-left 2 "0" (number-to-string
-								     (ts-month (ts-parse (or .timestamp .timestamp-ia)))))
-						  " "
-						  (ts-month-name (ts-parse (or .timestamp .timestamp-ia))))
+			     :children (( :group
+					  (when-let ((time (or .timestamp
+							       .deadline
+							       .scheduled
+							       .timestamp-ia)))
+					    (concat
+					     (s-pad-left 2 "0" (number-to-string
+								(ts-month (ts-parse time))))
+					     " "
+					     (ts-month-name (ts-parse time))))
 					  :sort string<
 					  :sort-getter identity
-					  :children (( :group (concat 
-							       (s-pad-left 2
-									   "0"
-									   (number-to-string
-									    (ts-day (ts-parse (or .timestamp .timestamp-ia)))))
-							       " "
-							       (ts-day-name (ts-parse (or .timestamp .timestamp-ia))))
+					  :children (( :group
+
+						       (when-let ((time (or .timestamp
+									    .deadline
+									    .scheduled
+									    .timestamp-ia)))
+							 (concat 
+							  (s-pad-left 2
+								      "0"
+								      (number-to-string
+								       (ts-day (ts-parse time))))
+							  " "
+							  (ts-day-name (ts-parse time))))
 						       :sort string<
 						       :sort-getter identity)))))
-			   ( :group (when (and (s-contains-p "brian" .headline )
+			   ( :group (when (and (s-contains-p "brian" .headline t)
 					       (or .timestamp .timestamp-ia))
 				      "Brian stuff"))))))
 
