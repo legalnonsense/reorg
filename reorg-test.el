@@ -43,7 +43,8 @@
 						       :sort-getter identity)))))
 			   ( :group (when (and (s-contains-p "brian" .headline t)
 					       (or .timestamp .timestamp-ia .deadline .scheduled))
-				      "Brian stuff"))))))
+				      "Brian stuff")
+			     :sort-results ((.headline . string<)))))))
 
 
 
