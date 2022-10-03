@@ -1632,7 +1632,7 @@ returns the correct positions."
 			(not (reorg--get-next-level-branches))
 			(not (reorg-tree--branch-has-leaves-p)))
 	     do (reorg-views--delete-leaf))))
-	     ;; do (reorg-views--delete-heading))))
+;; do (reorg-views--delete-heading))))
 
 (defun reorg-views--replace-heading (data) 
   "Replace the heading at point with DATA. SUSPECT"
@@ -2126,8 +2126,7 @@ Return nil if there is no such branch."
 (defun reorg-tree--is-root-p ()
   (= (reorg-outline-level 1)))
 
-(defun reorg--org-shortcut-deadline
-    (arg)
+(defun reorg--org-shortcut-deadline (arg)
   "Execute org-deadline in the source buffer and update the heading at point."
   (interactive "P")
   (reorg--with-source-and-sync
