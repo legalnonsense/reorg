@@ -472,13 +472,39 @@ RANGE is non-nil, only look for timestamp ranges."
 (reorg-create-data-type :name level
 			:parse (org-current-level))
 
-(reorg-create-data-type :name priority
-			:parse (org-entry-get (point) "PRIORITY")
-			:display (pcase (plist-get plist :priority)
-				   ("A" "⚡")
-				   ("B" "⚐")
-				   ("C" "")
+(reorg-create-data-type :name ts
+			:parse (or
+				(org-entry-get (point) "DEADLINE")
+				(when (reorg--timestamp-parser)
+				  (org-no-properties (reorg--timestamp-parser)))
+				(when (reorg--timestamp-parser nil t)
+				  (org-no-properties (reorg--timestamp-parser nil t)))
+				(org-entry-get (point) "SCHEDULED"))
+			:display (if-let ((ts (plist-get plist :ts)))
+				     (substring ts 1 11)
+				   "          "))
+
+(reorg-create-data-type :name ts-type 
+			:parse (cond 
+				((org-entry-get (point) "DEADLINE") "deadline")
+				((reorg--timestamp-parser) "active")
+				((org-no-properties (reorg--timestamp-parser nil t)) "range")
+				((org-entry-get (point) "SCHEDULED") "scheduled"))
+			:display (pcase (plist-get plist :ts-type)
+				   ("deadline" "≫")
+				   ("active" "⊡")
+				   ("range" "➥")
+				   ("scheduled" "s")
 				   (_ " ")))
+
+
+				   (reorg-create-data-type :name priority
+							   :parse (org-entry-get (point) "PRIORITY")
+							   :display (pcase (plist-get plist :priority)
+								      ("A" "⚡")
+								      ("B" "⚐")
+								      ("C" "")
+								      (_ " ")))
 
 
 ;;; parsing org file
@@ -509,6 +535,7 @@ See `org-map-entries' for explanation of the parameters."
 ;;;; let-plist 
 
 (cl-defmacro reorg--let-plist (plist &rest body)
+  (declare (indent defun))
   `(cl-labels ((plist-p
                 (lst)
                 (and (listp lst) (keywordp (car lst))))
@@ -526,20 +553,6 @@ See `org-map-entries' for explanation of the parameters."
 ;; FUNC takes one argument and runs it on a plist
 
 (defun reorg--multi-sort (functions-and-predicates sequence)
-  "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
-It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
-SEQUENCE is a sequence to sort."
-  (seq-sort 
-   (lambda (a b)
-     (cl-loop for (func . pred) in functions-and-predicates	      
-	      unless (equal (funcall func a)
-			    (funcall func b))
-	      return (funcall pred
-			      (funcall func a)
-			      (funcall func b))))
-   sequence))
-;;TODO working on multisort 
-(defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
 SEQUENCE is a sequence to sort."
@@ -660,7 +673,7 @@ keys.  Keys are compared using `equal'."
 						 it)
 				  it)))
 			  (if children
-			      (progn 
+			      (progn ;; if 
 				(cl-loop for x below (length (nth n (cdr data)))
 					 do (setcdr
 					     (nth x (nth n (cdr data)))
@@ -683,17 +696,18 @@ keys.  Keys are compared using `equal'."
 								   :branch-value)))
 						 format-string
 						 (1+ level)))))
-			    (when result-sorters
+			    (progn ;; else 
+			      (when result-sorters
+				(cl-loop for x below (length (nth n (cdr data)))
+					 do (setf
+					     (cadr (nth x (nth n (cdr data))))
+					     (reorg--multi-sort result-sorters
+								(cadr (nth x (nth n (cdr data))))))))
 			      (cl-loop for x below (length (nth n (cdr data)))
 				       do (setf
 					   (cadr (nth x (nth n (cdr data))))
-					   (reorg--multi-sort result-sorters
-							      (cadr (nth x (nth n (cdr data))))))))
-			    (cl-loop for x below (length (nth n (cdr data)))
-				     do (setf
-					 (cadr (nth x (nth n (cdr data))))
-					 (cl-loop for each in (cadr (nth x (nth n (cdr data))))
-						  collect (reorg--create-headline-string each format-string (1+ level)))))))))
+					   (cl-loop for each in (cadr (nth x (nth n (cdr data))))
+						    collect (reorg--create-headline-string each format-string (1+ level))))))))))
       (doloop copy template)
       (cadr copy))))
 
@@ -758,6 +772,46 @@ template.  Use LEVEL number of leading stars.  Add text properties
 			      (cdr each))
 		else if (eq 'align-to (car each))
         	concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
+		else if (eq 'pad (car each))
+		concat (make-string (cadr each) ? )
+		else
+		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+			      data
+			      (cdr each))))
+     reorg--data-property-name
+     data)))
+
+
+
+
+(defmacro reorg--create-headline-string* (data format-string &optional level)
+  "Create a headline string from DATA using FORMAT-STRING as the
+template.  Use LEVEL number of leading stars.  Add text properties
+`reorg--field-property-name' and  `reorg--data-property-name'."
+  (cl-flet ((create-stars (num &optional data)
+			  (make-string (if (functionp num)
+					   (funcall num data)
+					 num)
+				       ?*)))
+    (propertize 
+     (if (plist-get data :reorg-branch)
+	 (propertize 
+	  (concat (when level (create-stars level) " ") (plist-get data :branch-name))
+	  reorg--field-property-name
+	  'branch)
+       (cl-loop for each in format-string
+		if (stringp each)
+		concat each
+		else
+		concat (reorg--let-plist data
+			 ,@each)
+		concat (propertize (create-stars level) reorg--field-property-name 'stars) 
+		else if (eq 'property (car each))
+		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+			      data
+			      (cdr each))
+		else if (eq 'align-to (car each))
+		concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
 		else if (eq 'pad (car each))
 		concat (make-string (cadr each) ? )
 		else
@@ -2441,7 +2495,7 @@ make a list of the results."
 	 (before t))
 	(let ((grouper `(lambda (x)
 			  (reorg--let-plist x
-					    ,(plist-get template :group))))
+			    ,(plist-get template :group))))
 	      (children (plist-get template :children))
 	      (heading-sorter (plist-get template :sort))
 	      (heading-sort-getter (or (plist-get template :sort-getter)
@@ -2456,7 +2510,7 @@ make a list of the results."
 			  (cl-loop for (form . pred) in result-sort
 				   collect (cons `(lambda (x)
 						    (reorg--let-plist x
-								      ,form))
+						      ,form))
 						 pred)))))
 	  (let ((name (funcall grouper data))
 		(members (reorg-tree--get-current-group-members)))
@@ -2541,7 +2595,7 @@ make a list of the results."
 		(before t))
 	       (let ((grouper `(lambda (x)
 				 (reorg--let-plist x
-						   ,(plist-get template :group))))
+				   ,(plist-get template :group))))
 		     (children (plist-get template :children))
 		     (heading-sorter (plist-get template :sort))
 		     (heading-sort-getter (or (plist-get template :sort-getter)
@@ -2556,7 +2610,7 @@ make a list of the results."
 				 (cl-loop for (form . pred) in result-sort
 					  collect (cons `(lambda (x)
 							   (reorg--let-plist x
-									     ,form))
+							     ,form))
 							pred)))))
 		 (let ((name (funcall grouper data))
 		       (members (reorg-tree--get-current-group-members))
