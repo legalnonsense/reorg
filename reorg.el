@@ -522,8 +522,24 @@ See `org-map-entries' for explanation of the parameters."
      (let-alist (decolon ,plist) ,@body)))
 
 ;;;; grouping and sorting 
+;; PRED takes two arguments
+;; FUNC takes one argument and runs it on a plist
 
 (defun reorg--multi-sort (functions-and-predicates sequence)
+  "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
+It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
+SEQUENCE is a sequence to sort."
+  (seq-sort 
+   (lambda (a b)
+     (cl-loop for (func . pred) in functions-and-predicates	      
+	      unless (equal (funcall func a)
+			    (funcall func b))
+	      return (funcall pred
+			      (funcall func a)
+			      (funcall func b))))
+   sequence))
+;;TODO working on multisort 
+(defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
 SEQUENCE is a sequence to sort."
@@ -679,7 +695,6 @@ keys.  Keys are compared using `equal'."
 					 (cl-loop for each in (cadr (nth x (nth n (cdr data))))
 						  collect (reorg--create-headline-string each format-string (1+ level)))))))))
       (doloop copy template)
-      (setq yyy copy)
       (cadr copy))))
 
 ;;; Generating the outline
@@ -718,6 +733,9 @@ keys.  Keys are compared using `equal'."
 ;;;; Creating headlines from headline template 
 
 (defun reorg--create-headline-string (data format-string &optional level)
+  "Create a headline string from DATA using FORMAT-STRING as the
+template.  Use LEVEL number of leading stars.  Add text properties
+`reorg--field-property-name' and  `reorg--data-property-name'."
   (cl-flet ((create-stars (num &optional data)
 			  (make-string (if (functionp num)
 					   (funcall num data)
