@@ -836,9 +836,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
      data)))
 
 
-
-
-(defmacro reorg--create-headline-string* (data format-string &optional level)
+(defun reorg--create-headline-string* (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  Add text properties
 `reorg--field-property-name' and  `reorg--data-property-name'."
