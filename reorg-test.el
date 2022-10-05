@@ -28,6 +28,34 @@
 					  :sort-results ((.todo . string<)
 							 ((downcase .headline) . string<)))))))))
 
+(defun xxx-reorg-test-control-panel-7 ()
+  (interactive)
+  (reorg-open-sidebar
+   :file "~/.emacs.d/lisp/reorg/taskmaster.org"
+   :template '( :group "MEETING VIEW"
+		:children (( :group .category 
+			     :sort string< 
+			     :sort-getter identity
+			     :children (( :group (when (and
+							(or (string= .todo "DEADLINE")
+							    (string= .todo "EVENT")
+							    (string= .todo "OPP_DUE"))
+							(or .timestamp
+							    .deadline
+							    .scheduled))
+						   "CALENDAR")
+					  :format-string ((stars) (" ") (ts-type) (" ") (ts) ("\n") (headline))
+					  :sort-results ((.ts . string<)))
+					( :group (when (and .todo
+							    (not (string= .todo "DONE"))
+							    (not (string= .todo "EVENT"))
+							    (not (string= .todo "OPP_DUE"))
+							    (not (string= .todo "DEADLINE")))
+						   "TASKS" )
+					  :format-string ((stars) (" ") (todo) (" ") (headline))
+					  :sort-results ((.todo . string<)
+							 ((downcase .headline) . string<)))))))))
+
 (defun xxx-reorg-test-agenda--all-todo-8 ()
   (interactive)
   (reorg-open-sidebar
