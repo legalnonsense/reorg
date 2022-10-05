@@ -847,33 +847,74 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					   (funcall num data)
 					 num)
 				       ?*)))
-    (propertize 
-     (if (plist-get data :reorg-branch)
-	 (propertize 
-	  (concat (when level (create-stars level) " ") (plist-get data :branch-name))
-	  reorg--field-property-name
-	  'branch)
-       (cl-loop for each in format-string
-		if (stringp each)
-		concat each
-		else
-		concat (reorg--let-plist data
-			 ,@each)
-		concat (propertize (create-stars level) reorg--field-property-name 'stars) 
-		else if (eq 'property (car each))
-		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
-			      data
-			      (cdr each))
-		else if (eq 'align-to (car each))
-		concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
-		else if (eq 'pad (car each))
-		concat (make-string (cadr each) ? )
-		else
-		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
-			      data
-			      (cdr each))))
-     reorg--data-property-name
-     data)))
+    (if (functionp format-string)
+	(reorg--let-plist data 
+	  (funcall format-string data)) 
+      (propertize 
+       (if (plist-get data :reorg-branch)
+	   (propertize 
+	    (concat (create-stars level) " " (plist-get data :branch-name))
+	    reorg--field-property-name
+	    'branch)
+	 (cl-loop for each in format-string
+		  if (stringp (car each))
+		  concat (car each)
+		  else if (eq 'stars (car each))
+		  concat (propertize (create-stars level) reorg--field-property-name 'stars) 
+		  else if (eq 'property (car each))
+		  concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+				data
+				(cdr each))
+		  else if (eq 'align-to (car each))
+        	  concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
+		  else if (eq 'pad (car each))
+		  concat (make-string (cadr each) ? )
+		  else
+		  concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+				data
+				(cdr each))))
+		    reorg--data-property-name
+		    data)))
+
+
+
+
+;; (defmacro reorg--create-headline-string* (data format-string &optional level)
+;;   "Create a headline string from DATA using FORMAT-STRING as the
+;; template.  Use LEVEL number of leading stars.  Add text properties
+;; `reorg--field-property-name' and  `reorg--data-property-name'."
+;;   (cl-flet ((create-stars (num &optional data)
+;; 			  (make-string (if (functionp num)
+;; 					   (funcall num data)
+;; 					 num)
+;; 				       ?*)))
+;;     (propertize 
+;;      (if (plist-get data :reorg-branch)
+;; 	 (propertize 
+;; 	  (concat (when level (create-stars level) " ") (plist-get data :branch-name))
+;; 	  reorg--field-property-name
+;; 	  'branch)
+;;        (cl-loop for each in format-string
+;; 		if (stringp each)
+;; 		concat each
+;; 		else
+;; 		concat (reorg--let-plist data
+;; 			 ,@each)
+;; 		concat (propertize (create-stars level) reorg--field-property-name 'stars) 
+;; 		else if (eq 'property (car each))
+;; 		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+;; 			      data
+;; 			      (cdr each))
+;; 		else if (eq 'align-to (car each))
+;; 		concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
+;; 		else if (eq 'pad (car each))
+;; 		concat (make-string (cadr each) ? )
+;; 		else
+;; 		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+;; 			      data
+;; 			      (cdr each))))
+;;      reorg--data-property-name
+;;      data)))
 
 ;;; Insert headlines into buffer
 
