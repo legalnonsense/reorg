@@ -526,10 +526,17 @@ RANGE is non-nil, only look for timestamp ranges."
 				(when (reorg--timestamp-parser nil t)
 				  (org-no-properties (reorg--timestamp-parser nil t))))
 			:display (if-let ((ts (plist-get plist :ts)))
-				     (reorg--format-time-string ts
-								"%A, %B %d, %Y"
-								"%a, %b %d, %Y at %-l:%M%p")
-				   " "))
+				     (if (=
+					  (string-to-number
+					   (format-time-string "%Y"))
+					  (ts-year (ts-parse-org ts)))
+					 (reorg--format-time-string ts
+								    "%a, %b %d"
+								    "%a, %b %d at %-l:%M%p")
+				       (reorg--format-time-string ts
+								  "%a, %b %d, %Y"
+								  "%a, %b %d, %Y at %-l:%M%p")
+				       " ")))
 
 (reorg-create-data-type :name ts-type 
 			:parse (cond 
