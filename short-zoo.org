@@ -1,5 +1,5 @@
-* vulture
-SCHEDULED: <2021-11-02 Tue>
+* culture
+SCHEDULED: <2021-11-04 Thu>
 :PROPERTIES:
 :HAIR: 0
 :FEATHERS: 1
@@ -12,8 +12,8 @@ SCHEDULED: <2021-11-02 Tue>
 :BACKBONE: 1
 :BREATHES: 1
 :VENOMOUS: 0
-:FINS:     0
-:LEGS:     2
+:FINS:     1
+:LEGS:     19
 :TAIL: 1
 :DOMESTIC: 0
 :CATSIZE: 1
@@ -21,7 +21,7 @@ SCHEDULED: <2021-11-02 Tue>
 :ID:       821e583d-7932-48a1-a8b4-cbf95d41d125
 :END:
 
-* swatchulture
+* sowwatchultureaaa
 SCHEDULED: <2021-11-02 Tue>
 :PROPERTIES:
 :HAIR: 0
@@ -91,7 +91,7 @@ nppp
  
 
 * wolf
-SCHEDULED: <2021-11-02 Tue>
+SCHEDULED: <2021-11-16 Tue>
 :PROPERTIES:
 :HAIR: 1
 :FEATHERS: 0
@@ -113,13 +113,13 @@ SCHEDULED: <2021-11-02 Tue>
 :ID:       3400b092-453e-4cb8-a09f-0b969dfb726a
 :END:
 
-* worm
-DEADLINE: <2021-11-11 Thu>
+* jorms
+DEADLINE: <2021-11-06 Sat>
 :PROPERTIES:
 :HAIR: 0
 :FEATHERS: 0
-:EGGS:     0
-:MILK:     0
+:EGGS:     1
+:MILK:     1
 :AIRBORNE: 0
 :AQUATIC: 0
 :PREDATOR: 0
@@ -136,7 +136,7 @@ DEADLINE: <2021-11-11 Thu>
 :ID:       6516c1f6-2736-4eb9-9ce5-700abad079be
 :END:
 
-* wren
+* opp_due wrenzzz
 :PROPERTIES:
 :HAIR: 0
 :FEATHERS: 1
