@@ -358,8 +358,6 @@ RANGE is non-nil, only look for timestamp ranges."
 					 ("S-<right>" . org-shiftright)
 					 ("S-<left>" . org-shiftleft)))
 
-
-
 (reorg-create-data-type :name timestamp
 			:parse (when (reorg--timestamp-parser)
 				 (org-no-properties (reorg--timestamp-parser)))
@@ -472,17 +470,66 @@ RANGE is non-nil, only look for timestamp ranges."
 (reorg-create-data-type :name level
 			:parse (org-current-level))
 
+(defun reorg--ts-hhmm-p (ts)
+  (string-match (rx (or (seq (** 1 2 digit)
+			     ":"
+			     (= 2 digit))
+			(seq (** 1 2 digit)
+			     (or "am"
+				 "pm"
+				 "AM"
+				 "PM"))))
+		ts))
+
+
+
+
+
+(defun reorg--ts-hhmm-p (ts)
+  (string-match (rx (or (seq (** 1 2 digit)
+			     ":"
+			     (= 2 digit))
+			(seq (** 1 2 digit)
+			     (or "am"
+				 "pm"
+				 "AM"
+				 "PM"))))
+		ts))
+
+(defun reorg--format-time-string (ts no-time-format &optional time-format)
+  (format-time-string
+   (if (reorg--ts-hhmm-p ts)
+       (or time-format no-time-format)
+     no-time-format)
+   (org-read-date nil t ts )))
+
+(defun reorg--add-number-suffix (num)
+  "create the suffix for a number"
+  (pcase (if (numberp num) 
+	     (number-to-string num)
+	   num)
+    ((pred (s-ends-with-p "11")) "th")
+    ((pred (s-ends-with-p "12")) "th")
+    ((pred (s-ends-with-p "13")) "th")
+    ((pred (s-ends-with-p "1")) "st")
+    ((pred (s-ends-with-p "2")) "nd")
+    ((pred (s-ends-with-p "3")) "rd")
+    (_ "th")))
+
 (reorg-create-data-type :name ts
+			;; either the deadline, active
+			;; in that order
 			:parse (or
 				(org-entry-get (point) "DEADLINE")
 				(when (reorg--timestamp-parser)
 				  (org-no-properties (reorg--timestamp-parser)))
 				(when (reorg--timestamp-parser nil t)
-				  (org-no-properties (reorg--timestamp-parser nil t)))
-				(org-entry-get (point) "SCHEDULED"))
+				  (org-no-properties (reorg--timestamp-parser nil t))))
 			:display (if-let ((ts (plist-get plist :ts)))
-				     (substring ts 1 11)
-				   "          "))
+				     (reorg--format-time-string ts
+								"%A, %B %d, %Y"
+								"%a, %b %d, %Y at %-l:%M%p")
+				   " "))
 
 (reorg-create-data-type :name ts-type 
 			:parse (cond 
@@ -494,17 +541,17 @@ RANGE is non-nil, only look for timestamp ranges."
 				   ("deadline" "≫")
 				   ("active" "⊡")
 				   ("range" "➥")
-				   ("scheduled" "s")
+				   ("scheduled" "⬎")
 				   (_ " ")))
 
 
-				   (reorg-create-data-type :name priority
-							   :parse (org-entry-get (point) "PRIORITY")
-							   :display (pcase (plist-get plist :priority)
-								      ("A" "⚡")
-								      ("B" "⚐")
-								      ("C" "")
-								      (_ " ")))
+(reorg-create-data-type :name priority
+			:parse (org-entry-get (point) "PRIORITY")
+			:display (pcase (plist-get plist :priority)
+				   ("A" "⚡")
+				   ("B" "➙")
+				   ("C" "﹍")
+				   (_ " ")))
 
 
 ;;; parsing org file
