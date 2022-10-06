@@ -25,7 +25,7 @@
   "Which side for the tree buffer?")
 (defcustom reorg-face-text-prop 'font-lock-face
   "When setting a face, use this text property.")
-(defcustom reorg-headline-format '(.headline)
+(defcustom reorg-headline-format '(concat " " .headline)
   "Headline format.")
 
 ;;; variables 
@@ -879,9 +879,6 @@ template.  Use LEVEL number of leading stars.  Add text properties
 ;; 		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
 ;; 			      data
 ;; 			      (cdr each)))
-)
-reorg--data-property-name
-data)))
 
 ;;; Insert headlines into buffer
 
@@ -901,7 +898,7 @@ data)))
   "Open a side window to display the tree."
   (display-buffer-in-side-window (get-buffer-create reorg-buffer-name)
 				 `((side . ,reorg-buffer-side)
-				   (slot . nil))))
+				   (slot . nil)))
 
 (defun reorg--select-main-window (&optional buffer)
   "Select the source window. If BUFFER is non-nil,
