@@ -16,7 +16,14 @@
 							    .deadline
 							    .scheduled))
 						   "CALENDAR")
-					  :format-string (concat " " .ts-type " " .ts " " .headline)
+					  :format-string (concat
+							  " "
+							  .ts-type
+							  " "
+							  (s-truncate 25 .headline "...")
+							  (propertize " " 'display
+								      '(space . (:align-to 30)))
+							  .ts)
 					  :sort-results ((.ts . string<)))
 					( :group (when (and .todo
 							    (not (string= .todo "DONE"))
@@ -26,7 +33,10 @@
 						   "TASKS" )
 					  :format-string (concat " " (s-pad-right 10 " " .todo) .headline)
 					  :sort-results ((.todo . string<)
-							 ((downcase .headline) . string<)))))))))
+							 ((downcase .headline) . string<)))
+					( :group (when (string= .headline "_NOTES_")
+						   "Progress Notes"))))))))
+
 
 (defun xxx-reorg-test-control-panel-9 ()
   "test new headline creator"
