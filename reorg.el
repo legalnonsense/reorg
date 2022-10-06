@@ -899,13 +899,14 @@ template.  Use LEVEL number of leading stars.  Add text properties
   (display-buffer-in-side-window (get-buffer-create reorg-buffer-name)
 				 `((side . ,reorg-buffer-side)
 				   (slot . nil)))
+  (balance-windows))
 
-(defun reorg--select-main-window (&optional buffer)
-  "Select the source window. If BUFFER is non-nil,
+  (defun reorg--select-main-window (&optional buffer)
+    "Select the source window. If BUFFER is non-nil,
 switch to that buffer in the window." 
-  (select-window (window-main-window))
-  (when buffer
-    (switch-to-buffer buffer)))
+    (select-window (window-main-window))
+    (when buffer
+      (switch-to-buffer buffer)))
 
 (defun reorg--select-tree-window ()
   "Select the tree window." 
