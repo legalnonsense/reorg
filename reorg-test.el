@@ -3,11 +3,11 @@
 (defun xxx-reorg-test-control-panel-10 ()
   (interactive)
   (reorg-open-sidebar
-   :file "~/.emacs.d/lisp/reorg/taskmaster.org"
+   :file "~/org/taskmaster.org"
    :template '( :group "MEETING VIEW"
 		:children (( :group .category 
 			     :sort string< 
-			     :sort-getter identity
+			     :sort-getter (lambda (x) (downcase x))
 			     :children (( :group (when (and .todo
 							    (not (string= .todo "DONE"))
 							    (not (string= .todo "EVENT"))
