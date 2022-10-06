@@ -1268,7 +1268,8 @@ the point and return nil."
 ;;      (org-priority-down))))
 
 (defvar reorg-view-mode-map 
-  (let ((map (make-sparse-keymap)))
+  (let ((map (make-keymap)))
+    (suppress-keymap map)
     (define-key map (kbd "RET") #'reorg-view--tree-to-source--goto-heading)
     (define-key map (kbd "e") #'reorg-edits--start-edit)
     (define-key map (kbd "u") #'reorg--goto-parent)
