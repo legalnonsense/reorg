@@ -8,7 +8,16 @@
 		:children (( :group .category 
 			     :sort string< 
 			     :sort-getter identity
-			     :children (( :group (when (and
+			     :children (( :group (when (and .todo
+							    (not (string= .todo "DONE"))
+							    (not (string= .todo "EVENT"))
+							    (not (string= .todo "OPP_DUE"))
+							    (not (string= .todo "DEADLINE")))
+						   "TASKS" )
+					  :format-string (concat " " (s-pad-right 10 " " .todo) .headline)
+					  :sort-results ((.todo . string<)
+							 ((downcase .headline) . string<)))
+					( :group (when (and
 							(or (string= .todo "DEADLINE")
 							    (string= .todo "EVENT")
 							    (string= .todo "OPP_DUE"))
@@ -20,20 +29,11 @@
 							  " "
 							  .ts-type
 							  " "
-							  (s-truncate 25 .headline "...")
-							  (propertize " " 'display
-								      '(space . (:align-to 30)))
+							  (s-pad-right 50
+								       "."
+								       (s-truncate 40 .headline "..."))
 							  .ts)
 					  :sort-results ((.ts . string<)))
-					( :group (when (and .todo
-							    (not (string= .todo "DONE"))
-							    (not (string= .todo "EVENT"))
-							    (not (string= .todo "OPP_DUE"))
-							    (not (string= .todo "DEADLINE")))
-						   "TASKS" )
-					  :format-string (concat " " (s-pad-right 10 " " .todo) .headline)
-					  :sort-results ((.todo . string<)
-							 ((downcase .headline) . string<)))
 					( :group (when (string= .headline "_NOTES_")
 						   "Progress Notes"))))))))
 
