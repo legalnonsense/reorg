@@ -25,7 +25,7 @@
   "Which side for the tree buffer?")
 (defcustom reorg-face-text-prop 'font-lock-face
   "When setting a face, use this text property.")
-(defcustom reorg-headline-format '((stars) (" ") (headline))
+(defcustom reorg-headline-format '(.headline)
   "Headline format.")
 
 ;;; variables 
@@ -468,7 +468,8 @@ RANGE is non-nil, only look for timestamp ranges."
 			:parse (current-buffer))
 
 (reorg-create-data-type :name level
-			:parse (org-current-level))
+			:parse (org-current-level)
+			:display (number-to-string (plist-get plist :level)))
 
 (defun reorg--ts-hhmm-p (ts)
   (string-match (rx (or (seq (** 1 2 digit)
@@ -535,8 +536,8 @@ RANGE is non-nil, only look for timestamp ranges."
 								    "%a, %b %d at %-l:%M%p")
 				       (reorg--format-time-string ts
 								  "%a, %b %d, %Y"
-								  "%a, %b %d, %Y at %-l:%M%p")
-				       " ")))
+								  "%a, %b %d, %Y at %-l:%M%p"))
+				   "nots"))
 
 (reorg-create-data-type :name ts-type 
 			:parse (cond 
@@ -591,15 +592,15 @@ See `org-map-entries' for explanation of the parameters."
 (cl-defmacro reorg--let-plist (plist &rest body)
   (declare (indent defun))
   `(cl-labels ((plist-p
-                (lst)
-                (and (listp lst) (keywordp (car lst))))
+		(lst)
+		(and (listp lst) (keywordp (car lst))))
 	       (decolon
-                (lst)
-                (if (plist-p lst)
-                    (cl-loop for (key value) on lst by #'cddr
+		(lst)
+		(if (plist-p lst)
+		    (cl-loop for (key value) on lst by #'cddr
 			     for tail = (intern (cl-subseq (symbol-name key) 1))
 			     collect (cons tail (decolon value)))
-                  lst)))
+		  lst)))
      (let-alist (decolon ,plist) ,@body)))
 
 ;;;; grouping and sorting 
@@ -631,7 +632,7 @@ keys.  Keys are compared using `equal'."
 			  elt))
 	    (cell (assoc key acc)))
        (if cell
-           (setcdr cell (push elt (cdr cell)))
+	   (setcdr cell (push elt (cdr cell)))
 	 (push (list key elt) acc))
        acc))
    (seq-reverse sequence)
@@ -663,7 +664,7 @@ keys.  Keys are compared using `equal'."
 					  (cl-loop for (form . pred) in result-sort
 						   collect (cons `(lambda (x)
 								    (reorg--let-plist x
-										      ,form))
+								      ,form))
 								 pred)))))
 			  (unless np
 			    (let ((old (cl-copy-list data)))
@@ -696,10 +697,10 @@ keys.  Keys are compared using `equal'."
 				      :result-sorters result-sorters 
 				      :grouper-list `(lambda (x)
 						       (reorg--let-plist x
-									 ,grouper))
+							 ,grouper))
 				      :branch-predicate `(lambda (x)
 							   (reorg--let-plist x
-									     ,grouper))
+							     ,grouper))
 				      :branch-result (car x)
 				      :grouper-list-results (car x)
 				      :format-string format-string
@@ -717,7 +718,7 @@ keys.  Keys are compared using `equal'."
 				(cl-loop for x in it
 					 do (setf (car x)
 						  (reorg--create-headline-string (car x)
-										 format-string
+										 (copy-tree format-string)
 										 level))
 					 finally return it)
 				(if heading-sorter
@@ -800,6 +801,37 @@ keys.  Keys are compared using `equal'."
 
 ;;;; Creating headlines from headline template 
 
+
+(defun reorg--depth-first-apply (treee func &optional data)
+  "Run FUNC at each node of TREE using a depth-first traversal
+and destructively modify TREE. 
+FUNC is a function that accepts one argument, which is the
+current element of TREE."
+  (let ((tree (copy-tree treee)))
+    (cl-labels ((doloop (tree func)
+			(setf (car tree) (funcall func (car tree) data))
+			(cl-loop for n below (length (cdr tree))
+				 if (listp (nth n (cdr tree)))
+				 do (doloop (nth n (cdr tree)) func)
+				 else
+				 do
+				 (setf (nth n (cdr tree))
+				       (funcall func (nth n (cdr tree)) data)))))
+      (doloop tree func))
+    tree))
+
+;; (funcall `(lambda () ,(reorg--depth-first-apply '(concat "*** " .headline) #'reorg--turn-dot-to-field xxx))) ;
+;;;XXX 
+(defun reorg--turn-dot-to-field (elem data)
+  (if (and (symbolp elem)
+	   (string-match "\\`\\." (symbol-name elem)))
+      (funcall (intern (concat "reorg-display--"
+			       (substring 
+				(symbol-name elem)
+				1)))
+	       data)
+    elem))
+
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  Add text properties
@@ -815,25 +847,41 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	  (concat (create-stars level) " " (plist-get data :branch-name))
 	  reorg--field-property-name
 	  'branch)
-       (cl-loop for each in format-string
-		if (stringp (car each))
-		concat (car each)
-		else if (eq 'stars (car each))
-		concat (propertize (create-stars level) reorg--field-property-name 'stars) 
-		else if (eq 'property (car each))
-		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
-			      data
-			      (cdr each))
-		else if (eq 'align-to (car each))
-        	concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
-		else if (eq 'pad (car each))
-		concat (make-string (cadr each) ? )
-		else
-		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
-			      data
-			      (cdr each))))
+       ;;TODO fix the text properties
+       ;;TODO fix to use LEVEL (if provided) instead of .level
+       (let ((format-copy (copy-tree format-string)))
+	 (concat (when level (propertize (create-stars level) reorg--field-property-name 'stars))
+		 (funcall `(lambda ()		;
+			     ,(reorg--depth-first-apply format-copy
+							#'reorg--turn-dot-to-field
+							data))))))
      reorg--data-property-name
-     data)))
+     data))) 
+
+
+;; (reorg--create-headline-string xxx '(concat (propertize .headline 'xxx 'yyy) " " .ts) 5) 
+
+
+;; (cl-loop for each in format-string
+;; 		if (stringp (car each))
+;; 		concat (car each)
+;; 		else if (eq 'stars (car each))
+;; 		concat (propertize (create-stars level) reorg--field-property-name 'stars) 
+;; 		else if (eq 'property (car each))
+;; 		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+;; 			      data
+;; 			      (cdr each))
+;; 		else if (eq 'align-to (car each))
+;;  	concat (propertize  " " 'display `(space . (:align-to ,(cadr each))))
+;; 		else if (eq 'pad (car each))
+;; 		concat (make-string (cadr each) ? )
+;; 		else
+;; 		concat (apply (intern (concat "reorg-display--" (symbol-name (car each))))
+;; 			      data
+;; 			      (cdr each)))
+)
+reorg--data-property-name
+data)))
 
 ;;; Insert headlines into buffer
 

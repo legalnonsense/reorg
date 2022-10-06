@@ -1,5 +1,71 @@
 ;;; -*- lexical-binding: t; -*-
 
+(defun xxx-reorg-test-control-panel-10 ()
+  (interactive)
+  (reorg-open-sidebar
+   :file "~/.emacs.d/lisp/reorg/taskmaster.org"
+   :template '( :group "MEETING VIEW"
+		:children (( :group .category 
+			     :sort string< 
+			     :sort-getter identity
+			     :children (( :group (when (and
+							(or (string= .todo "DEADLINE")
+							    (string= .todo "EVENT")
+							    (string= .todo "OPP_DUE"))
+							(or .timestamp
+							    .deadline
+							    .scheduled))
+						   "CALENDAR")
+					  :format-string (concat " " .ts-type " " .ts " " .headline)
+					  :sort-results ((.ts . string<)))
+					( :group (when (and .todo
+							    (not (string= .todo "DONE"))
+							    (not (string= .todo "EVENT"))
+							    (not (string= .todo "OPP_DUE"))
+							    (not (string= .todo "DEADLINE")))
+						   "TASKS" )
+					  :format-string (concat " " (s-pad-right 10 " " .todo) .headline)
+					  :sort-results ((.todo . string<)
+							 ((downcase .headline) . string<)))))))))
+
+(defun xxx-reorg-test-control-panel-9 ()
+  "test new headline creator"
+  (interactive)
+  (reorg-open-sidebar
+   :file "~/.emacs.d/lisp/reorg/taskmaster.org"
+   :template '( :group "MEETING VIEW"
+		:children (( :group (when (and
+					   (or (string= .todo "DEADLINE")
+					       (string= .todo "EVENT")
+					       (string= .todo "OPP_DUE"))
+					   (or .timestamp
+					       .deadline
+					       .scheduled))
+				      .category)
+			     :sort string< 
+			     :sort-getter identity
+			     :format-string (concat " " .headline))))))
+
+
+(defun xxx-reorg-test-control-panel-8 ()
+  (interactive)
+  (reorg-open-sidebar
+   :file "~/.emacs.d/lisp/reorg/taskmaster.org"
+   :template '( :group "MEETING VIEW"
+		:children (( :group (when (and
+					   (or (string= .todo "DEADLINE")
+					       (string= .todo "EVENT")
+					       (string= .todo "OPP_DUE"))
+					   (or .timestamp
+					       .deadline
+					       .scheduled))
+				      .category)
+			     :sort string< 
+			     :sort-getter identity
+			     :format-string ((concat (make-string .level ?*) " " .headline)))))))
+
+
+
 (defun xxx-reorg-test-control-panel-7 ()
   (interactive)
   (reorg-open-sidebar
