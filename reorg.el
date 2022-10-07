@@ -841,13 +841,14 @@ current element of TREE."
 
 (defun reorg-display--stars (data)
   "create stars"
-  (cl-flet ((create-stars (num &optional data)
-			  (make-string (if (functionp num)
-					   (funcall num data)
-					 num)
-				       ?*)))
-    (propertize (create-stars (plist-get data :reorg-stars))
-		reorg--field-property-name 'stars)))
+  nil)
+  ;; (cl-flet ((create-stars (num &optional data)
+  ;; 			  (make-string (if (functionp num)
+  ;; 					   (funcall num data)
+  ;; 					 num)
+  ;; 				       ?*)))
+  ;;   (propertize (create-stars (plist-get data :reorg-stars))
+  ;; 		reorg--field-property-name 'stars)))
 
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the
