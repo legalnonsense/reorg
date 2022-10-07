@@ -1024,6 +1024,7 @@ get nested properties."
     (org-visual-indent-mode)
     (toggle-truncate-lines 1)
     (setq reorg-current-template template)
+    (setq-local cursor-type nil)
     (goto-char (point-min))))
 
 (defun reorg-open-sidebar-fundamental (template &optional format-string file)
