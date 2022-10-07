@@ -4,38 +4,39 @@
   (interactive)
   (reorg-open-sidebar
    :file "~/org/taskmaster.org"
-   :template '( :group "MEETING VIEW"
-		:children (( :group .category 
-			     :sort string< 
-			     :sort-getter (lambda (x) (downcase x))
-			     :children (( :group (when (and .todo
-							    (not (string= .todo "DONE"))
-							    (not (string= .todo "EVENT"))
-							    (not (string= .todo "OPP_DUE"))
-							    (not (string= .todo "DEADLINE")))
-						   "TASKS" )
-					  :format-string (concat " " (s-pad-right 10 " " .todo) .headline)
-					  :sort-results ((.todo . string<)
-							 ((downcase .headline) . string<)))
-					( :group (when (and
-							(or (string= .todo "DEADLINE")
-							    (string= .todo "EVENT")
-							    (string= .todo "OPP_DUE"))
-							(or .timestamp
-							    .deadline
-							    .scheduled))
-						   "CALENDAR")
-					  :format-string (concat
-							  " "
-							  .ts-type
-							  " "
-							  (s-pad-right 50
-								       "."
-								       (s-truncate 40 .headline "..."))
-							  .ts)
-					  :sort-results ((.ts . string<)))
-					( :group (when (string= .headline "_NOTES_")
-						   "Progress Notes"))))))))
+   :template '(
+	       :group "MEETING VIEW"
+	       :children (( :group .category 
+			    :sort string< 
+			    :sort-getter (lambda (x) (downcase x))
+			    :children (( :group (when (and .todo
+							   (not (string= .todo "DONE"))
+							   (not (string= .todo "EVENT"))
+							   (not (string= .todo "OPP_DUE"))
+							   (not (string= .todo "DEADLINE")))
+						  "TASKS" )
+					 :format-string (concat .stars " " (s-pad-right 10 " " .todo) .headline)
+					 :sort-results ((.todo . string<)
+							((downcase .headline) . string<)))
+				       ( :group (when (and
+						       (or (string= .todo "DEADLINE")
+							   (string= .todo "EVENT")
+							   (string= .todo "OPP_DUE"))
+						       (or .timestamp
+							   .deadline
+							   .scheduled))
+						  "CALENDAR")
+					 :format-string (concat
+							 " "
+							 .ts-type
+							 " "
+							 (s-pad-right 50
+								      "."
+								      (s-truncate 40 .headline "..."))
+							 .ts)
+					 :sort-results ((.ts . string<)))
+				       ( :group (when (string= .headline "_NOTES_")
+						  "Progress Notes"))))))))
 
 
 (defun xxx-reorg-test-control-panel-9 ()
