@@ -1470,13 +1470,13 @@ invoked.")
 	(delete-overlay reorg-edits--current-field-overlay)
 	(move-overlay reorg-edits--current-field-overlay
 		      (car (reorg-edits--get-field-bounds))
-		      (if (eq field 'stars)
-			  (let ((inhibit-field-text-motion t))
-			    (point-at-eol))
-			(cdr (reorg-edits--get-field-bounds))))
-	;; (message "You are on the field for the heading's %s"
-	;; 	 (reorg-edits--get-field-type)))
-	(setq point (point))))))
+		      (let ((inhibit-field-text-motion t))
+			(if (= (point) (point-at-bol))
+			    (point-at-eol)
+			  (cdr (reorg-edits--get-field-bounds))))))
+      ;; (message "You are on the field for the heading's %s"
+      ;; 	 (reorg-edits--get-field-type)))
+      (setq point (point))))))
 
 (defun reorg-edits--move-selection-overlay ()
   (if-let ((bounds (reorg-edits--get-field-bounds)))
