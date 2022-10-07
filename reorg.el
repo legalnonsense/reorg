@@ -471,6 +471,11 @@ RANGE is non-nil, only look for timestamp ranges."
 			:parse (org-current-level)
 			:display (number-to-string (plist-get plist :level)))
 
+(reorg-create-data-type :name root
+			:parse (save-excursion (while (org-up-heading-safe))
+					       (org-no-properties
+						(org-get-heading t t t t))))
+
 (defun reorg--ts-hhmm-p (ts)
   (string-match (rx (or (seq (** 1 2 digit)
 			     ":"
