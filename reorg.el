@@ -296,7 +296,6 @@ RANGE is non-nil, only look for timestamp ranges."
 				    18
 				    nil t)))
 
-
 (reorg-create-data-type :name scheduled
 			:parse (org-entry-get (point) "SCHEDULED")
 			:set (lambda ()
