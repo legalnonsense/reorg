@@ -25,7 +25,7 @@
   "Which side for the tree buffer?")
 (defcustom reorg-face-text-prop 'font-lock-face
   "When setting a face, use this text property.")
-(defcustom reorg-headline-format '(concat " " .headline)
+(defcustom reorg-headline-format '(concat .stars " " .headline)
   "Headline format.")
 
 ;;; variables 
