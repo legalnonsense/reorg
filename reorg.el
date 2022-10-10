@@ -275,13 +275,21 @@ RANGE is non-nil, only look for timestamp ranges."
 	     (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
 	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
 
+;;; class macro
+;;TODO 
+(cl-defmacro reorg-create-class-type (&key getter)
+  `(defun xxxxxxx))
+					   
+
 ;;; data macro application 
 
 (reorg-create-data-type :name body
+			:class org
 			:parse (reorg--get-body)
 			:disabled t)
 
 (reorg-create-data-type :name deadline
+			:class org
 			:parse (org-entry-get (point) "DEADLINE")
 			:set (lambda ()
 			       (reorg--with-source-and-sync
@@ -303,6 +311,7 @@ RANGE is non-nil, only look for timestamp ranges."
 				    nil t)))
 
 (reorg-create-data-type :name scheduled
+			:class org 
 			:parse (org-entry-get (point) "SCHEDULED")
 			:set (lambda ()
 			       (reorg--with-source-and-sync
@@ -318,6 +327,7 @@ RANGE is non-nil, only look for timestamp ranges."
 				   "__________"))
 
 (reorg-create-data-type :name headline
+			:class org
 			:set (lambda ()
 			       (let ((val (field-string-no-properties)))
 				 (reorg--with-source-and-sync val
@@ -327,6 +337,7 @@ RANGE is non-nil, only look for timestamp ranges."
 				(org-get-heading t t t t)))
 
 (reorg-create-data-type :name property
+			:class org
 			:parse (reorg-parser--get-property-drawer)
 			:set (lambda ()
 			       (reorg--with-source-and-sync
@@ -344,6 +355,7 @@ RANGE is non-nil, only look for timestamp ranges."
 			:field-keymap (("C-c C-x p" . org-set-property)))
 
 (reorg-create-data-type :name tags
+			:class org
 			:parse (org-get-tags-string)
 			:get (org-get-tags-string)
 			;; :set (org-set-tags val)
@@ -351,6 +363,7 @@ RANGE is non-nil, only look for timestamp ranges."
 			:heading-keymap (("C-c C-c" . org-set-tags-command)))
 
 (reorg-create-data-type :name todo
+			:class org
 			:parse (org-entry-get (point) "TODO")
 			:get (org-entry-get (point) "TODO")			
 			;; :set (org-todo val)
@@ -364,6 +377,7 @@ RANGE is non-nil, only look for timestamp ranges."
 					 ("S-<left>" . org-shiftleft)))
 
 (reorg-create-data-type :name timestamp
+			:class org
 			:parse (when (reorg--timestamp-parser)
 				 (org-no-properties (reorg--timestamp-parser)))
 			:get (reorg--timestamp-parser)
@@ -390,6 +404,7 @@ RANGE is non-nil, only look for timestamp ranges."
 				    (buffer-string)))
 
 (reorg-create-data-type :name timestamp-ia
+			:class org
 			:parse (when (reorg--timestamp-parser t)
 				 (org-no-properties (reorg--timestamp-parser t)))
 			:get (reorg--timestamp-parser t)
@@ -411,6 +426,7 @@ RANGE is non-nil, only look for timestamp ranges."
 				    (buffer-string)))
 
 (reorg-create-data-type :name timestamp-ia-range
+			:class org
 			:parse (when (reorg--timestamp-parser t t)
 				 (org-no-properties (reorg--timestamp-parser t t)))
 			:get (reorg--timestamp-parser t)
@@ -431,6 +447,7 @@ RANGE is non-nil, only look for timestamp ranges."
 				    (buffer-string)))
 
 (reorg-create-data-type :name timestamp-range
+			:class org
 			:parse (when (reorg--timestamp-parser nil t)
 				 (org-no-properties (reorg--timestamp-parser nil t)))
 			:get (reorg--timestamp-parser t)
@@ -452,31 +469,39 @@ RANGE is non-nil, only look for timestamp ranges."
 			:disabled nil)
 
 (reorg-create-data-type :name id
+			:class org
 			:parse (org-id-get-create))
 
 (reorg-create-data-type :name category-inherited
+			:class org
 			:parse (org-entry-get-with-inheritance "CATEGORY"))
 
 (reorg-create-data-type :name category
+			:class org
 			:parse (org-get-category))
 ;; :set (org-set-property "CATEGORY" val))
 
 (reorg-create-data-type :name file
+			:class org
 			:parse (buffer-file-name)
 			:disabled t
 			:disable t)
 
 (reorg-create-data-type :name buffer-name
+			:class org
 			:parse (buffer-name))
 
 (reorg-create-data-type :name buffer
+			:class org
 			:parse (current-buffer))
 
 (reorg-create-data-type :name level
+			:class org
 			:parse (org-current-level)
 			:display (number-to-string (plist-get plist :level)))
 
 (reorg-create-data-type :name root
+			:class org
 			:parse (save-excursion (while (org-up-heading-safe))
 					       (org-no-properties
 						(org-get-heading t t t t))))
@@ -524,6 +549,7 @@ RANGE is non-nil, only look for timestamp ranges."
     (_ "th")))
 
 (reorg-create-data-type :name ts
+			:class org
 			;; either the deadline, active
 			;; in that order
 			:parse (or
@@ -545,7 +571,8 @@ RANGE is non-nil, only look for timestamp ranges."
 								  "%a, %b %d, %Y at %-l:%M%p"))
 				   "nots"))
 
-(reorg-create-data-type :name ts-type 
+(reorg-create-data-type :name ts-type
+			:class org
 			:parse (cond 
 				((org-entry-get (point) "DEADLINE") "deadline")
 				((reorg--timestamp-parser) "active")
@@ -560,6 +587,7 @@ RANGE is non-nil, only look for timestamp ranges."
 
 
 (reorg-create-data-type :name priority
+			:class org
 			:parse (org-entry-get (point) "PRIORITY")
 			:display (pcase (plist-get plist :priority)
 				   ("A" "⚡")
