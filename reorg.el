@@ -657,6 +657,7 @@ keys.  Keys are compared using `equal'."
 			 (level 1))
 			(let ((grouper (plist-get template :group))
 			      (children (plist-get template :children))
+			      (class (plist-get template :class))
 			      (heading-sorter (plist-get template :sort))
 			      (heading-sort-getter (or (plist-get template :sort-getter)
 						       #'car))
