@@ -184,6 +184,7 @@ RANGE is non-nil, only look for timestamp ranges."
 					       get
 					       getter
 					       set
+					       class 
 					       parse
 					       validate
 					       disabled
@@ -220,11 +221,11 @@ RANGE is non-nil, only look for timestamp ranges."
 	     (lambda (val &rest args)
 	       ,validate)
 	     :orig-entry-func
-	     (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name name)))
+	     (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name class) " " (symbol-name name)))
 		 (plist &rest args)
 	       ,@orig-entry-func)
 	     :display
-	     (cl-defun ,(intern (concat "reorg-display--"  (symbol-name name)))
+	     (cl-defun ,(intern (concat "reorg-display--"  (symbol-name class) " " (symbol-name name)))
 		 (plist &rest args)
 	       (let ((val (plist-get plist (or (when ',getter
 						 ,getter)
@@ -240,7 +241,12 @@ RANGE is non-nil, only look for timestamp ranges."
 					       (t (error "invalid face specification"))))))
 		 (setq val (concat ,display-prefix val ,display-suffix))
 		 (setq val (propertize val 'reorg-field-type ',name))
-		 (setq val (propertize val 'field (list 'reorg ',name)))
+		 (setq val (propertize val 'field (list 'reorg
+							(intern (concat
+								 (symbol-name ',class)
+								 "-"
+								 (symbol-name ',name)
+								 ',name)))))
 		 (setq val (propertize val 'front-sticky t))
 		 (when ',field-keymap 
 		   (setq val (propertize
@@ -485,10 +491,6 @@ RANGE is non-nil, only look for timestamp ranges."
 				 "AM"
 				 "PM"))))
 		ts))
-
-
-
-
 
 (defun reorg--ts-hhmm-p (ts)
   (string-match (rx (or (seq (** 1 2 digit)
