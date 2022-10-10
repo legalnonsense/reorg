@@ -276,10 +276,43 @@ RANGE is non-nil, only look for timestamp ranges."
 	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
 
 ;;; class macro
+
+(defun reorg--create-symbol (&rest args)
+  "Create a symbol from ARGS which can be
+strings or symbols.  Used in macros."
+  (cl-loop for arg in args
+           if (stringp arg)
+           concat arg into ret
+	   else if (numberp arg)
+	   concat (number-to-string arg) into ret
+           else if (symbolp arg)
+           concat (symbol-name arg) into ret
+           finally return (intern ret)))
+
 ;;TODO 
-(cl-defmacro reorg-create-class-type (&key getter)
-  `(defun xxxxxxx))
-					   
+(cl-defmacro reorg-create-class-type (&key name
+					   getter
+					   parser)
+  `(defun ,(reorg--create-symbol 'reorg-class--
+				 name
+				 '-getter)
+       (&rest args)
+     (cl-loop for arg in args
+	      append ,getter)))
+
+(reorg-create-class-type :name org
+			 :getter 
+			 (with-current-buffer (find-file-noselect arg)
+			   (org-show-all)
+			   (reorg--map-entries)))
+
+(reorg-create-class-type :name files
+			 :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
+								     arg))
+					  collect each))
+
+(reorg-class--files-getter "find ~/legal -type f")
+(reorg-class--org-getter "~/org/2020-taxes.org" "~/org/1983-presentation.org")
 
 ;;; data macro application 
 
@@ -365,16 +398,16 @@ RANGE is non-nil, only look for timestamp ranges."
 (reorg-create-data-type :name todo
 			:class org
 			:parse (org-entry-get (point) "TODO")
-			:get (org-entry-get (point) "TODO")			
-			;; :set (org-todo val)
-			:display (when-let ((s (plist-get plist :todo)))
-				   (propertize
-				    s
-				    'font-lock-face
-				    (org-get-todo-face s)))
-			:heading-keymap (("C-c C-t" . org-todo)
-					 ("S-<right>" . org-shiftright)
-					 ("S-<left>" . org-shiftleft)))
+			]			:get (org-entry-get (point) "TODO")			
+;; :set (org-todo val)
+:display (when-let ((s (plist-get plist :todo)))
+	   (propertize
+	    s
+	    'font-lock-face
+	    (org-get-todo-face s)))
+:heading-keymap (("C-c C-t" . org-todo)
+		 ("S-<right>" . org-shiftright)
+		 ("S-<left>" . org-shiftleft)))
 
 (reorg-create-data-type :name timestamp
 			:class org
@@ -907,6 +940,8 @@ template.  Use LEVEL number of leading stars.  Add text properties
 		      ,(reorg--depth-first-apply format-copy
 						 #'reorg--turn-dot-to-field
 						 data))))))
+     'reorg-class
+     (plist-get data :class)
      reorg--data-property-name
      data)))
 
