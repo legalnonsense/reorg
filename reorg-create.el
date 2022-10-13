@@ -44,6 +44,8 @@
 
 (cl-defmacro reorg-create-class-type (&optional &key name
 						getter
+						follow
+						bindings
 						display-buffer)
   "Create a new class type. NAME is the name of the class.
 GETTER is a form that does two things:
@@ -156,10 +158,14 @@ text properties of any field displaying the data type.
     `(progn 
        (defun ,parsing-func (&optional data)
 	 ,parse)
+       (setf (alist-get ',class reorg--parser-list) nil)
        (cl-pushnew (cons ',name #',parsing-func)
 		   (alist-get ',class reorg--parser-list))
-       (defun ,display-func (alist)
-	 ,display))))
+       (if ',display 
+	   (defun ,display-func (alist)
+	     ,display)
+	 (when (fboundp ',display-func)
+	   (fmakunbound ',display-func))))))
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
@@ -201,10 +207,11 @@ function created by the type creation macro."
   (if (and (symbolp elem)
 	   (string-match "\\`\\." (symbol-name elem)))
       (let ((class (alist-get 'class data))
-	    (type (intern (substring (symbol-name elem) 1))))
+	    (type (intern (substring (symbol-name elem) 1)))
+	    (sym (intern (substring (symbol-name elem) 1))))
 	(if (fboundp (reorg--get-display-func-name class type))
 	    (funcall (reorg--get-display-func-name class type) data)
-          (alist-get (intern (substring (symbol-name elem) 1))
+	  (alist-get sym
 		     data)))
     elem))
 

@@ -25,7 +25,8 @@
 (defun xxx-reorg-test-control-panel-10 ()
   (interactive)
   (reorg-open-sidebar
-   :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+   :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
+	      (files . "find ~/Desktop -type f"))
    :template
    '( :group "MEETING VIEW"
       :format-string (concat .stars " " .headline)
@@ -105,7 +106,15 @@
 		     " "
 		     (ts-day-name (ts-parse time))))
 		  :sort string<
-		  :sort-getter identity)))))))))))
+		  :sort-getter identity)))))))
+       ( :group .extension
+	 :format-string (concat " " .filename)
+	 :sort string<
+	 :sort-getter identity
+	 :sort-results ((.filename . string<)))))))
+  
+
+  ))))
 
 
 

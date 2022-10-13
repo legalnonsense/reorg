@@ -9,7 +9,6 @@
 (reorg-create-data-type
  :name depth 
  :class files
- :display "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
  :parse (f-depth data))
 
 (reorg-create-data-type
@@ -20,7 +19,6 @@
 (reorg-create-data-type
  :name filename
  :class files
- :display (concat "_" (alist-get 'filename alist) "_")
  :parse (f-filename data))
 
 (reorg-create-data-type
