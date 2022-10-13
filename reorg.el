@@ -1,5 +1,13 @@
 ;;; -*- lexical-binding: t; -*-
 
+(require 'reorg-tree)
+(require 'reorg-utils)
+(require 'reorg-create)
+(require 'reorg-org)
+(require 'reorg-files)
+(require 'reorg-org-extras)
+(require 'reorg-sort)
+
 ;;; TODOs
 ;;;; write branch inserter
 
@@ -7,160 +15,160 @@
 ;;; requires
 
 (require 'let-alist)
-      (require 'reorg-dynamic-bullets)
-      (require 'org-visual-indent)
+(require 'reorg-dynamic-bullets)
+(require 'org-visual-indent)
 
 ;;; constants
 
-      (defconst reorg--data-property-name 'reorg-data)
-      ;;(defconst reorg--id-property-name 'reorg-id)
-      (defconst reorg--field-property-name 'reorg-field-type)
+(defconst reorg--data-property-name 'reorg-data)
+;;(defconst reorg--id-property-name 'reorg-id)
+(defconst reorg--field-property-name 'reorg-field-type)
 
 ;;; customs
 
-      (defcustom reorg-parser-use-id-p t
-	"use id or markers?")
-      (defcustom reorg-buffer-name "*REORG*"
-	"Default buffer name for tree view window.")
-      (defcustom reorg-buffer-side 'left
-	"Which side for the tree buffer?")
-      (defcustom reorg-face-text-prop 'font-lock-face
-	"When setting a face, use this text property.")
-      (defcustom reorg-headline-format '(concat " " .headline)
-	"Headline format.")
+(defcustom reorg-parser-use-id-p t
+  "use id or markers?")
+(defcustom reorg-buffer-name "*REORG*"
+  "Default buffer name for tree view window.")
+(defcustom reorg-buffer-side 'left
+  "Which side for the tree buffer?")
+(defcustom reorg-face-text-prop 'font-lock-face
+  "When setting a face, use this text property.")
+(defcustom reorg-headline-format '(concat " " .headline)
+  "Headline format.")
 
 ;;; variables 
 
-      (defvar-local reorg-current-template nil
-	"the current template in this buffer")
+(defvar-local reorg-current-template nil
+  "the current template in this buffer")
 
-      (defvar reorg-parser-list nil
-	"parser list")
+(defvar reorg-parser-list nil
+  "parser list")
 
-      (defvar reorg-words nil
-	"A list of `reorg-words'.")
+(defvar reorg-words nil
+  "A list of `reorg-words'.")
 
-      (defvar reorg--cache nil
-	"The results of the parsed buffer.
+(defvar reorg--cache nil
+  "The results of the parsed buffer.
 For now, only for debugging purposes.")
 
-      (defvar reorg--grouped-results nil
-	"The results of applying reorg--group-and-sort
+(defvar reorg--grouped-results nil
+  "The results of applying reorg--group-and-sort
 to parsed data.  For now, only for debugging.")
 
-      (defvar reorg-setter-alist nil
-	"setter alist")
-      (defvar reorg--last-point nil
-	"last point (edit mode)")
+(defvar reorg-setter-alist nil
+  "setter alist")
+(defvar reorg--last-point nil
+  "last point (edit mode)")
 
 ;;; data macro
 
-      ;; (cl-defmacro reorg-create-data-type (&optional &key
-      ;; 					       name
-      ;; 					       get
-      ;; 					       getter
-      ;; 					       set
-      ;; 					       class 
-      ;; 					       parse
-      ;; 					       validate
-      ;; 					       disabled
-      ;; 					       display-prefix
-      ;; 					       display-suffix
-      ;; 					       display
-      ;; 					       face
-      ;; 					       editable
-      ;; 					       display
-      ;; 					       orig-entry-func 
-      ;; 					       field-keymap
-      ;; 					       heading-keymap
-      ;; 					       post-edit-hook
-      ;; 					       pre-edit-hook
-      ;; 					       &allow-other-keys)
-      ;;   `(progn
-      ;;      (let ((data
-      ;; 	    (list 
-      ;; 	     :parse
-      ;; 	     (lambda () ,parse)
-      ;; 	     :get
-      ;; 	     (lambda (id &rest args)			 
-      ;; 	       (reorg--with-point-at-orig-entry id buffer
-      ;; 						,get))
-      ;; 	     :getter
-      ;; 	     (lambda (plist arg)
-      ;; 	       ,getter)		  
-      ;; 	     :get-view-string
-      ;; 	     (lambda ()
-      ;; 	       (pcase-let ((`(,start . ,end)
-      ;; 			    (reorg--get-field-bounds)))
-      ;; 		 (buffer-substring start end)))
-      ;; 	     :validate
-      ;; 	     (lambda (val &rest args)
-      ;; 	       ,validate)
-      ;; 	     :orig-entry-func
-      ;; 	     (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name class) " " (symbol-name name)))
-      ;; 		 (plist &rest args)
-      ;; 	       ,@orig-entry-func)
-      ;; 	     :display
-      ;; 	     (cl-defun ,(intern (concat "reorg-display--"  (symbol-name class) " " (symbol-name name)))
-      ;; 		 (plist &rest args)
-      ;; 	       (let ((val (plist-get plist (or (when ',getter
-      ;; 						 ,getter)
-      ;; 					       ,(reorg--add-remove-colon name)))))
-      ;; 		 (when ',display (setq val (apply (lambda (&rest args) ,display) args)))
-      ;; 		 (when ',face (setq val (propertize
-      ;; 					 val
-      ;; 					 'font-lock-face
-      ;; 					 (cond ((internal-lisp-face-p ',face)
-      ;; 						',face)
-      ;; 					       ((functionp ',face)
-      ;; 						(funcall ',face plist))
-      ;; 					       (t (error "invalid face specification"))))))
-      ;; 		 (setq val (concat ,display-prefix val ,display-suffix))
-      ;; 		 (setq val (propertize val 'reorg-field-type ',name))
-      ;; 		 (setq val (propertize val 'field (list 'reorg
-      ;; 							(intern (concat
-      ;; 								 (symbol-name ',class)
-      ;; 								 "-"
-      ;; 								 (symbol-name ',name)
-      ;; 								 ',name)))))
-      ;; 		 (setq val (propertize val 'front-sticky t))
-      ;; 		 (when ',field-keymap 
-      ;; 		   (setq val (propertize
-      ;; 			      val
-      ;; 			      'keymap
-      ;; 			      (let ((map (make-sparse-keymap)))
-      ;; 				,@(cl-loop
-      ;; 				   for key in field-keymap
-      ;; 				   collect `(define-key map
-      ;; 					      (kbd ,(car key))
-      ;; 					      ',(cdr key)))
-      ;; 				map))))
-      ;; 		 val)))))
-      ;;        ;; header keymaps come last
-      ;;        (if ',disabled
-      ;; 	   (progn 
-      ;; 	     (cl-loop for (key . func) in ',field-keymap
-      ;; 		      do (advice-remove func #'reorg--refresh-advice))
-      ;; 	     (setq reorg-parser-list (remove ',name reorg-parser-list)))
-      ;; 	 ;; (cl-loop for (key . func) in ',field-keymap
-      ;; 	 ;; 	  do (advice-add func :around #'reorg--refresh-advice))
-      ;; 	 (if (alist-get ',name reorg-setter-alist)
-      ;; 	     (setf (alist-get ',name reorg-setter-alist) ,set)
-      ;; 	   (push (cons ',name ,set) reorg-setter-alist))
-      ;; 	 (if (alist-get ',name reorg-parser-list)
-      ;; 	     (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
-      ;; 	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
+;; (cl-defmacro reorg-create-data-type (&optional &key
+;; 					       name
+;; 					       get
+;; 					       getter
+;; 					       set
+;; 					       class 
+;; 					       parse
+;; 					       validate
+;; 					       disabled
+;; 					       display-prefix
+;; 					       display-suffix
+;; 					       display
+;; 					       face
+;; 					       editable
+;; 					       display
+;; 					       orig-entry-func 
+;; 					       field-keymap
+;; 					       heading-keymap
+;; 					       post-edit-hook
+;; 					       pre-edit-hook
+;; 					       &allow-other-keys)
+;;   `(progn
+;;      (let ((data
+;; 	    (list 
+;; 	     :parse
+;; 	     (lambda () ,parse)
+;; 	     :get
+;; 	     (lambda (id &rest args)			 
+;; 	       (reorg--with-point-at-orig-entry id buffer
+;; 						,get))
+;; 	     :getter
+;; 	     (lambda (plist arg)
+;; 	       ,getter)		  
+;; 	     :get-view-string
+;; 	     (lambda ()
+;; 	       (pcase-let ((`(,start . ,end)
+;; 			    (reorg--get-field-bounds)))
+;; 		 (buffer-substring start end)))
+;; 	     :validate
+;; 	     (lambda (val &rest args)
+;; 	       ,validate)
+;; 	     :orig-entry-func
+;; 	     (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name class) " " (symbol-name name)))
+;; 		 (plist &rest args)
+;; 	       ,@orig-entry-func)
+;; 	     :display
+;; 	     (cl-defun ,(intern (concat "reorg-display--"  (symbol-name class) " " (symbol-name name)))
+;; 		 (plist &rest args)
+;; 	       (let ((val (plist-get plist (or (when ',getter
+;; 						 ,getter)
+;; 					       ,(reorg--add-remove-colon name)))))
+;; 		 (when ',display (setq val (apply (lambda (&rest args) ,display) args)))
+;; 		 (when ',face (setq val (propertize
+;; 					 val
+;; 					 'font-lock-face
+;; 					 (cond ((internal-lisp-face-p ',face)
+;; 						',face)
+;; 					       ((functionp ',face)
+;; 						(funcall ',face plist))
+;; 					       (t (error "invalid face specification"))))))
+;; 		 (setq val (concat ,display-prefix val ,display-suffix))
+;; 		 (setq val (propertize val 'reorg-field-type ',name))
+;; 		 (setq val (propertize val 'field (list 'reorg
+;; 							(intern (concat
+;; 								 (symbol-name ',class)
+;; 								 "-"
+;; 								 (symbol-name ',name)
+;; 								 ',name)))))
+;; 		 (setq val (propertize val 'front-sticky t))
+;; 		 (when ',field-keymap 
+;; 		   (setq val (propertize
+;; 			      val
+;; 			      'keymap
+;; 			      (let ((map (make-sparse-keymap)))
+;; 				,@(cl-loop
+;; 				   for key in field-keymap
+;; 				   collect `(define-key map
+;; 					      (kbd ,(car key))
+;; 					      ',(cdr key)))
+;; 				map))))
+;; 		 val)))))
+;;        ;; header keymaps come last
+;;        (if ',disabled
+;; 	   (progn 
+;; 	     (cl-loop for (key . func) in ',field-keymap
+;; 		      do (advice-remove func #'reorg--refresh-advice))
+;; 	     (setq reorg-parser-list (remove ',name reorg-parser-list)))
+;; 	 ;; (cl-loop for (key . func) in ',field-keymap
+;; 	 ;; 	  do (advice-add func :around #'reorg--refresh-advice))
+;; 	 (if (alist-get ',name reorg-setter-alist)
+;; 	     (setf (alist-get ',name reorg-setter-alist) ,set)
+;; 	   (push (cons ',name ,set) reorg-setter-alist))
+;; 	 (if (alist-get ',name reorg-parser-list)
+;; 	     (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
+;; 	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
 
 ;;; class macro
 
 ;;;; creating classes and data 
 
-      ;; It is just easier to do it this way. 
+;; It is just easier to do it this way. 
 
-      (defun reorg--clone-outline-results (data &optional format-string)
-	"asdf"
-	(cl-loop for d in data
-		 collect (reorg--create-headline-string d format-string (plist-get d :level))))
+(defun reorg--clone-outline-results (data &optional format-string)
+  "asdf"
+  (cl-loop for d in data
+	   collect (reorg--create-headline-string d format-string (plist-get d :level))))
 
 ;;;; process results
 
@@ -170,95 +178,96 @@ to parsed data.  For now, only for debugging.")
 
 ;;; Insert headlines into buffer
 
-      (defun reorg--insert-org-headlines (data)
-	"Insert grouped and sorted data into outline."
-	(let (results)
-	  (cl-labels ((recurse (data)
-			       (cond ((stringp data)
-				      (insert data "\n"))
-				     (data (cl-loop for entry in data
-						    do (recurse entry))))))
-	    (recurse data))))
+(defun reorg--insert-org-headlines (data)
+  "Insert grouped and sorted data into outline."
+  (let (results)
+    (cl-labels ((recurse (data)
+			 (cond ((stringp data)
+				(insert data "\n"))
+			       (data (cl-loop for entry in data
+					      do (recurse entry))))))
+      (recurse data))))
 
 ;;; window control
 
-      (defun reorg--open-side-window ()
-	"Open a side window to display the tree."
-	(display-buffer-in-side-window (get-buffer-create reorg-buffer-name)
-				       `((side . ,reorg-buffer-side)
-					 (slot . nil)))
-	(balance-windows))
+(defun reorg--open-side-window ()
+  "Open a side window to display the tree."
+  (display-buffer-in-side-window (get-buffer-create reorg-buffer-name)
+				 `((side . ,reorg-buffer-side)
+				   (slot . nil)))
+  (balance-windows))
 
-      (defun reorg--select-main-window (&optional buffer)
-	"Select the source window. If BUFFER is non-nil,
+(defun reorg--select-main-window (&optional buffer)
+  "Select the source window. If BUFFER is non-nil,
 switch to that buffer in the window." 
-	(select-window (window-main-window))
-	(when buffer
-	  (switch-to-buffer buffer)))
+  (select-window (window-main-window))
+  (when buffer
+    (switch-to-buffer buffer)))
 
-      (defun reorg--select-tree-window ()
-	"Select the tree window." 
-	(select-window
-	 (car 
-	  (window-at-side-list nil reorg-buffer-side))))
+(defun reorg--select-tree-window ()
+  "Select the tree window." 
+  (select-window
+   (car 
+    (window-at-side-list nil reorg-buffer-side))))
 
 ;;; view buffer
 
-      (defun reorg--get-view-props (&optional point &rest props)
-	"Get text property PROPS at point. If there are multiple PROPS,
+(defun reorg--get-view-props (&optional point &rest props)
+  "Get text property PROPS at point. If there are multiple PROPS,
 get nested properties."
-	(cl-labels ((get-props (props &optional payload)
-			       (if props 
-				   (let ((props (if (listp props) props (list props))))
-				     (if (not payload)
-					 (->> (get-text-property (or point (point)) (car props))
-					      (get-props (cdr props)))
-				       (->> (plist-get payload (car props))
-					    (get-props (cdr props)))))
-				 payload)))
-	  (if props 
-	      (get-props props)
-	    (let ((inhibit-field-text-motion t))
-	      (get-text-property (or point (point)) reorg--data-property-name)))))
+  (cl-labels ((get-props (props &optional payload)
+			 (if props 
+			     (let ((props (if (listp props) props (list props))))
+			       (if (not payload)
+				   (->> (get-text-property (or point (point)) (car props))
+					(get-props (cdr props)))
+				 (->> (plist-get payload (car props))
+				      (get-props (cdr props)))))
+			   payload)))
+    (if props 
+	(get-props props)
+      (let ((inhibit-field-text-motion t))
+	(get-text-property (or point (point)) reorg--data-property-name)))))
 
-      (defun reorg--get-view-prop (&optional property)
-	"Get PROPERTY from the current heading."
-	(save-excursion 
-	  (beginning-of-line)
-	  (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
-	    (if property 
-		(plist-get props property)
-	      props))))
+(defun reorg--get-view-prop (&optional property)
+  "Get PROPERTY from the current heading."
+  (save-excursion 
+    (beginning-of-line)
+    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
+      (if property
+	  (alist-get property props)
+	;;(plist-get props property)
+	props))))
 
-      (defun reorg-outline-level ()
-	"Get the outline level of the heading at point."
-	(save-excursion
-	  (let ((search-invisible t))
-	    (outline-back-to-heading t)
-	    (re-search-forward "^*+ " (point-at-eol))
-	    (1- (length (match-string 0))))))
+(defun reorg-outline-level ()
+  "Get the outline level of the heading at point."
+  (save-excursion
+    (let ((search-invisible t))
+      (outline-back-to-heading t)
+      (re-search-forward "^*+ " (point-at-eol))
+      (1- (length (match-string 0))))))
 
-      (defun reorg--get-field-at-point (&optional point)
-	"Get the reorg-field-type at point."
-	(get-text-property (or point (point)) reorg--field-property-name))
+(defun reorg--get-field-at-point (&optional point)
+  "Get the reorg-field-type at point."
+  (get-text-property (or point (point)) reorg--field-property-name))
 
-      (defun reorg--get-field-bounds ()
-	"Get the bounds of the field at point."
-	(when-let ((field (reorg--get-field-at-point)))
-	  (cons
-	   (save-excursion 
-	     (cl-loop while (and (equal (reorg--get-field-at-point)
-					field)
-				 (not (bobp)))
-		      do (forward-char -1)
-		      finally return (1+ (point))))
-	   (save-excursion 
-	     (cl-loop while (and (equal (reorg--get-field-at-point)
-					field)
-				 (not (eobp)))
-		      
-		      do (forward-char 1)
-		      finally return (point))))))
+(defun reorg--get-field-bounds ()
+  "Get the bounds of the field at point."
+  (when-let ((field (reorg--get-field-at-point)))
+    (cons
+     (save-excursion 
+       (cl-loop while (and (equal (reorg--get-field-at-point)
+				  field)
+			   (not (bobp)))
+		do (forward-char -1)
+		finally return (1+ (point))))
+     (save-excursion 
+       (cl-loop while (and (equal (reorg--get-field-at-point)
+				  field)
+			   (not (eobp)))
+		
+		do (forward-char 1)
+		finally return (point))))))
 ;;; main
 
 (defun reorg-open-sidebar-clone (&optional file)
@@ -298,97 +307,98 @@ get nested properties."
     (setq-local cursor-type nil)
     (goto-char (point-min))))
 
-  (defun reorg-open-sidebar-fundamental (template &optional format-string file)
-    "Open this shit in the sidebar."
-    (interactive)
-    (let ((results (--> (reorg--map-entries file)
-			(reorg--group-and-sort it template)
-			(reorg--process-results it format-string))))
-      (when (get-buffer reorg-buffer-name)
-	(kill-buffer reorg-buffer-name))
-      (reorg--open-side-window)
-      (reorg--select-tree-window)
-      (let ((inhibit-read-only t))
-	(erase-buffer))
-      (reorg--insert-org-headlines results)
-      (fundamental-mode)))
+(defun reorg-open-sidebar-fundamental (template &optional format-string file)
+  "Open this shit in the sidebar."
+  (interactive)
+  (let ((results (--> (reorg--map-entries file)
+		      (reorg--group-and-sort it template)
+		      (reorg--process-results it format-string))))
+    (when (get-buffer reorg-buffer-name)
+      (kill-buffer reorg-buffer-name))
+    (reorg--open-side-window)
+    (reorg--select-tree-window)
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (reorg--insert-org-headlines results)
+    (fundamental-mode)))
 
 ;;; reorg-views
 ;;;; clone functions
 
-  (defun reorg--jump-to-next-clone (&optional id previous)
-    "Move to the next clone of the current node."
-    (interactive)
-    (let ((func (if previous
-		    #'text-property-search-backward
-		  #'text-property-search-forward))
-	  (id (or id (reorg--get-view-prop :id))))
-      (if (funcall func reorg--data-property-name
-		   id
-		   (lambda (val plist)
-		     (string= 
-		      (plist-get plist :id)
-		      val))
-		   'not-current)
-	  (let ((point (point)))
-	    (when previous (backward-char))
-	    (outline-back-to-heading)
-	    (save-excursion 
-	      (reorg--unfold-at-point point)
-	      (reorg-edits--update-box-overlay)
-	      point))
-	(if previous
-	    (goto-char (point-max))
-	  (goto-char (point-min)))
-	(reorg--jump-to-next-clone id previous)))
-    (reorg-edits--post-field-navigation-hook))
+(defun reorg--jump-to-next-clone (&optional id previous)
+  "Move to the next clone of the current node."
+  (interactive)
+  (let ((func (if previous
+		  #'text-property-search-backward
+		#'text-property-search-forward))
+	(id (or id (reorg--get-view-prop 'id))))
+    (if (funcall func reorg--data-property-name
+		 id
+		 (lambda (val plist)
+		   (string= 
+		    (plist-get plist :id)
+		    val))
+		 'not-current)
+	(let ((point (point)))
+	  (when previous (backward-char))
+	  (outline-back-to-heading)
+	  (save-excursion 
+	    (reorg--unfold-at-point point)
+	    (reorg-edits--update-box-overlay)
+	    point))
+      (if previous
+	  (goto-char (point-max))
+	(goto-char (point-min)))
+      (reorg--jump-to-next-clone id previous)))
+  (reorg-edits--post-field-navigation-hook))
 
-  (defun reorg--jump-to-previous-clone (&optional id)
-    "Jump to previous clone"
-    (interactive)
-    (reorg--jump-to-next-clone id 'previous))
+(defun reorg--jump-to-previous-clone (&optional id)
+  "Jump to previous clone"
+  (interactive)
+  (reorg--jump-to-next-clone id 'previous))
 
 ;;;; view buffer functions
 
-  (defun reorg-view--update-highlight-overlay (&optional &rest _args)
-    "update transclusion overlay."
-    nil)
-  ;; (delete-overlay reorg-current-heading-overlay)
-  ;; (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
+(defun reorg-view--update-highlight-overlay (&optional &rest _args)
+  "update transclusion overlay."
+  nil)
+;; (delete-overlay reorg-current-heading-overlay)
+;; (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
 
-  (defun reorg--initialize-overlay ()
-    "initialize the transclusion overlay."
-    nil)
-  ;; (setq reorg-current-heading-overlay
-  ;; 	(make-overlay 1 2))
-  ;; (overlay-put reorg-current-heading-overlay
-  ;; 	       'face
-  ;; 	       'reorg-current-heading-face)
-  ;; (overlay-put reorg-current-heading-overlay 'insert-behind-hooks '(reorg--transclusion-logger
-  ;; 								    reorg-view--update-highlight-overlay
-  ;; 								    reorg--modification-hook-func))
-  ;; (overlay-put reorg-current-heading-overlay 'insert-in-front-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-  ;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-  ;; (delete-overlay reorg-current-heading-overlay))
-
-
+(defun reorg--initialize-overlay ()
+  "initialize the transclusion overlay."
+  nil)
+;; (setq reorg-current-heading-overlay
+;; 	(make-overlay 1 2))
+;; (overlay-put reorg-current-heading-overlay
+;; 	       'face
+;; 	       'reorg-current-heading-face)
+;; (overlay-put reorg-current-heading-overlay 'insert-behind-hooks '(reorg--transclusion-logger
+;; 								    reorg-view--update-highlight-overlay
+;; 								    reorg--modification-hook-func))
+;; (overlay-put reorg-current-heading-overlay 'insert-in-front-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
+;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
+;; (delete-overlay reorg-current-heading-overlay))
 
 
 
-  ;; (reorg-props 'headline :val (propertize (plist-get props :headline)
-  ;; 					    reorg--data-property-name props))(defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
+
+
+;; (reorg-props 'headline :val (propertize (plist-get props :headline)
+;; 					    reorg--data-property-name props))
+(defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
   (interactive)
-  (when  (and (or buffer (reorg--get-view-prop :buffer))
-	      (or id (reorg--get-view-prop :id)))
+  (when  (and (or buffer (reorg--get-view-prop 'buffer))
+	      (or id (reorg--get-view-prop 'id)))
     (if reorg-parser-use-id-p 
 	(reorg-view--goto-source-id
-	 (or buffer (reorg--get-view-prop :buffer))
-	 (or id (reorg--get-view-prop :id))
+	 (or buffer (reorg--get-view-prop 'buffer))
+	 (or id (reorg--get-view-prop 'id))
 	 (not no-narrow))
       (reorg-view--goto-source-marker 
-       (or buffer (reorg--get-view-prop :buffer))
-       (or id (reorg--get-view-prop :marker))
+       (or buffer (reorg--get-view-prop 'buffer))
+       (or id (reorg--get-view-prop 'marker))
        (not no-narrow)))))
 
 (defun reorg-view--source--goto-end-of-meta-data ()
@@ -503,10 +513,10 @@ the point and return nil."
 (defun reorg--update-this-heading-all ()
   "Update heading at point and all clones."
   (let ((data 
-	 (reorg--with-point-at-orig-entry (reorg--get-view-prop :id)
-					  (reorg--get-view-prop :buffer)
+	 (reorg--with-point-at-orig-entry (reorg--get-view-prop 'id)
+					  (reorg--get-view-prop 'buffer)
 					  (reorg--parser)))
-	(id (reorg--get-view-prop :id)))
+	(id (reorg--get-view-prop 'id)))
     (reorg--select-tree-window)
     (save-restriction
       (save-excursion    
@@ -519,7 +529,7 @@ the point and return nil."
 ;; move to the first new entry."
 ;;   (let ((disable-point-adjustment t)
 ;; 	(search-invisible t)
-;; 	(id (reorg--get-view-prop :id)))
+;; 	(id (reorg--get-view-prop 'id)))
 ;;     (reorg--select-tree-window)
 ;;     (reorg--map-id (plist-get data :id)
 ;; 		   (reorg-views--delete-leaf)
@@ -1028,8 +1038,8 @@ returns the correct positions."
 	(level (reorg-outline-level))
 	(format (save-excursion
 		  (cl-loop while (org-up-heading-safe)
-			   when (reorg--get-view-prop :format-string)
-			   return (reorg--get-view-prop :format-string)
+			   when (reorg--get-view-prop 'format-string)
+			   return (reorg--get-view-prop 'format-string)
 			   finally return reorg-headline-format))))
     (reorg-views--delete-leaf)
     (reorg--insert-heading props level format)))
@@ -1457,7 +1467,7 @@ Return nil if there is no such branch."
 
 
 (defun reorg-tree--is-cloned-p ()
-  (when-let ((id (reorg--get-view-prop :id)))
+  (when-let ((id (reorg--get-view-prop 'id)))
     (setf (point) (point-min))
     (text-property-search-forward reorg--data-property-name
 				  id
@@ -1977,3 +1987,5 @@ update the heading at point."
        (save-excursion 
 	 (reorg--branch-insert--drop-into-outline data
 						  reorg-current-template)))))
+
+(provide 'reorg)

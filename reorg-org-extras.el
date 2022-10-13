@@ -197,3 +197,4 @@ See `org-map-entries' for explanation of the parameters."
        (widen)
        (let ((inhibit-field-text-motion t))
 	 ,@body))))
+(provide 'reorg-org-extras)

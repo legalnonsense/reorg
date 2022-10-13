@@ -467,3 +467,4 @@ go to the next line."
   (while (reorg--goto-next-relative-level 1))
   (reorg-new--goto-end-of-leaves))
 
+(provide 'reorg-tree)
