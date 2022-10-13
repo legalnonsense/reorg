@@ -278,13 +278,11 @@ get nested properties."
     (org-visual-indent-mode)    
     (goto-char (point-min))))
 
-(cl-defun reorg-open-sidebar (&key file template)
+(cl-defun reorg-open-sidebar (&key sources template)
   "Open this shit in the sidebar."
   (interactive)
-  (let ((results (with-current-buffer (find-file-noselect file)
-		   (org-show-all)
-		   (--> (reorg--map-entries)
-			(reorg--group-and-sort it template)))))
+  (let ((results (--> (reorg--getter sources)
+		      (reorg--group-and-sort it template))))
     (when (get-buffer reorg-buffer-name)
       (kill-buffer reorg-buffer-name))
     (reorg--open-side-window)
@@ -300,98 +298,98 @@ get nested properties."
     (setq-local cursor-type nil)
     (goto-char (point-min))))
 
-      (defun reorg-open-sidebar-fundamental (template &optional format-string file)
-	"Open this shit in the sidebar."
-	(interactive)
-	(let ((results (--> (reorg--map-entries file)
-			    (reorg--group-and-sort it template)
-			    (reorg--process-results it format-string))))
-	  (when (get-buffer reorg-buffer-name)
-	    (kill-buffer reorg-buffer-name))
-	  (reorg--open-side-window)
-	  (reorg--select-tree-window)
-	  (let ((inhibit-read-only t))
-	    (erase-buffer))
-	  (reorg--insert-org-headlines results)
-	  (fundamental-mode)))
+  (defun reorg-open-sidebar-fundamental (template &optional format-string file)
+    "Open this shit in the sidebar."
+    (interactive)
+    (let ((results (--> (reorg--map-entries file)
+			(reorg--group-and-sort it template)
+			(reorg--process-results it format-string))))
+      (when (get-buffer reorg-buffer-name)
+	(kill-buffer reorg-buffer-name))
+      (reorg--open-side-window)
+      (reorg--select-tree-window)
+      (let ((inhibit-read-only t))
+	(erase-buffer))
+      (reorg--insert-org-headlines results)
+      (fundamental-mode)))
 
 ;;; reorg-views
 ;;;; clone functions
 
-      (defun reorg--jump-to-next-clone (&optional id previous)
-	"Move to the next clone of the current node."
-	(interactive)
-	(let ((func (if previous
-			#'text-property-search-backward
-		      #'text-property-search-forward))
-	      (id (or id (reorg--get-view-prop :id))))
-	  (if (funcall func reorg--data-property-name
-		       id
-		       (lambda (val plist)
-			 (string= 
-			  (plist-get plist :id)
-			  val))
-		       'not-current)
-	      (let ((point (point)))
-		(when previous (backward-char))
-		(outline-back-to-heading)
-		(save-excursion 
-		  (reorg--unfold-at-point point)
-		  (reorg-edits--update-box-overlay)
-		  point))
-	    (if previous
-		(goto-char (point-max))
-	      (goto-char (point-min)))
-	    (reorg--jump-to-next-clone id previous)))
-	(reorg-edits--post-field-navigation-hook))
+  (defun reorg--jump-to-next-clone (&optional id previous)
+    "Move to the next clone of the current node."
+    (interactive)
+    (let ((func (if previous
+		    #'text-property-search-backward
+		  #'text-property-search-forward))
+	  (id (or id (reorg--get-view-prop :id))))
+      (if (funcall func reorg--data-property-name
+		   id
+		   (lambda (val plist)
+		     (string= 
+		      (plist-get plist :id)
+		      val))
+		   'not-current)
+	  (let ((point (point)))
+	    (when previous (backward-char))
+	    (outline-back-to-heading)
+	    (save-excursion 
+	      (reorg--unfold-at-point point)
+	      (reorg-edits--update-box-overlay)
+	      point))
+	(if previous
+	    (goto-char (point-max))
+	  (goto-char (point-min)))
+	(reorg--jump-to-next-clone id previous)))
+    (reorg-edits--post-field-navigation-hook))
 
-      (defun reorg--jump-to-previous-clone (&optional id)
-	"Jump to previous clone"
-	(interactive)
-	(reorg--jump-to-next-clone id 'previous))
+  (defun reorg--jump-to-previous-clone (&optional id)
+    "Jump to previous clone"
+    (interactive)
+    (reorg--jump-to-next-clone id 'previous))
 
 ;;;; view buffer functions
 
-      (defun reorg-view--update-highlight-overlay (&optional &rest _args)
-	"update transclusion overlay."
-	nil)
-      ;; (delete-overlay reorg-current-heading-overlay)
-      ;; (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
+  (defun reorg-view--update-highlight-overlay (&optional &rest _args)
+    "update transclusion overlay."
+    nil)
+  ;; (delete-overlay reorg-current-heading-overlay)
+  ;; (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
 
-      (defun reorg--initialize-overlay ()
-	"initialize the transclusion overlay."
-	nil)
-      ;; (setq reorg-current-heading-overlay
-      ;; 	(make-overlay 1 2))
-      ;; (overlay-put reorg-current-heading-overlay
-      ;; 	       'face
-      ;; 	       'reorg-current-heading-face)
-      ;; (overlay-put reorg-current-heading-overlay 'insert-behind-hooks '(reorg--transclusion-logger
-      ;; 								    reorg-view--update-highlight-overlay
-      ;; 								    reorg--modification-hook-func))
-      ;; (overlay-put reorg-current-heading-overlay 'insert-in-front-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-      ;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-      ;; (delete-overlay reorg-current-heading-overlay))
-
-
+  (defun reorg--initialize-overlay ()
+    "initialize the transclusion overlay."
+    nil)
+  ;; (setq reorg-current-heading-overlay
+  ;; 	(make-overlay 1 2))
+  ;; (overlay-put reorg-current-heading-overlay
+  ;; 	       'face
+  ;; 	       'reorg-current-heading-face)
+  ;; (overlay-put reorg-current-heading-overlay 'insert-behind-hooks '(reorg--transclusion-logger
+  ;; 								    reorg-view--update-highlight-overlay
+  ;; 								    reorg--modification-hook-func))
+  ;; (overlay-put reorg-current-heading-overlay 'insert-in-front-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
+  ;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
+  ;; (delete-overlay reorg-current-heading-overlay))
 
 
 
-      ;; (reorg-props 'headline :val (propertize (plist-get props :headline)
-      ;; 					    reorg--data-property-name props))(defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
-      "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
-      (interactive)
-      (when  (and (or buffer (reorg--get-view-prop :buffer))
-		  (or id (reorg--get-view-prop :id)))
-	(if reorg-parser-use-id-p 
-	    (reorg-view--goto-source-id
-	     (or buffer (reorg--get-view-prop :buffer))
-	     (or id (reorg--get-view-prop :id))
-	     (not no-narrow))
-	  (reorg-view--goto-source-marker 
-	   (or buffer (reorg--get-view-prop :buffer))
-	   (or id (reorg--get-view-prop :marker))
-	   (not no-narrow)))))
+
+
+  ;; (reorg-props 'headline :val (propertize (plist-get props :headline)
+  ;; 					    reorg--data-property-name props))(defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
+  "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
+  (interactive)
+  (when  (and (or buffer (reorg--get-view-prop :buffer))
+	      (or id (reorg--get-view-prop :id)))
+    (if reorg-parser-use-id-p 
+	(reorg-view--goto-source-id
+	 (or buffer (reorg--get-view-prop :buffer))
+	 (or id (reorg--get-view-prop :id))
+	 (not no-narrow))
+      (reorg-view--goto-source-marker 
+       (or buffer (reorg--get-view-prop :buffer))
+       (or id (reorg--get-view-prop :marker))
+       (not no-narrow)))))
 
 (defun reorg-view--source--goto-end-of-meta-data ()
   "Go to the end of the meta data and insert a blank line

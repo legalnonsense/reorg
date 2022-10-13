@@ -111,8 +111,9 @@
 			;; 	 (reorg--with-source-and-sync val
 			;; 	   (org-edit-headline val))))
 			;; :face org-level-3
+			:display (alist-get 'headline alist)
 			:parse (org-no-properties
-				 (org-get-heading t t t t)))
+				(org-get-heading t t t t)))
 
 ;; (reorg-create-data-type
 ;;  :name property

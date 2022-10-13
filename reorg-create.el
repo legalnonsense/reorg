@@ -95,6 +95,12 @@ call from the template macro.
 	  for SOURCE in sources
 	  append
 	  ,getter)))
+     (unless (boundp 'reorg--getter-list)
+       (defvar reorg--getter-list nil "Getter list for all classes"))
+     (cl-pushnew (cons ',name #',(reorg--create-symbol 'reorg--
+						       name
+						       '--get-from-source))
+		 reorg--getter-list)
      (unless (boundp 'reorg--parser-list)
        (defvar reorg--parser-list nil "Parser list for all classes."))
      (cl-pushnew (cons 'class (lambda (&optional _) ',name))
@@ -171,12 +177,12 @@ parser for that type."
 
 ;;; creating headline strings from parsed data 
 
-(defun reorg--depth-first-apply (treee func &optional data)
+(defun reorg--depth-first-apply (form func &optional data)
   "Run FUNC at each node of TREE using a depth-first traversal
 and destructively modify TREE. 
 FUNC is a function that accepts one argument, which is the
 current element of TREE."
-  (let ((tree (copy-tree treee)))
+  (let ((tree (copy-tree form)))
     (cl-labels ((doloop (tree func)
 			(setf (car tree) (funcall func (car tree) data))
 			(cl-loop for n below (length (cdr tree))
@@ -201,25 +207,6 @@ function created by the type creation macro."
           (alist-get (intern (substring (symbol-name elem) 1))
 		     data)))
     elem))
-
-
-;; (defun reorg--turn-dot-to-field (elem data)
-;;   (if (and (symbolp elem)
-;; 	   (string-match "\\`\\." (symbol-name elem)))
-;;       (pcase-let ((`(,class ,name) (mapcar
-;; 				    #'intern
-;; 				    (s-split "\\." (symbol-name elem) t))))
-;; 	(funcall (reorg--get-display-func-name class name) data))
-;;     elem))
-
-;; (defun reorg--get-dot-value (elem data)
-;;   (when (and (symbolp elem)
-;; 	     (string-match "\\`\\." (symbol-name elem)))
-;;     (pcase-let ((`(,class ,name) (mapcar
-;; 				  #'intern
-;; 				  (s-split "\\." (symbol-name elem) t))))
-;;       (when (eq (alist-get 'class data) class)
-;; 	(alist-get name data)))))
 
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the
@@ -249,3 +236,12 @@ template.  Use LEVEL number of leading stars.  Add text properties
      ;;TODO:change this to `reorg-data'
      reorg--data-property-name
      data)))
+
+(defun reorg--getter (sources)
+  "Get entries from SOURCES, which is an alist
+in the form of (CLASS . SOURCE)."
+  (cl-loop for (class . source) in sources
+	   append (funcall (alist-get class reorg--getter-list)
+			   source)))
+
+

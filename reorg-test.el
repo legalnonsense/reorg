@@ -5,96 +5,107 @@
 ;;     "test file class"
 ;;   (require 'reorg-files)
 
-
 (cl-loop for each in (reorg--files--get-from-source "find ~/Desktop -type f" "find ~/org -type f")
 	 collect (reorg--create-headline-string each '(concat .depth "   asadfsadf   " .filename )))
 
-  (cl-loop for each in (reorg--org--get-from-source "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
-	   collect (reorg--create-headline-string each '(concat " " .priority " " .headline " zzz " .todo) 5))
+(cl-loop for each in (reorg--org--get-from-source "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
+	 collect (reorg--create-headline-string each '(concat " " .priority " " .headline " zzz " .todo) 5))
 
-  (defun xxx-reorg-test-control-panel-10 ()
-    (interactive)
-    (reorg-open-sidebar
-     :file "~/legal/Dropbox/DropsyncFiles/taskmaster.org"
-     :template
-     '( :group "MEETING VIEW"
-	:children
-	(( :group "CASE LIST"
-	   :children
-	   (( :group .root
-	      :sort string< 
-	      :sort-getter (lambda (x) (downcase x))
-	      :children
-	      (( :group (when (and .todo
-				   (not (string= .todo "DONE"))
-				   (not (string= .todo "EVENT"))
-				   (not (string= .todo "OPP_DUE"))
-				   (not (string= .todo "DEADLINE")))
-			  "TASKS" )
-		 :format-string (concat .stars " " (s-pad-right 10 " " .todo) .headline)
-		 :sort-results ((.todo . string<)
-				((downcase .headline) . string<)))
-	       ( :group (when (and
-			       (or (string= .todo "DEADLINE")
-				   (string= .todo "EVENT")
-				   (string= .todo "OPP_DUE"))
-			       (or .timestamp
-				   .deadline
-				   .scheduled))
-			  "CALENDAR")
-		 :format-string (concat
-				 .stars 
-				 " "
-				 .ts-type
-				 " "
-				 (s-pad-right 50
-					      "."
-					      (s-truncate 40 .headline "..."))
-				 .ts)
-		 :sort-results ((.ts . string<)))
-	       ( :group (when (string= .headline "_NOTES_")
-			  "Progress Notes")
-		 :format-string (concat .stars " Notes"))))))
-	 ( :group "Date tree"
-	   :children
-	   (( :group (when-let ((time (or .timestamp
-					  .deadline
-					  .scheduled
-					  .timestamp-ia)))
-		       (number-to-string
-			(ts-year
-			 (ts-parse time))))
-	      :sort string< 
-	      :sort-getter identity
-	      :children
-	      (( :group
-		 (when-let ((time (or .timestamp
-				      .deadline
-				      .scheduled
-				      .timestamp-ia)))
-		   (concat
-		    (s-pad-left 2 "0" (number-to-string
-				       (ts-month (ts-parse time))))
-		    " "
-		    (ts-month-name (ts-parse time))))
-		 :sort string<
-		 :sort-getter identity
-		 :children
-		 (( :group
+(defun xxx-reorg-test-11 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+   :template
+   '( :group "MEETING VIEW"
+      :children (( :group .root
+		   :sort string<
+		   :format-string (concat " " .headline)
+		   :sort-getter (lambda (x) (downcase x)))))))
 
-		    (when-let ((time (or .timestamp
-					 .deadline
-					 .scheduled
-					 .timestamp-ia)))
-		      (concat 
-		       (s-pad-left 2
-				   "0"
-				   (number-to-string
-				    (ts-day (ts-parse time))))
-		       " "
-		       (ts-day-name (ts-parse time))))
-		    :sort string<
-		    :sort-getter identity)))))))))))
+(defun xxx-reorg-test-control-panel-10 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+   :template
+   '( :group "MEETING VIEW"
+      :format-string (concat .stars " " .headline)
+      :children
+      (( :group "CASE LIST"
+	 :children
+	 (( :group .root
+	    :sort string< 
+	    :sort-getter (lambda (x) (downcase x))
+	    :children
+	    (( :group (when (and .todo
+				 (not (string= .todo "DONE"))
+				 (not (string= .todo "EVENT"))
+				 (not (string= .todo "OPP_DUE"))
+				 (not (string= .todo "DEADLINE")))
+			"TASKS" )
+	       :format-string (concat .stars " " (s-pad-right 10 " " .todo) .headline)
+	       :sort-results ((.todo . string<)
+			      ((downcase .headline) . string<)))
+	     ( :group (when (and
+			     (or (string= .todo "DEADLINE")
+				 (string= .todo "EVENT")
+				 (string= .todo "OPP_DUE"))
+			     (or .timestamp
+				 .deadline
+				 .scheduled))
+			"CALENDAR")
+	       :format-string (concat
+			       .stars 
+			       " "
+			       .ts-type
+			       " "
+			       (s-pad-right 50
+					    "."
+					    (s-truncate 40 .headline "..."))
+			       .ts)
+	       :sort-results ((.ts . string<)))
+	     ( :group (when (string= .headline "_NOTES_")
+			"Progress Notes")
+	       :format-string (concat .stars " Notes"))))))
+       ( :group "Date tree"
+	 :children
+	 (( :group (when-let ((time (or .timestamp
+					.deadline
+					.scheduled
+					.timestamp-ia)))
+		     (number-to-string
+		      (ts-year
+		       (ts-parse time))))
+	    :sort string< 
+	    :sort-getter identity
+	    :children
+	    (( :group
+	       (when-let ((time (or .timestamp
+				    .deadline
+				    .scheduled
+				    .timestamp-ia)))
+		 (concat
+		  (s-pad-left 2 "0" (number-to-string
+				     (ts-month (ts-parse time))))
+		  " "
+		  (ts-month-name (ts-parse time))))
+	       :sort string<
+	       :sort-getter identity
+	       :children
+	       (( :group
+
+		  (when-let ((time (or .timestamp
+				       .deadline
+				       .scheduled
+				       .timestamp-ia)))
+		    (concat 
+		     (s-pad-left 2
+				 "0"
+				 (number-to-string
+				  (ts-day (ts-parse time))))
+		     " "
+		     (ts-day-name (ts-parse time))))
+		  :sort string<
+		  :sort-getter identity)))))))))))
 
 
 

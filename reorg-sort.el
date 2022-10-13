@@ -90,10 +90,10 @@ keys.  Keys are compared using `equal'."
 				      :reorg-branch t
 				      :result-sorters result-sorters 
 				      :grouper-list `(lambda (x)
-						       (let-alist x
+						       (reorg--let-plist x
 							 ,grouper))
 				      :branch-predicate `(lambda (x)
-							   (let-alist x
+							   (reorg--let-plist x
 							     ,grouper))
 				      :branch-result (car x)
 				      :grouper-list-results (car x)
@@ -157,7 +157,7 @@ keys.  Keys are compared using `equal'."
 					   (cadr (nth x (nth n (cdr data))))
 					   (cl-loop for each in (cadr (nth x (nth n (cdr data))))
 						    collect
-						    (progn (plist-put each :reorg-stars (1+ level))
+						    (progn (setf (alist-get 'reorg-stars each) (1+ level))
 							   (reorg--create-headline-string each format-string (1+ level)))))))))))
       (doloop copy template)
       (cadr copy))))
