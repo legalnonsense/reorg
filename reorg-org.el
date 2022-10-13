@@ -8,14 +8,6 @@
 			   (org-map-entries
 			    #'PARSER)))
 
-
-
-;; (lambda ()
-;;   (cl-loop for (key . func) in reorg--org--parser-list
-;; 	    collect (cons key
-;; 			  (funcall func)))))))
-
-
 (reorg-create-data-type :name headline
 			:class org
 			;; :set (lambda ()
@@ -23,19 +15,17 @@
 			;; 	 (reorg--with-source-and-sync val
 			;; 	   (org-edit-headline val))))
 			;; :face org-level-3
-			:parser (org-no-properties
-				 (org-get-heading t t t t)))
+			:parse (org-no-properties
+				(org-get-heading t t t t)))
 
 (reorg-create-data-type :name ts
 			:class org
-			;; either the deadline, active
-			;; in that order
-			:parser (or
-				 (org-entry-get (point) "DEADLINE")
-				 (when (reorg--timestamp-parser)
-				   (org-no-properties (reorg--timestamp-parser)))
-				 (when (reorg--timestamp-parser nil t)
-				   (org-no-properties (reorg--timestamp-parser nil t))))
+			:parse (or
+				(org-entry-get (point) "DEADLINE")
+				(when (reorg--timestamp-parser)
+				  (org-no-properties (reorg--timestamp-parser)))
+				(when (reorg--timestamp-parser nil t)
+				  (org-no-properties (reorg--timestamp-parser nil t))))
 			:display (if-let ((ts (alist-get 'ts alist)))
 				     (if (=
 					  (string-to-number
@@ -51,11 +41,11 @@
 
 (reorg-create-data-type :name ts-type
 			:class org
-			:parser (cond 
-				 ((org-entry-get (point) "DEADLINE") "deadline")
-				 ((reorg--timestamp-parser) "active")
-				 ((org-no-properties (reorg--timestamp-parser nil t)) "range")
-				 ((org-entry-get (point) "SCHEDULED") "scheduled"))
+			:parse (cond 
+				((org-entry-get (point) "DEADLINE") "deadline")
+				((reorg--timestamp-parser) "active")
+				((org-no-properties (reorg--timestamp-parser nil t)) "range")
+				((org-entry-get (point) "SCHEDULED") "scheduled"))
 			:display (pcase (alist-get 'ts-type alist)
 				   ("deadline" "≫")
 				   ("active" "⊡")
@@ -63,23 +53,22 @@
 				   ("scheduled" "⬎")
 				   (_ " ")))
 
-
-;; (reorg-create-data-type :name priority
-;; 			:class org
-;; 			:parser (org-entry-get (point) "PRIORITY")
-;; 			:display (pcase (plist-get plist :priority)
-;; 				   ("A" "⚡")
-;; 				   ("B" "➙")
-;; 				   ("C" "﹍")
-;; 				   (_ " ")))
+(reorg-create-data-type :name priority
+			:class org
+			:parse (org-entry-get (point) "PRIORITY")
+			:display (pcase (alist-get 'priority alist)
+				   ("A" "⚡")
+				   ("B" "➙")
+				   ("C" "﹍")
+				   (_ " ")))
 
 ;; (reorg-create-data-type :name body
 ;; 			:class org
-;; 			:parser (reorg--get-body))
+;; 			:parse (reorg--get-body))
 
 (reorg-create-data-type :name deadline
 			:class org
-			:parser (org-entry-get (point) "DEADLINE")
+			:parse (org-entry-get (point) "DEADLINE")
 			;; :set (lambda ()
 			;;        (reorg--with-source-and-sync
 			;; 	 (if val (org-deadline nil val)
@@ -101,7 +90,7 @@
 
 (reorg-create-data-type :name scheduled
 			:class org 
-			:parser (org-entry-get (point) "SCHEDULED")
+			:parse (org-entry-get (point) "SCHEDULED")
 			;; :set (lambda ()
 			;;        (reorg--with-source-and-sync
 			;; 	 (if val (org-scheduled nil val)
@@ -122,13 +111,13 @@
 			;; 	 (reorg--with-source-and-sync val
 			;; 	   (org-edit-headline val))))
 			;; :face org-level-3
-			:parser (org-no-properties
+			:parse (org-no-properties
 				 (org-get-heading t t t t)))
 
 ;; (reorg-create-data-type
 ;;  :name property
 ;;  :class org
-;;  :parser (reorg-parser--get-property-drawer)
+;;  :parse (reorg-parser--get-property-drawer)
 ;;  ;; :set (lambda ()
 ;;  ;;        (reorg--with-source-and-sync
 ;;  ;; 	 (let* ((pair (split-string val ":" t " "))
@@ -147,7 +136,7 @@
 (reorg-create-data-type
  :name tags
  :class org
- :parser (org-get-tags-string))
+ :parse (org-get-tags-string))
 ;; :get (org-get-tags-string)
 ;; :set (org-set-tags val)
 ;; :face org-tag-group
@@ -156,7 +145,7 @@
 (reorg-create-data-type
  :name todo
  :class org
- :parser (org-entry-get (point) "TODO")
+ :parse (org-entry-get (point) "TODO")
  ;; :get (org-entry-get (point) "TODO")			
  ;; :set (org-todo val)
  :display (when-let ((s (alist-get 'todo alist)))
@@ -171,7 +160,7 @@
 (reorg-create-data-type
  :name timestamp
  :class org
- :parser (when (reorg--timestamp-parser)
+ :parse (when (reorg--timestamp-parser)
 	   (org-no-properties (reorg--timestamp-parser)))
  ;; :get (reorg--timestamp-parser)
  ;; :set (if-let* ((old-val (reorg--timestamp-parser)))
@@ -198,8 +187,8 @@
 
 (reorg-create-data-type :name timestamp-ia
 			:class org
-			:parser (when (reorg--timestamp-parser t)
-				  (org-no-properties (reorg--timestamp-parser t))))
+			:parse (when (reorg--timestamp-parser t)
+				 (org-no-properties (reorg--timestamp-parser t))))
 ;; :get (reorg--timestamp-parser t)
 ;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
 ;; 	 (when (search-forward old-val (org-entry-end-position) t)
@@ -220,8 +209,8 @@
 
 (reorg-create-data-type :name timestamp-ia-range
 			:class org
-			:parser (when (reorg--timestamp-parser t t)
-				  (org-no-properties (reorg--timestamp-parser t t))))
+			:parse (when (reorg--timestamp-parser t t)
+				 (org-no-properties (reorg--timestamp-parser t t))))
 ;; :get (reorg--timestamp-parser t)
 ;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
 ;; 	 (when (search-forward old-val (org-entry-end-position) t)
@@ -241,8 +230,8 @@
 
 (reorg-create-data-type :name timestamp-range
 			:class org
-			:parser (when (reorg--timestamp-parser nil t)
-				  (org-no-properties (reorg--timestamp-parser nil t))))
+			:parse (when (reorg--timestamp-parser nil t)
+				 (org-no-properties (reorg--timestamp-parser nil t))))
 ;; :get (reorg--timestamp-parser t)
 ;; ;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
 ;; ;; 	 (when (search-forward old-val (org-entry-end-position) t)
@@ -263,39 +252,39 @@
 
 (reorg-create-data-type :name id
 			:class org
-			:parser (org-id-get-create))
+			:parse (org-id-get-create))
 
 (reorg-create-data-type :name category-inherited
 			:class org
-			:parser (org-entry-get-with-inheritance "CATEGORY"))
+			:parse (org-entry-get-with-inheritance "CATEGORY"))
 
 (reorg-create-data-type :name category
 			:class org
-			:parser (org-get-category))
+			:parse (org-get-category))
 ;; :set (org-set-property "CATEGORY" val))
 
 (reorg-create-data-type :name file
 			:class org
-			:parser (buffer-file-name))
+			:parse (buffer-file-name))
 
 (reorg-create-data-type :name buffer-name
 			:class org
-			:parser (buffer-name))
+			:parse (buffer-name))
 
 (reorg-create-data-type :name buffer
 			:class org
-			:parser (current-buffer))
+			:parse (current-buffer))
 
 (reorg-create-data-type :name level
 			:class org
-			:parser (org-current-level)
+			:parse (org-current-level)
 			:display (number-to-string (alist-get 'level alist)))
 
 (reorg-create-data-type :name root
 			:class org
-			:parser (save-excursion (while (org-up-heading-safe))
-						(org-no-properties
-						 (org-get-heading t t t t))))
+			:parse (save-excursion (while (org-up-heading-safe))
+					       (org-no-properties
+						(org-get-heading t t t t))))
 
 
 

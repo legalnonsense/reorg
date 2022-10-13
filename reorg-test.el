@@ -6,12 +6,11 @@
 ;;   (require 'reorg-files)
 
 
-(cl-loop for each in (reorg--files--get-from-source "find ~/Desktop -type f")
-	 collect (reorg--create-headline-string each '(concat .files.extension "   asadfsadf   " .files.filename )))
+(cl-loop for each in (reorg--files--get-from-source "find ~/Desktop -type f" "find ~/org -type f")
+	 collect (reorg--create-headline-string each '(concat .depth "   asadfsadf   " .filename )))
 
 (cl-loop for each in (reorg--org--get-from-source "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
-	 collect (reorg--create-headline-string each '(concat .org.headline " zzz " .org.todo)))
-
+	 collect (reorg--create-headline-string each '(concat " " .priority " " .headline " zzz " .todo) 5))
 
 (defun xxx-reorg-test-control-panel-10 ()
   (interactive)

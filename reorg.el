@@ -3,6 +3,14 @@
 ;;; TODOs
 ;;;; write branch inserter
 
+
+(reorg--group-and-sort (reorg--files--get-from-source "find ~/Desktop -type f")
+		       '( :group "FILES"
+			  :children (( :group .files.extension
+				       :format-string (concat .files.filename)))))
+
+
+
 ;;; requires
 
 (require 'let-alist)

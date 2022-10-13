@@ -21,7 +21,7 @@ keys.  Keys are compared using `equal'."
   (seq-reduce
    (lambda (acc elt)
      (let* ((key (funcall `(lambda (e)
-			     (reorg--let-plist e ,form))
+			     (let-alist e ,form))
 			  elt))
 	    (cell (assoc key acc)))
        (if cell
@@ -57,7 +57,7 @@ keys.  Keys are compared using `equal'."
 				  (append result-sorters					  
 					  (cl-loop for (form . pred) in result-sort
 						   collect (cons `(lambda (x)
-								    (reorg--let-plist x
+								    (let-alist x
 								      ,form))
 								 pred)))))
 			  (unless np
@@ -90,10 +90,10 @@ keys.  Keys are compared using `equal'."
 				      :reorg-branch t
 				      :result-sorters result-sorters 
 				      :grouper-list `(lambda (x)
-						       (reorg--let-plist x
+						       (let-alist x
 							 ,grouper))
 				      :branch-predicate `(lambda (x)
-							   (reorg--let-plist x
+							   (let-alist x
 							     ,grouper))
 				      :branch-result (car x)
 				      :grouper-list-results (car x)

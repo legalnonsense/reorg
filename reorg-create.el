@@ -2,6 +2,12 @@
 
 ;;; name constructors
 
+(defun reorg--get-display-buffer-func-name (class)
+  "Create `reorg--CLASS--display-buffer' symbol"
+  (reorg--create-symbol 'reorg--
+			class
+			'--display-buffer))
+
 (defun reorg--getter-func-name (class)
   "Create `reorg--CLASS--get-from-source' symbol."
   (reorg--create-symbol 'reorg--
@@ -36,8 +42,9 @@
 
 ;;; class macro
 
-(cl-defmacro reorg-create-class-type (&key name
-					   getter)
+(cl-defmacro reorg-create-class-type (&optional &key name
+						getter
+						display-buffer)
   "Create a new class type. NAME is the name of the class.
 GETTER is a form that does two things:
 1. Retrieves data;
@@ -79,57 +86,88 @@ A source should be defined as whatever you want the user to be allowed to
 call from the template macro.
 "  
   `(progn
-     (defun ,(reorg--get-getter-func-name name)
+     (defun ,(reorg--create-symbol 'reorg--
+				   name
+				   '--get-from-source)
 	 (&rest sources)
-       (cl-flet ((PARSER (&optional arg)
-			 (funcall 
-			  ',(reorg--get-global-parser-func-name name)
-			  arg)))
-	 (cl-loop for SOURCE in sources
-		  append
-		  ,getter)))
-     (defun ,(reorg--get-global-parser-func-name name) (&optional arg)
-       (cl-loop for (type . func) in ,(reorg--get-parser-list-name name)
-		collect (cons type (funcall func arg))))
-     (defvar ,(reorg--get-parser-list-name name)
-       nil
-       ,(concat "Parser list for class " (symbol-name name)))))
+       (cl-flet ((PARSER (&optional d) (reorg--parser d ',name)))
+	 (cl-loop
+	  for SOURCE in sources
+	  append
+	  ,getter)))
+     (unless (boundp 'reorg--parser-list)
+       (defvar reorg--parser-list nil "Parser list for all classes."))
+     (cl-pushnew (cons 'class (lambda (&optional _) ',name))
+		 (alist-get ',name reorg--parser-list))))
+
+;; all that is needed for a type is:
+;; class
+;; name
+;; parse
+;; set
+;; &rest extra-props
+;; and only do: 1. create a named function for the parser-list
+;;
+;; the getter is the one that tags everything with its class, so that
+;; an object's class is part of the original data
+;;
+;; after that, the parser functions only run if they are of the same class
+;; the the parser list is a list of parser lists 
+;; instead of separate lists
+;;
+
+
 
 
 ;;; data macro
 
-(cl-defmacro reorg-create-data-type (&optional &key class 
-					       name
-					       parser
-					       disabled
-					       display)
+(cl-defmacro reorg-create-data-type (&optional
+				     &key
+				     class 
+				     name
+				     parse
+				     set
+				     display
+				     extra-props)
+
   "Create the data types that will be used to represent and
 interact with the data as key-value pairs.
 
 NAME is the name of the thing.  It can be string or a symbol.
 
-PARSER is a form that is called for each piece of data gathered by
+PARSE is a form that is called for each piece of data gathered by
 GETTER.  It must extract the relevant information from whatever data GETTER
 returns.
 
-If DISABLE is non-nil, remove this type of data from the parser list.
-
 DISPLAY is a function that accepts a plist and returns a string for display in the
-display tree. 
+display tree.
+
+EXTRA-PROPS is a plist of text properties that are added to the
+text properties of any field displaying the data type.
 "
-  (let ((parsing-func (reorg--get-parser-func-name class name))
-	(display-func (reorg--get-display-func-name class name))
-	(parser-list (reorg--get-parser-list-name class))
-	(global-parser (reorg--get-global-parser-func-name class)))
+  (let* ((parsing-func (reorg--get-parser-func-name class name))
+	 (display-func (reorg--get-display-func-name class name)))
     `(progn 
        (defun ,parsing-func (&optional data)
-	 ,parser)
-       (cl-pushnew (cons ',name ',parsing-func) ,parser-list)      
+	 ,parse)
+       (cl-pushnew (cons ',name #',parsing-func)
+		   (alist-get ',class reorg--parser-list))
        (defun ,display-func (alist)
-	 (if ',display
-	     ,display
-	   (alist-get ',name alist))))))
+	 ,display))))
 
+(defun reorg--parser (data class &optional type)
+  "Call each parser in CLASS on DATA and return
+the result.  If TYPE is provided, only run the
+parser for that type."
+  (if type
+      (cons type 
+	    (funcall (alist-get
+		      type
+		      (alist-get class
+				 reorg--parser-list))
+		     data))
+    (cl-loop for (type . func) in (alist-get class reorg--parser-list)
+	     collect (cons type (funcall func data)))))
 
 ;;; creating headline strings from parsed data 
 
@@ -151,13 +189,37 @@ current element of TREE."
     tree))
 
 (defun reorg--turn-dot-to-field (elem data)
+  "turn a .symbol into a string by either getting
+the value from the parsed data or calling the display
+function created by the type creation macro."
   (if (and (symbolp elem)
 	   (string-match "\\`\\." (symbol-name elem)))
-      (pcase-let ((`(,class ,name) (mapcar
-				    #'intern
-				    (s-split "\\." (symbol-name elem) t))))
-	(funcall (reorg--get-display-func-name class name) data))
+      (let ((class (alist-get 'class data))
+	    (type (intern (substring (symbol-name elem) 1))))
+	(if (fboundp (reorg--get-display-func-name class type))
+	    (funcall (reorg--get-display-func-name class type) data)
+          (alist-get (intern (substring (symbol-name elem) 1))
+		     data)))
     elem))
+
+
+;; (defun reorg--turn-dot-to-field (elem data)
+;;   (if (and (symbolp elem)
+;; 	   (string-match "\\`\\." (symbol-name elem)))
+;;       (pcase-let ((`(,class ,name) (mapcar
+;; 				    #'intern
+;; 				    (s-split "\\." (symbol-name elem) t))))
+;; 	(funcall (reorg--get-display-func-name class name) data))
+;;     elem))
+
+;; (defun reorg--get-dot-value (elem data)
+;;   (when (and (symbolp elem)
+;; 	     (string-match "\\`\\." (symbol-name elem)))
+;;     (pcase-let ((`(,class ,name) (mapcar
+;; 				  #'intern
+;; 				  (s-split "\\." (symbol-name elem) t))))
+;;       (when (eq (alist-get 'class data) class)
+;; 	(alist-get name data)))))
 
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the
@@ -174,11 +236,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	  (concat (create-stars level) " " (plist-get data :branch-name))
 	  reorg--field-property-name
 	  'branch)
-       ;;TODO fix the text properties
-       ;;TODO fix to use LEVEL (if provided) instead of .level
-
-       ;; This copy is here for reasons.  So are a few others.
-       ;; They should be tested and eliminated. 
+       ;; TODO:get rid of this copy-tree
        (let ((format-copy (copy-tree format-string)))
 	 (concat
 	  (when level (propertize (create-stars level) reorg--field-property-name 'stars))
@@ -187,6 +245,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 						 #'reorg--turn-dot-to-field
 						 data))))))
      'reorg-class
-     (plist-get data :class)
+     (alist-get 'class data)
+     ;;TODO:change this to `reorg-data'
      reorg--data-property-name
      data)))

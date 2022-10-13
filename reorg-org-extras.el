@@ -93,12 +93,13 @@ RANGE is non-nil, only look for timestamp ranges."
 				    (point-max))
 				'first-section nil nil nil nil)))
 
-(defun reorg--parser ()
-  "Create a plist using `reorg-parser-list' for each org heading."
-  (cl-loop with result = nil
-	   for (name . func) in reorg-parser-list
-	   append (list (reorg--add-remove-colon name) (funcall func)) into result
-	   finally return result)) 
+;; (defun reorg--parser ()
+;;   "Create a plist using `reorg-parser-list' for each org heading."
+;;   (cl-loop with result = nil
+;; 	   for (name . func) in reorg-parser-list
+;; 	   append (list (reorg--add-remove-colon name) (funcall func)) into result
+;; 	   finally return result))
+
 
 (defcustom reorg-mapping-function #'reorg--map-entries "mapping function")
 ;; (setq reorg-mapping-function #'reorg--org-ql)
