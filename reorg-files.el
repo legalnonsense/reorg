@@ -5,12 +5,22 @@
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
 					     SOURCE))
 		  collect (PARSER each))
- :extra-props (test asfasfd))
+ :keymap (("x" . (lambda () (interactive) (message "adf")))
+	  ("y" . (lambda () (interactive) (message "yyyy")))
+	  ("o" . (lambda () (interactive)
+		   (xdg-open (reorg--get-view-prop 'path) t))))
+ :extra-props ( test asfasfd
+		face '(:underline t)))
 
 (reorg-create-data-type
  :name depth 
  :class files
  :parse (f-depth data))
+
+(reorg-create-data-type
+ :name path
+ :class files
+ :parse data)
 
 
 (reorg-create-data-type

@@ -45,6 +45,7 @@
 (cl-defmacro reorg-create-class-type (&optional &key name
 						getter
 						follow
+						keymap
 						extra-props 
 						display-buffer)
   "Create a new class type. NAME is the name of the class.
@@ -106,14 +107,23 @@ call from the template macro.
 		 (alist-get ',name reorg--getter-list))
      (if (boundp 'reorg--parser-list)
 	 (setq reorg--parser-list nil)
-       (defvar reorg--parser-list nil "Parser list for all classes."))
+       (defvar reorg--parser-list nil "Parser list for all classes."))     
      (cl-pushnew (cons 'class (lambda (&optional _) ',name))
 		 (alist-get ',name reorg--parser-list))
      ;; (setf (alist-get ',name reorg--parser-list)
      ;; 	   (cons 'class (lambda () ',name)))
      (if ',extra-props
 	 (setf (alist-get ',name reorg--extra-prop-list)
-	       ',extra-props))))
+	       ',extra-props))
+     (when ',keymap
+       (setf (alist-get ',name reorg--extra-prop-list)
+	     (append (alist-get ',name reorg--extra-prop-list)
+		     (list 
+	     	      'keymap
+		      ',(let ((map (make-sparse-keymap)))
+			  (cl-loop for (key . func) in keymap
+				   collect (define-key map (kbd key) func))
+			  map)))))))
 
 ;; all that is needed for a type is:
 ;; class
