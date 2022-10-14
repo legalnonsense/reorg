@@ -104,7 +104,8 @@ call from the template macro.
 					  name
 					  '--get-from-source)
 		 (alist-get ',name reorg--getter-list))
-     (unless (boundp 'reorg--parser-list)
+     (if (boundp 'reorg--parser-list)
+	 (setf (alist-get ',name reorg--parser-list) nil)
        (defvar reorg--parser-list nil "Parser list for all classes."))
      (if ',extra-props
 	 (setf (alist-get ',name reorg--extra-prop-list)
@@ -160,7 +161,7 @@ text properties of any field displaying the data type.
   `(progn 
      (defun ,parsing-func (&optional data)
        ,parse)
-     (cl-pushnew #',parsing-func
+     (cl-pushnew (cons ',name #',parsing-func)
 		 (alist-get ',class reorg--parser-list))
      (if ',display 
 	 (defun ,display-func (alist)
@@ -253,7 +254,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
   "Get entries from SOURCES, which is an alist
 in the form of (CLASS . SOURCE)."
   (cl-loop for (class . source) in sources
-	   append (funcall (alist-get class reorg--getter-list)
+	   append (funcall (car (alist-get class reorg--getter-list))
 			   source)))
 
 

@@ -1,8 +1,5 @@
 ;;; -*- lexical-binding: t; -*-
 (reorg--files--get-from-source "find ~/Desktop -type f")
-reorg--parser-list
-reorg--getter-list
-(reorg--getter '((files . "find ~/Desktop -type f")))
 
 (defun xxx-reorg-test-12 ()
   (interactive)
