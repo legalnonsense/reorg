@@ -105,8 +105,12 @@ call from the template macro.
 					  '--get-from-source)
 		 (alist-get ',name reorg--getter-list))
      (if (boundp 'reorg--parser-list)
-	 (setf (alist-get ',name reorg--parser-list) nil)
+	 (setq reorg--parser-list nil)
        (defvar reorg--parser-list nil "Parser list for all classes."))
+     (cl-pushnew (cons 'class (lambda (&optional _) ',name))
+		 (alist-get ',name reorg--parser-list))
+     ;; (setf (alist-get ',name reorg--parser-list)
+     ;; 	   (cons 'class (lambda () ',name)))
      (if ',extra-props
 	 (setf (alist-get ',name reorg--extra-prop-list)
 	       ',extra-props))))
@@ -243,8 +247,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 						       data))))))
 	   'reorg-class
 	   (alist-get 'class data)
-	   ;;TODO:change this to `reorg-data'
-	   reorg--data-property-name
+	   'reorg-data
 	   data
 	   (alist-get (alist-get 'class data)
 		      reorg--extra-prop-list)

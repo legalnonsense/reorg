@@ -5,7 +5,7 @@
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
 					     SOURCE))
 		  collect (PARSER each))
- :extra-props (font-lock-face '((t (:underline t)))))
+ :extra-props (test asfasfd))
 
 (reorg-create-data-type
  :name depth 
