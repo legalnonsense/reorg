@@ -45,7 +45,7 @@
 (cl-defmacro reorg-create-class-type (&optional &key name
 						getter
 						follow
-						bindings
+						extra-props 
 						display-buffer)
   "Create a new class type. NAME is the name of the class.
 GETTER is a form that does two things:
@@ -97,16 +97,18 @@ call from the template macro.
 	  for SOURCE in sources
 	  append
 	  ,getter)))
-     (unless (boundp 'reorg--getter-list)
+     (if (boundp 'reorg--getter-list)
+	 (setf (alist-get ',name reorg--getter-list) nil)
        (defvar reorg--getter-list nil "Getter list for all classes"))
-     (cl-pushnew (cons ',name #',(reorg--create-symbol 'reorg--
-						       name
-						       '--get-from-source))
-		 reorg--getter-list)
+     (cl-pushnew #',(reorg--create-symbol 'reorg--
+					  name
+					  '--get-from-source)
+		 (alist-get ',name reorg--getter-list))
      (unless (boundp 'reorg--parser-list)
        (defvar reorg--parser-list nil "Parser list for all classes."))
-     (cl-pushnew (cons 'class (lambda (&optional _) ',name))
-		 (alist-get ',name reorg--parser-list))))
+     (if ',extra-props
+	 (setf (alist-get ',name reorg--extra-prop-list)
+	       ',extra-props))))
 
 ;; all that is needed for a type is:
 ;; class
@@ -125,7 +127,7 @@ call from the template macro.
 ;;
 
 
-
+(defvar reorg--extra-prop-list nil "")
 
 ;;; data macro
 
@@ -135,10 +137,10 @@ call from the template macro.
 				     name
 				     parse
 				     set
-				     display
-				     extra-props)
+				     display)
 
-  "Create the data types that will be used to represent and
+
+"Create the data types that will be used to represent and
 interact with the data as key-value pairs.
 
 NAME is the name of the thing.  It can be string or a symbol.
@@ -153,19 +155,19 @@ display tree.
 EXTRA-PROPS is a plist of text properties that are added to the
 text properties of any field displaying the data type.
 "
-  (let* ((parsing-func (reorg--get-parser-func-name class name))
-	 (display-func (reorg--get-display-func-name class name)))
-    `(progn 
-       (defun ,parsing-func (&optional data)
-	 ,parse)
-       (setf (alist-get ',class reorg--parser-list) nil)
-       (cl-pushnew (cons ',name #',parsing-func)
-		   (alist-get ',class reorg--parser-list))
-       (if ',display 
-	   (defun ,display-func (alist)
-	     ,display)
-	 (when (fboundp ',display-func)
-	   (fmakunbound ',display-func))))))
+(let* ((parsing-func (reorg--get-parser-func-name class name))
+       (display-func (reorg--get-display-func-name class name)))
+  `(progn 
+     (defun ,parsing-func (&optional data)
+       ,parse)
+     (cl-pushnew #',parsing-func
+		 (alist-get ',class reorg--parser-list))
+     (if ',display 
+	 (defun ,display-func (alist)
+	   ,display)
+       (when (fboundp ',display-func)
+	 (fmakunbound ',display-func))))))
+
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
@@ -224,25 +226,28 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					   (funcall num data)
 					 num)
 				       ?*)))
-    (propertize 
-     (if (plist-get data :reorg-branch)
-	 (propertize 
-	  (concat (create-stars level) " " (plist-get data :branch-name))
-	  reorg--field-property-name
-	  'branch)
-       ;; TODO:get rid of this copy-tree
-       (let ((format-copy (copy-tree format-string)))
-	 (concat
-	  (when level (propertize (create-stars level) reorg--field-property-name 'stars))
-	  (funcall `(lambda ()
-		      ,(reorg--depth-first-apply format-copy
-						 #'reorg--turn-dot-to-field
-						 data))))))
-     'reorg-class
-     (alist-get 'class data)
-     ;;TODO:change this to `reorg-data'
-     reorg--data-property-name
-     data)))
+    (apply #'propertize 
+	   (if (plist-get data :reorg-branch)
+	       (propertize 
+		(concat (create-stars level) " " (plist-get data :branch-name))
+		reorg--field-property-name
+		'branch)
+	     ;; TODO:get rid of this copy-tree
+	     (let ((format-copy (copy-tree format-string)))
+	       (concat
+		(when level (propertize (create-stars level) reorg--field-property-name 'stars))
+		(funcall `(lambda ()
+			    ,(reorg--depth-first-apply format-copy
+						       #'reorg--turn-dot-to-field
+						       data))))))
+	   'reorg-class
+	   (alist-get 'class data)
+	   ;;TODO:change this to `reorg-data'
+	   reorg--data-property-name
+	   data
+	   (alist-get (alist-get 'class data)
+		      reorg--extra-prop-list)
+	   )))
 
 (defun reorg--getter (sources)
   "Get entries from SOURCES, which is an alist

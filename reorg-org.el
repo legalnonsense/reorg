@@ -18,6 +18,7 @@
 			:parse (org-no-properties
 				(org-get-heading t t t t)))
 
+
 (reorg-create-data-type :name ts
 			:class org
 			:parse (or

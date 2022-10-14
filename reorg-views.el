@@ -1,4 +1,4 @@
-;;; -*- lexical-binding: t; -*-
+;; -*- lexical-binding: t; -*-
 
 ;; (defun reorg-open-view (name &optional source) "NAME is the name of
 ;;   the view.  SOURCE is the source buffer."

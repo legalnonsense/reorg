@@ -4,12 +4,14 @@
  :name files
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
 					     SOURCE))
-		  collect (PARSER each)))
+		  collect (PARSER each))
+ :extra-props (font-lock-face '((t (:underline t)))))
 
 (reorg-create-data-type
  :name depth 
  :class files
  :parse (f-depth data))
+
 
 (reorg-create-data-type
  :name extension

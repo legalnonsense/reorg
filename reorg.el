@@ -1,12 +1,14 @@
 ;;; -*- lexical-binding: t; -*-
-
 (require 'reorg-tree)
+(require 'reorg-sort)
+
 (require 'reorg-utils)
 (require 'reorg-create)
 (require 'reorg-org)
 (require 'reorg-files)
-(require 'reorg-org-extras)
-(require 'reorg-sort)
+(with-eval-after-load 'reorg
+  (require 'reorg-org-extras))
+
 
 ;;; TODOs
 ;;;; write branch inserter
