@@ -1,6 +1,23 @@
 ;;; -*- lexical-binding: t; -*-
 (reorg--files--get-from-source "find ~/Desktop -type f")
 
+(reorg--getter '((files . "find ~/Desktop -type f")
+		 (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")))
+
+
+
+(defun xxx-reorg-test-13 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((files . "find ~/Desktop -type f")
+	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+   :template
+   '( :group "TEST"
+      :children (( :group .path
+		   :sort string<
+		   :format-string (concat " " .filename)
+		   :sort-getter (lambda (x) (downcase x)))))))
+
 (defun xxx-reorg-test-12 ()
   (interactive)
   (reorg-open-sidebar

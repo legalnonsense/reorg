@@ -106,7 +106,7 @@ call from the template macro.
 					  '--get-from-source)
 		 (alist-get ',name reorg--getter-list))
      (if (boundp 'reorg--parser-list)
-	 (setq reorg--parser-list nil)
+	 (setf (alist-get ',name reorg--parser-list) nil)
        (defvar reorg--parser-list nil "Parser list for all classes."))     
      (cl-pushnew (cons 'class (lambda (&optional _) ',name))
 		 (alist-get ',name reorg--parser-list))

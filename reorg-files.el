@@ -7,6 +7,7 @@
 		  collect (PARSER each))
  :keymap (("x" . (lambda () (interactive) (message "adf")))
 	  ("y" . (lambda () (interactive) (message "yyyy")))
+	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
 	  ("o" . (lambda () (interactive)
 		   (xdg-open (reorg--get-view-prop 'path) t))))
  :extra-props ( test asfasfd
