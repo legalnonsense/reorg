@@ -6,10 +6,13 @@
 					     SOURCE))
 		  collect (PARSER each))
  :keymap (("x" . (lambda () (interactive) (message "adf")))
+	  ("e" . (lambda ()
+		   (interactive)
+		   (find-file-other-window (reorg--get-view-prop 'fullname))))
 	  ("y" . (lambda () (interactive) (message "yyyy")))
 	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
 	  ("o" . (lambda () (interactive)
-		   (xdg-open (reorg--get-view-prop 'path) t))))
+		   (xdg-open (reorg--get-view-prop 'path)))))
  :extra-props ( test asfasfd
 		face '(:underline t)))
 
@@ -23,7 +26,6 @@
  :class files
  :parse data)
 
-
 (reorg-create-data-type
  :name extension
  :class files
@@ -33,6 +35,11 @@
  :name filename
  :class files
  :parse (f-filename data))
+
+(reorg-create-data-type
+ :name fullname
+ :class files
+ :parse data)
 
 (reorg-create-data-type
  :name parent
