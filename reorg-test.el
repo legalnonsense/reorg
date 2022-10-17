@@ -34,9 +34,9 @@
 				    "Files")))
 		   :sort string<
 		   :format-string (concat " "
-					  (if (eq .class (quote org))
-					      .headline)
-					  .filename)
+					  (if (eq .class 'org)
+					      .headline
+					    .filename))
 		   ;; (cond ((eq .class 'org)
 		   ;; 	 (concat " " .headline))
 		   ;; 	((eq .class 'files)
