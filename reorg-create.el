@@ -250,10 +250,11 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	     (let ((format-copy (copy-tree format-string)))
 	       (concat
 		(when level (propertize (create-stars level) reorg--field-property-name 'stars))
-		(funcall `(lambda ()
-			    ,(reorg--depth-first-apply format-copy
-						       #'reorg--turn-dot-to-field
-						       data))))))
+		(funcall `(lambda (data)
+			    (let-alist data 
+			      ,format-string))
+			 data))))
+
 	   'reorg-class
 	   (alist-get 'class data)
 	   'reorg-data
