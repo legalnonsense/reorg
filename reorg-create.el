@@ -228,8 +228,7 @@ function created by the type creation macro."
 	    (sym (intern (substring (symbol-name elem) 1))))
 	(if (fboundp (reorg--get-display-func-name class type))
 	    (funcall (reorg--get-display-func-name class type) data)
-	  (alist-get sym
-		     data)))
+	  (alist-get elem data)))
     elem))
 
 (defun reorg--create-headline-string (data format-string &optional level)

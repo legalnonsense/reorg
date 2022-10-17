@@ -4,9 +4,9 @@
 (reorg-create-class-type :name org
 			 :getter 
 			 (with-current-buffer (find-file-noselect SOURCE)
-			   (org-show-all)
-			   (org-map-entries
-			    #'PARSER)))
+			   (org-with-wide-buffer 
+			    (org-map-entries
+			     #'PARSER))))
 
 (reorg-create-data-type :name headline
 			:class org

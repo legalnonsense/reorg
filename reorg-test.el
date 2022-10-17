@@ -1,38 +1,49 @@
+
 ;;; -*- lexical-binding: t; -*-
 
-(defun xxx-reorg-test-14 ()
+
+
+;; (defun xxx-reorg-test-14 ()
+;;   (interactive)
+;;   (reorg-open-sidebar
+;;    :sources '((files . "find ~/Desktop -type f")
+;; 	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
+;; 	      (email . "mu find bananas --format=sexp"))
+;;    :template
+;;    '( :group "TEST"
+;;       :children (( :group (cond (.subject "Emails")
+;; 				(.headline "Notes")
+;; 				(.filename "Files"))
+;; 		   :sort string<
+;; 		   :sort-getter (lambda (x) (downcase x))
+;; 		   :children
+
+;; 		   ;; )))))
+
+(defun xxx-reorg-test-13 ()
   (interactive)
   (reorg-open-sidebar
    :sources '((files . "find ~/Desktop -type f")
-	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
-	      (email . "mu find bananas --format=sexp"))
+	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
    :template
    '( :group "TEST"
-      :children (( :group (or .to .ts (and .filename
-					   (string= (f-ext .filename) "pdf")
-					   .filename))
-
+      :children (( :group (progn
+			    (cond  ((eq .class 'org)
+				    "Orgmode")
+				   ((eq .class 'files)
+				    "Files")))
 		   :sort string<
 		   :format-string (concat " "
-					  (cond (.subject "Email: ")
-						(.headline "Org: ")
-						(.filename "File: "))
-					  (or .subject
-					      .headline
-					      .filename))
+					  (if (eq .class (quote org))
+					      .headline)
+					  .filename)
+		   ;; (cond ((eq .class 'org)
+		   ;; 	 (concat " " .headline))
+		   ;; 	((eq .class 'files)
+		   ;; 	 (concat " " .filename)))
 		   :sort-getter (lambda (x) (downcase x)))))))
 
-  (defun xxx-reorg-test-13 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((files . "find ~/Desktop -type f")
-		(org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-     :template
-     '( :group "TEST"
-	:children (( :group .path
-		     :sort string<
-		     :format-string (concat " " .filename)
-		     :sort-getter (lambda (x) (downcase x)))))))
+  
 
   (defun xxx-reorg-test-12 ()
     (interactive)
