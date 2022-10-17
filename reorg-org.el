@@ -38,7 +38,7 @@
 				       (reorg--format-time-string ts
 								  "%a, %b %d, %Y"
 								  "%a, %b %d, %Y at %-l:%M%p"))
-				   "nots"))
+				   ""))
 
 (reorg-create-data-type :name ts-type
 			:class org
