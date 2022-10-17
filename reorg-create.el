@@ -217,19 +217,19 @@ current element of TREE."
       (doloop tree func))
     tree))
 
-(defun reorg--turn-dot-to-field (elem data)
-  "turn a .symbol into a string by either getting
-the value from the parsed data or calling the display
-function created by the type creation macro."
-  (if (and (symbolp elem)
-	   (string-match "\\`\\." (symbol-name elem)))
-      (let ((class (alist-get 'class data))
-	    (type (intern (substring (symbol-name elem) 1)))
-	    (sym (intern (substring (symbol-name elem) 1))))
-	(if (fboundp (reorg--get-display-func-name class type))
-	    (funcall (reorg--get-display-func-name class type) data)
-	  (alist-get elem data)))
-    elem))
+;; (defun reorg--turn-dot-to-field (elem data)
+;;   "turn a .symbol into a string by either getting
+;; the value from the parsed data or calling the display
+;; function created by the type creation macro."
+;;   (if (and (symbolp elem)
+;; 	   (string-match "\\`\\." (symbol-name elem)))
+;;       (let ((class (alist-get 'class data))
+;; 	    (type (intern (substring (symbol-name elem) 1)))
+;; 	    (sym (intern (substring (symbol-name elem) 1))))
+;; 	(if (fboundp (reorg--get-display-func-name class type))
+;; 	    (funcall (reorg--get-display-func-name class type) data)
+;; 	  (alist-get elem data)))
+;;     elem))
 
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the
