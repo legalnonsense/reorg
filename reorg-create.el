@@ -45,6 +45,7 @@
 (cl-defmacro reorg-create-class-type (&optional &key name
 						getter
 						follow
+						keymap
 						extra-props 
 						display-buffer)
   "Create a new class type. NAME is the name of the class.
@@ -104,11 +105,25 @@ call from the template macro.
 					  name
 					  '--get-from-source)
 		 (alist-get ',name reorg--getter-list))
-     (unless (boundp 'reorg--parser-list)
-       (defvar reorg--parser-list nil "Parser list for all classes."))
+     (if (boundp 'reorg--parser-list)
+	 (setf (alist-get ',name reorg--parser-list) nil)
+       (defvar reorg--parser-list nil "Parser list for all classes."))     
+     (cl-pushnew (cons 'class (lambda (&optional _) ',name))
+		 (alist-get ',name reorg--parser-list))
+     ;; (setf (alist-get ',name reorg--parser-list)
+     ;; 	   (cons 'class (lambda () ',name)))
      (if ',extra-props
 	 (setf (alist-get ',name reorg--extra-prop-list)
-	       ',extra-props))))
+	       ',extra-props))
+     (when ',keymap
+       (setf (alist-get ',name reorg--extra-prop-list)
+	     (append (alist-get ',name reorg--extra-prop-list)
+		     (list 
+	     	      'keymap
+		      ',(let ((map (make-sparse-keymap)))
+			  (cl-loop for (key . func) in keymap
+				   collect (define-key map (kbd key) func))
+			  map)))))))
 
 ;; all that is needed for a type is:
 ;; class
@@ -160,7 +175,7 @@ text properties of any field displaying the data type.
   `(progn 
      (defun ,parsing-func (&optional data)
        ,parse)
-     (cl-pushnew #',parsing-func
+     (cl-pushnew (cons ',name #',parsing-func)
 		 (alist-get ',class reorg--parser-list))
      (if ',display 
 	 (defun ,display-func (alist)
@@ -243,8 +258,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 
 	   'reorg-class
 	   (alist-get 'class data)
-	   ;;TODO:change this to `reorg-data'
-	   reorg--data-property-name
+	   'reorg-data
 	   data
 	   (alist-get (alist-get 'class data)
 		      reorg--extra-prop-list)
@@ -254,7 +268,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
   "Get entries from SOURCES, which is an alist
 in the form of (CLASS . SOURCE)."
   (cl-loop for (class . source) in sources
-	   append (funcall (alist-get class reorg--getter-list)
+	   append (funcall (car (alist-get class reorg--getter-list))
 			   source)))
 
 

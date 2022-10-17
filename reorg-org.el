@@ -265,7 +265,7 @@
 			:parse (org-get-category))
 ;; :set (org-set-property "CATEGORY" val))
 
-(reorg-create-data-type :name file
+(reorg-create-data-type :name filename
 			:class org
 			:parse (buffer-file-name))
 

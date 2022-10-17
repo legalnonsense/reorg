@@ -1,137 +1,167 @@
 ;;; -*- lexical-binding: t; -*-
-(reorg--files--get-from-source "find ~/Desktop -type f")
-reorg--parser-list
-reorg--getter-list
-(reorg--getter '((files . "find ~/Desktop -type f")))
 
-(defun xxx-reorg-test-12 ()
+(defun xxx-reorg-test-14 ()
   (interactive)
   (reorg-open-sidebar
-   :sources '((files . "find ~/Desktop -type f"))
+   :sources '((files . "find ~/Desktop -type f")
+	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
+	      (email . "mu find bananas --format=sexp"))
    :template
-   '( :group "MEETING VIEW"
-      :children (( :group .extension
+   '( :group "TEST"
+      :children (( :group (or .to .ts (and .filename
+					   (string= (f-ext .filename) "pdf")
+					   .filename))
+
 		   :sort string<
-		   :format-string (concat " " .filename)
+		   :format-string (concat " "
+					  (cond (.subject "Email: ")
+						(.headline "Org: ")
+						(.filename "File: "))
+					  (or .subject
+					      .headline
+					      .filename))
 		   :sort-getter (lambda (x) (downcase x)))))))
 
-(defun xxx-reorg-test-11 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-   :template
-   '( :group "MEETING VIEW"
-      :children (( :group .root
-		   :sort string<
-		   :format-string (concat " " .headline)
-		   :sort-getter (lambda (x) (downcase x)))))))
+  (defun xxx-reorg-test-13 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((files . "find ~/Desktop -type f")
+		(org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+     :template
+     '( :group "TEST"
+	:children (( :group .path
+		     :sort string<
+		     :format-string (concat " " .filename)
+		     :sort-getter (lambda (x) (downcase x)))))))
 
-(defun xxx-reorg-test-control-panel-10 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
-	      (files . "find ~/Desktop -type f"))
-   :template
-   '( :group "MEETING VIEW"
-      :format-string (concat .stars " " .headline)
-      :children
-      (( :group "CASE LIST"
-	 :children
-	 (( :group .root
-	    :sort string< 
-	    :sort-getter (lambda (x) (downcase x))
-	    :children
-	    (( :group (when (and .todo
-				 (not (string= .todo "DONE"))
-				 (not (string= .todo "EVENT"))
-				 (not (string= .todo "OPP_DUE"))
-				 (not (string= .todo "DEADLINE")))
-			"TASKS" )
-	       :format-string (concat .stars " " (s-pad-right 10 " " .todo) .headline)
-	       :sort-results ((.todo . string<)
-			      ((downcase .headline) . string<)))
-	     ( :group (when (and
-			     (or (string= .todo "DEADLINE")
-				 (string= .todo "EVENT")
-				 (string= .todo "OPP_DUE"))
-			     (or .timestamp
-				 .deadline
-				 .scheduled))
-			"CALENDAR")
-	       :format-string (concat
-			       .stars 
-			       " "
-			       .ts-type
-			       " "
-			       (s-pad-right 50
-					    "."
-					    (s-truncate 40 .headline "..."))
-			       .ts)
-	       :sort-results ((.ts . string<)))
-	     ( :group (when (string= .headline "_NOTES_")
-			"Progress Notes")
-	       :format-string (concat .stars " Notes"))))))
-       ( :group "Date tree"
-	 :children
-	 (( :group (when-let ((time (or .timestamp
-					.deadline
-					.scheduled
-					.timestamp-ia)))
-		     (number-to-string
-		      (ts-year
-		       (ts-parse time))))
-	    :sort string< 
-	    :sort-getter identity
-	    :children
-	    (( :group
-	       (when-let ((time (or .timestamp
-				    .deadline
-				    .scheduled
-				    .timestamp-ia)))
-		 (concat
-		  (s-pad-left 2 "0" (number-to-string
-				     (ts-month (ts-parse time))))
-		  " "
-		  (ts-month-name (ts-parse time))))
-	       :sort string<
-	       :sort-getter identity
-	       :children
-	       (( :group
+  (defun xxx-reorg-test-12 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((files . "find ~/Desktop -type f"))
+     :template
+     '( :group "MEETING VIEW"
+	:children (( :group .extension
+		     :sort string<
+		     :format-string (concat " " .filename)
+		     :sort-getter (lambda (x) (downcase x)))))))
 
-		  (when-let ((time (or .timestamp
-				       .deadline
-				       .scheduled
-				       .timestamp-ia)))
-		    (concat 
-		     (s-pad-left 2
-				 "0"
-				 (number-to-string
-				  (ts-day (ts-parse time))))
-		     " "
-		     (ts-day-name (ts-parse time))))
-		  :sort string<
-		  :sort-getter identity)))))))
-       ( :group .extension
-	 :format-string (concat " " .filename)
-	 ;; (propertize 
-	 ;;  'keymap
-	 ;;  (let ((map (make-sparse-keymap)))
-	 ;;    (define-key map (kbd "RET")
-	 ;;      (lambda ()
-	 ;; 	(interactive)
-	 ;; 	(find-file-other-window
-	 ;; 	 (concat (reorg--get-view-prop
-	 ;; 		  'parent)
-	 ;; 		 "/"
-	 ;; 		 (reorg--get-view-prop
-	 ;; 		  'filename)))))
-	 ;;    map))
-	 :sort string<
-	 :sort-getter identity
-	 :sort-results ((.filename . string<)))))))
+  (defun xxx-reorg-test-11 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+     :template
+     '( :group "MEETING VIEW"
+	:children (( :group .root
+		     :sort string<
+		     :format-string (concat " " .headline)
+		     :sort-getter (lambda (x) (downcase x)))))))
+
+  (defun xxx-reorg-test-control-panel-10 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
+		(files . "find ~/Desktop -type f"))
+     :template
+     '( :group "MEETING VIEW"
+	:format-string (concat .stars " " .headline)
+	:children
+	(( :group "CASE LIST"
+	   :children
+	   (( :group .root
+	      :sort string< 
+	      :sort-getter (lambda (x) (downcase x))
+	      :children
+	      (( :group (when (and .todo
+				   (not (string= .todo "DONE"))
+				   (not (string= .todo "EVENT"))
+				   (not (string= .todo "OPP_DUE"))
+				   (not (string= .todo "DEADLINE")))
+			  "TASKS" )
+		 :format-string (concat .stars " " (s-pad-right 10 " " .todo) .headline)
+		 :sort-results ((.todo . string<)
+				((downcase .headline) . string<)))
+	       ( :group (when (and
+			       (or (string= .todo "DEADLINE")
+				   (string= .todo "EVENT")
+				   (string= .todo "OPP_DUE"))
+			       (or .timestamp
+				   .deadline
+				   .scheduled))
+			  "CALENDAR")
+		 :format-string (concat
+				 .stars 
+				 " "
+				 .ts-type
+				 " "
+				 (s-pad-right 50
+					      "."
+					      (s-truncate 40 .headline "..."))
+				 .ts)
+		 :sort-results ((.ts . string<)))
+	       ( :group (when (string= .headline "_NOTES_")
+			  "Progress Notes")
+		 :format-string (concat .stars " Notes"))))))
+	 ( :group "Date tree"
+	   :children
+	   (( :group (when-let ((time (or .timestamp
+					  .deadline
+					  .scheduled
+					  .timestamp-ia)))
+		       (number-to-string
+			(ts-year
+			 (ts-parse time))))
+	      :sort string< 
+	      :sort-getter identity
+	      :children
+	      (( :group
+		 (when-let ((time (or .timestamp
+				      .deadline
+				      .scheduled
+				      .timestamp-ia)))
+		   (concat
+		    (s-pad-left 2 "0" (number-to-string
+				       (ts-month (ts-parse time))))
+		    " "
+		    (ts-month-name (ts-parse time))))
+		 :sort string<
+		 :sort-getter identity
+		 :children
+		 (( :group
+
+		    (when-let ((time (or .timestamp
+					 .deadline
+					 .scheduled
+					 .timestamp-ia)))
+		      (concat 
+		       (s-pad-left 2
+				   "0"
+				   (number-to-string
+				    (ts-day (ts-parse time))))
+		       " "
+		       (ts-day-name (ts-parse time))))
+		    :sort string<
+		    :sort-getter identity)))))))
+	 ( :group .extension
+	   :format-string (concat " " .filename)
+	   ;; (propertize 
+	   ;;  'keymap
+	   ;;  (let ((map (make-sparse-keymap)))
+	   ;;    (define-key map (kbd "RET")
+	   ;;      (lambda ()
+	   ;; 	(interactive)
+	   ;; 	(find-file-other-window
+	   ;; 	 (concat (reorg--get-view-prop
+	   ;; 		  'parent)
+	   ;; 		 "/"
+	   ;; 		 (reorg--get-view-prop
+	   ;; 		  'filename)))))
+	   ;;    map))
+	   :sort string<
+	   :sort-getter identity
+	   :sort-results ((.filename . string<)))))))
 
 
-))))
+  ))))
 
 
 
