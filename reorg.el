@@ -1394,38 +1394,38 @@ Return nil if there is no such branch."
 
 
 
-  (defun reorg--insert-into-branch-or-make-new-branch (data &optional point)
-    (let* ((children (reorg-into--get-list-of-child-branches-at-point)))
-      (cl-loop with x = nil
-	       with point = (or point (point))
-	       do (setf (point) point)
-	       for (func . results) in children
-	       do (setq x (funcall func data)
-			point (point))
-	       when x
-	       do (if (member x results)
-		      (progn 
-			(reorg-tree--goto-next-property-field nil 'reorg-data
-							      x
-							      nil
-							      #'string=
-							      (lambda (y) (alist-get 'headline y)))
-			(if (reorg--children-p)
-			    (reorg--insert-into-branch-or-make-new-branch data)
-			  (reorg--insert-into-leaves data
-						     (reorg--get-view-props nil 'reorg-data 'result-sorters))))
-		    (reorg--insert-new-branch (list (cons 'branch-name x)
-						    (cons 'headline x)
-						    (cons 'reorg-branch t)
-						    (cons 'result-sorters ,result-sorters)
-						    (cons 'grouper-list ,func)
-						    (cons 'grouper-list-results x)
-						    (cons 'format-string 'xxx)
-						    (cons 'result-sorters 'xxx)
-						    (cons 'children 'xxx)
-						    (cons 'branch-value 'xxx)
-						    (cons 'reorg-level (reorg-current-level)))))
-	       (reorg--insert-into-branch-or-make-new-branch data)))))
+(defun reorg--insert-into-branch-or-make-new-branch (data &optional point)
+  (let* ((children (reorg-into--get-list-of-child-branches-at-point)))
+    (cl-loop with x = nil
+	     with point = (or point (point))
+	     do (setf (point) point)
+	     for (func . results) in children
+	     do (setq x (funcall func data)
+		      point (point))
+	     when x
+	     do (if (member x results)
+		    (progn 
+		      (reorg-tree--goto-next-property-field nil 'reorg-data
+							    x
+							    nil
+							    #'string=
+							    (lambda (y) (alist-get 'headline y)))
+		      (if (reorg--children-p)
+			  (reorg--insert-into-branch-or-make-new-branch data)
+			(reorg--insert-into-leaves data
+						   (reorg--get-view-props nil 'reorg-data 'result-sorters))))
+		  (reorg--insert-new-branch (list (cons 'branch-name x)
+						  (cons 'headline x)
+						  (cons 'reorg-branch t)
+						  (cons 'result-sorters ,result-sorters)
+						  (cons 'grouper-list ,func)
+						  (cons 'grouper-list-results x)
+						  (cons 'format-string 'xxx)
+						  (cons 'result-sorters 'xxx)
+						  (cons 'children 'xxx)
+						  (cons 'branch-value 'xxx)
+						  (cons 'reorg-level (reorg-current-level)))))
+	     (reorg--insert-into-branch-or-make-new-branch data))))
 
 
 
@@ -1963,7 +1963,7 @@ make a list of the results."
 
 
   (goto-char (point-min))
-  (doloop data template)))
+  (doloop data template))
 
 
 ;;;;; IN PROGRESS
