@@ -200,22 +200,22 @@ parser for that type."
 
 ;;; creating headline strings from parsed data 
 
-(defun reorg--depth-first-apply (form func &optional data)
-  "Run FUNC at each node of TREE using a depth-first traversal
-and destructively modify TREE. 
-FUNC is a function that accepts one argument, which is the
-current element of TREE."
-  (let ((tree (copy-tree form)))
-    (cl-labels ((doloop (tree func)
-			(setf (car tree) (funcall func (car tree) data))
-			(cl-loop for n below (length (cdr tree))
-				 if (listp (nth n (cdr tree))) do
-				 (doloop (nth n (cdr tree)) func)
-				 else do
-				 (setf (nth n (cdr tree))
-				       (funcall func (nth n (cdr tree)) data)))))
-      (doloop tree func))
-    tree))
+;; (defun reorg--depth-first-apply (form func &optional data)
+;;   "Run FUNC at each node of TREE using a depth-first traversal
+;; and destructively modify TREE. 
+;; FUNC is a function that accepts one argument, which is the
+;; current element of TREE."
+;;   (let ((tree (copy-tree form)))
+;;     (cl-labels ((doloop (tree func)
+;; 			(setf (car tree) (funcall func (car tree) data))
+;; 			(cl-loop for n below (length (cdr tree))
+;; 				 if (listp (nth n (cdr tree))) do
+;; 				 (doloop (nth n (cdr tree)) func)
+;; 				 else do
+;; 				 (setf (nth n (cdr tree))
+;; 				       (funcall func (nth n (cdr tree)) data)))))
+;;       (doloop tree func))
+;;     tree))
 
 ;; (defun reorg--turn-dot-to-field (elem data)
 ;;   "turn a .symbol into a string by either getting
