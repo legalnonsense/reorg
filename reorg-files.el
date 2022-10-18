@@ -46,5 +46,9 @@
  :class files
  :parse (f-parent data))
 
+(reorg-create-data-type
+ :name id
+ :class files
+ :parse (org-id-uuid))
 
 (provide 'reorg-files)

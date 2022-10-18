@@ -85,25 +85,25 @@ keys.  Keys are compared using `equal'."
 				 do (setf
 				     (car x)
 				     (list
-				      :branch-name (car x) 
-				      :headline (car x)
-				      :reorg-branch t
-				      :result-sorters result-sorters 
-				      :grouper-list `(lambda (x)
-						       (reorg--let-plist x
-							 ,grouper))
-				      :branch-predicate `(lambda (x)
-							   (reorg--let-plist x
-							     ,grouper))
-				      :branch-result (car x)
-				      :grouper-list-results (car x)
-				      :format-string format-string
-				      :result-sorters result-sorters
-				      :template template 
-				      :children children
-				      :branch-sorter heading-sorter
-				      :branch-sort-getter heading-sort-getter
-				      :reorg-level level))
+				      (cons 'branch-name (car x))
+				      (cons 'headline (car x))
+				      (cons 'reorg-branch t)
+				      (cons 'result-sorters result-sorters)
+				      (cons 'grouper-list `(lambda (x)
+							     (let-alist x
+							       ,grouper)))
+				      (cons 'branch-predicate `(lambda (x)
+								 (let-alist x
+								   ,grouper)))
+				      (cons 'branch-result (car x))
+				      (cons 'grouper-list-results (car x))
+				      (cons 'format-string format-string)
+				      (cons 'result-sorters result-sorters)
+				      (cons 'template template)
+				      (cons 'children children)
+				      (cons 'branch-sorter heading-sorter)
+				      (cons 'branch-sort-getter heading-sort-getter)
+				      (cons 'reorg-level level)))
 				 finally return it)
 				(seq-filter (lambda (x) (and (not (null (car x)))
 							     (not (null (cdr x)))
@@ -141,8 +141,8 @@ keys.  Keys are compared using `equal'."
 						 grouper-list
 						 (append
 						  grouper-list-results
-						  (list (plist-get (car (nth y (nth n (cdr data))))
-								   :branch-value)))
+						  (list (alist-get 'branch-value
+								   (car (nth y (nth n (cdr data)))))))
 						 format-string
 						 (1+ level)))))
 			    (progn ;; else 

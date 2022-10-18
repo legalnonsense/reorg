@@ -63,122 +63,10 @@ to parsed data.  For now, only for debugging.")
 (defvar reorg--last-point nil
   "last point (edit mode)")
 
-;;; data macro
-
-;; (cl-defmacro reorg-create-data-type (&optional &key
-;; 					       name
-;; 					       get
-;; 					       getter
-;; 					       set
-;; 					       class 
-;; 					       parse
-;; 					       validate
-;; 					       disabled
-;; 					       display-prefix
-;; 					       display-suffix
-;; 					       display
-;; 					       face
-;; 					       editable
-;; 					       display
-;; 					       orig-entry-func 
-;; 					       field-keymap
-;; 					       heading-keymap
-;; 					       post-edit-hook
-;; 					       pre-edit-hook
-;; 					       &allow-other-keys)
-;;   `(progn
-;;      (let ((data
-;; 	    (list 
-;; 	     :parse
-;; 	     (lambda () ,parse)
-;; 	     :get
-;; 	     (lambda (id &rest args)			 
-;; 	       (reorg--with-point-at-orig-entry id buffer
-;; 						,get))
-;; 	     :getter
-;; 	     (lambda (plist arg)
-;; 	       ,getter)		  
-;; 	     :get-view-string
-;; 	     (lambda ()
-;; 	       (pcase-let ((`(,start . ,end)
-;; 			    (reorg--get-field-bounds)))
-;; 		 (buffer-substring start end)))
-;; 	     :validate
-;; 	     (lambda (val &rest args)
-;; 	       ,validate)
-;; 	     :orig-entry-func
-;; 	     (cl-defun ,(intern (concat "reorg-display-orig--"  (symbol-name class) " " (symbol-name name)))
-;; 		 (plist &rest args)
-;; 	       ,@orig-entry-func)
-;; 	     :display
-;; 	     (cl-defun ,(intern (concat "reorg-display--"  (symbol-name class) " " (symbol-name name)))
-;; 		 (plist &rest args)
-;; 	       (let ((val (plist-get plist (or (when ',getter
-;; 						 ,getter)
-;; 					       ,(reorg--add-remove-colon name)))))
-;; 		 (when ',display (setq val (apply (lambda (&rest args) ,display) args)))
-;; 		 (when ',face (setq val (propertize
-;; 					 val
-;; 					 'font-lock-face
-;; 					 (cond ((internal-lisp-face-p ',face)
-;; 						',face)
-;; 					       ((functionp ',face)
-;; 						(funcall ',face plist))
-;; 					       (t (error "invalid face specification"))))))
-;; 		 (setq val (concat ,display-prefix val ,display-suffix))
-;; 		 (setq val (propertize val 'reorg-field-type ',name))
-;; 		 (setq val (propertize val 'field (list 'reorg
-;; 							(intern (concat
-;; 								 (symbol-name ',class)
-;; 								 "-"
-;; 								 (symbol-name ',name)
-;; 								 ',name)))))
-;; 		 (setq val (propertize val 'front-sticky t))
-;; 		 (when ',field-keymap 
-;; 		   (setq val (propertize
-;; 			      val
-;; 			      'keymap
-;; 			      (let ((map (make-sparse-keymap)))
-;; 				,@(cl-loop
-;; 				   for key in field-keymap
-;; 				   collect `(define-key map
-;; 					      (kbd ,(car key))
-;; 					      ',(cdr key)))
-;; 				map))))
-;; 		 val)))))
-;;        ;; header keymaps come last
-;;        (if ',disabled
-;; 	   (progn 
-;; 	     (cl-loop for (key . func) in ',field-keymap
-;; 		      do (advice-remove func #'reorg--refresh-advice))
-;; 	     (setq reorg-parser-list (remove ',name reorg-parser-list)))
-;; 	 ;; (cl-loop for (key . func) in ',field-keymap
-;; 	 ;; 	  do (advice-add func :around #'reorg--refresh-advice))
-;; 	 (if (alist-get ',name reorg-setter-alist)
-;; 	     (setf (alist-get ',name reorg-setter-alist) ,set)
-;; 	   (push (cons ',name ,set) reorg-setter-alist))
-;; 	 (if (alist-get ',name reorg-parser-list)
-;; 	     (setf (alist-get ',name reorg-parser-list) (plist-get data :parse))
-;; 	   (push (cons ',name (plist-get data :parse)) reorg-parser-list))))))
-
-;;; class macro
-
-;;;; creating classes and data 
-
-;; It is just easier to do it this way. 
-
-(defun reorg--clone-outline-results (data &optional format-string)
-  "asdf"
-  (cl-loop for d in data
-	   collect (reorg--create-headline-string d format-string (plist-get d :level))))
-
-;;;; process results
-
-
-;;;; Creating headlines from headline template 
-
-
-;;; Insert headlines into buffer
+;; (defun reorg--clone-outline-results (data &optional format-string)
+;;   "asdf"
+;;   (cl-loop for d in data
+;; 	   collect (reorg--create-headline-string d format-string (plist-get d :level))))
 
 (defun reorg--insert-org-headlines (data)
   "Insert grouped and sorted data into outline."
@@ -1265,28 +1153,28 @@ returns the correct positions."
 	(reorg-views--insert-after-point data (1+ level) format-string ))))
   (reorg-dynamic-bullets--fontify-heading))
 
-(defun reorg--set-text-property (plist val &rest props)
-  "Set the text property at point to a new value.
-Set the text property (car PROPS) to the value of
-the PROPS drilling nested plist whatever.
+;; (defun reorg--set-text-property (plist val &rest props)
+;;   "Set the text property at point to a new value.
+;; Set the text property (car PROPS) to the value of
+;; the PROPS drilling nested plist whatever.
 
-If PROPS is only one element then start with 'reorg-data
-otherwise start with the car of PROPS.
+;; If PROPS is only one element then start with 'reorg-data
+;; otherwise start with the car of PROPS.
 
-If PLIST is nil, then get the text properties at point."
-  (let* ((inhibit-field-text-motion t)
-	 (results (or plist (text-properties-at (point)))))
-    (cl-loop for prop in (or (butlast props) `(,reorg--data-property-name))
-	     with new-results = nil
-	     do (setf new-results (if prop
-				      (plist-get results prop)
-				    results))
-	     finally return (progn (plist-put new-results (car (last props)) val)
-				   (put-text-property (point-at-bol)
-						      (point-at-eol)
-						      reorg--data-property-name
-						      new-results)
-				   results))))
+;; If PLIST is nil, then get the text properties at point."
+;;   (let* ((inhibit-field-text-motion t)
+;; 	 (results (or plist (text-properties-at (point)))))
+;;     (cl-loop for prop in (or (butlast props) `(,reorg--data-property-name))
+;; 	     with new-results = nil
+;; 	     do (setf new-results (if prop
+;; 				      (plist-get results prop)
+;; 				    results))
+;; 	     finally return (progn (plist-put new-results (car (last props)) val)
+;; 				   (put-text-property (point-at-bol)
+;; 						      (point-at-eol)
+;; 						      reorg--data-property-name
+;; 						      new-results)
+;; 				   results))))
 
 (defun reorg--insert-heading (&optional data level format)
   (let ((inhibit-field-text-motion t))
@@ -1304,9 +1192,9 @@ If PLIST is nil, then get the text properties at point."
 
 ;;;; Footer
 
-(provide 'reorg)
 
-;;; reorg.el ends here
+
+
 
 ;;; reorg-view starts here
 
@@ -1341,9 +1229,9 @@ using `eq', unless PRED is suppied."
      (goto-char (point-min))
      (while (text-property-search-forward reorg--data-property-name
 					  ,id
-					  (lambda (val plist)
+					  (lambda (val alist)
 					    (string= 
-					     (plist-get plist :id)
+					     (alist-get 'id alist)
 					     val))
 					  'not-current)
        (save-excursion 
@@ -1351,8 +1239,11 @@ using `eq', unless PRED is suppied."
 	 ,@body)
        (forward-char 1))))
 
-(defmacro reorg--map-next-level (&rest body)
-  "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
+(reorg--map-id "7dfc861d-f8bb-4dc9-9ed8-36a8cd30c9d8")
+	       ;; => 
+
+	       (defmacro reorg--map-next-level (&rest body)
+		 "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
 level relative to the current one.  For example, if the current outline
 level is 2, and RELATIVE-LEVEL is -1, the function will move to the next
 branch at level 1.  If RELATIVE-LEVEL is 1, the function will move to the
@@ -1361,14 +1252,14 @@ next branch at level 3.
 If PREVIOUS is non-nil, move to the previous branch instead of the next.
 
 Return nil if there is no such branch."
-  `(let ((start-level (reorg-outline-level))
-	 (point (point)))
-     (cl-loop while (reorg--goto-next-relative-level 1 nil start-level)
-	      if (= (1+ start-level) (reorg-outline-level))
-	      do ,@body
-	      else if (/= start-level (reorg-outline-level))
-	      return nil)
-     (goto-char point)))
+		 `(let ((start-level (reorg-outline-level))
+			(point (point)))
+		    (cl-loop while (reorg--goto-next-relative-level 1 nil start-level)
+			     if (= (1+ start-level) (reorg-outline-level))
+			     do ,@body
+			     else if (/= start-level (reorg-outline-level))
+			     return nil)
+		    (goto-char point)))
 
 ;;;; reorg new tree
 
@@ -1473,9 +1364,9 @@ Return nil if there is no such branch."
     (setf (point) (point-min))
     (text-property-search-forward reorg--data-property-name
 				  id
-				  (lambda (val plist)
+				  (lambda (val alist)
 				    (string= 
-				     (plist-get plist :id)
+				     (alist-get 'id alist)
 				     val))
 				  'not-current)))
 
@@ -1728,7 +1619,7 @@ make a list of the results."
       (cl-loop with level = (reorg-outline-level)
 	       while (and (reorg-tree--goto-next-property-field nil
 								'reorg-data val nil #'equal
-								(lambda (x) (plist-get x prop)))
+								(lambda (x) (alist-get prop x)))
 			  (> (reorg-outline-level) level))
 	       do (cl-pushnew (funcall func) results :test #'equal)))
     (reverse results)))
@@ -1865,124 +1756,120 @@ make a list of the results."
     (doloop data template)))
 
 
-;;;; there 
-;;; new drop into
-;;;; Is HEADING present?
-;;;; make a new HEADLINE
-;;;; insert HEADLINE at LOCATION
-;;;; 
-
-(cl-defun reorg--drop-into (data template)
-  (cl-labels ((doloop
-	       (data
-		template
-		&optional (n 0 np)
-		result-sorters
-		grouper-list
-		grouper-list-results
-		format-string
-		(level 1)
-		(before t))
-	       (let ((grouper `(lambda (x)
-				 (reorg--let-plist x
-				   ,(plist-get template :group))))
-		     (children (plist-get template :children))
-		     (heading-sorter (plist-get template :sort))
-		     (heading-sort-getter (or (plist-get template :sort-getter)
-					      #'car))
-		     (format-string (or (plist-get template :format-string)
-					format-string
-					reorg-headline-format))
-		     (result-sort (plist-get template :sort-results)))
-		 (when result-sort
-		   (setq result-sorters
-			 (append result-sorters					  
-				 (cl-loop for (form . pred) in result-sort
-					  collect (cons `(lambda (x)
-							   (reorg--let-plist x
-							     ,form))
-							pred)))))
-		 (let ((name (funcall grouper data))
-		       (members (reorg-tree--get-current-group-members))
-		       (current-level (reorg-outline-level)))
-		   (when name
-		     (if (member name members)
-			 (unless (equal name (reorg--get-view-props nil 'reorg-data 'branch-name))
-			   (reorg-tree--goto-next-property-field 'reorg-data name
-								 nil #'equal (lambda (x) (alist-get 'branch-name x))))
-		       (if (and heading-sort-getter heading-sorter members)
-			   (cl-loop with new-branch = (list (cons 'name ,name)
-							    (cons 'branch-name ,name)
-							    (cons 'heading-sorter ,heading-sorter)
-							    (cons 'heading-sort-getter ,heading-sort-getter)
-							    (cons 'format-string ,format-string)
-							    (cons 'level ,level)
-							    (cons 'reorg-branch t)
-							    (cons 'branch-predicate ,grouper)		  )
-				    when (funcall heading-sorter
-						  (funcall heading-sort-getter name)
-						  (funcall heading-sort-getter (reorg--get-view-props nil 'reorg-data 'branch-name)))
-				    return (reorg-tree--branch-insert--insert-heading new-branch)
-				    while (reorg--goto-next-relative-level 0)
-				    finally return (reorg-tree--branch-insert--insert-heading new-branch))
-			 (reorg-tree--branch-insert--insert-heading (list (cons 'name ,name)
-									  (cons 'branch-name ,name)
-									  (cons 'heading-sorter ,heading-sorter)
-									  (cons 'heading-sort-getter ,heading-sort-getter)
-									  (cons 'format-string ,format-string)
-									  (cons 'level ,level)
-									  (cons 'reorg-branch t)
-									  (cons 'branch-predicate ,grouper))
-								    (not before)))))
-		   (if children 
-		       (cl-loop 
-			with before = nil
-			for x below (length children)
-			for marker in (save-excursion
-					(setq before (reorg--goto-next-relative-level 1))
-					(reorg-tree--get-sibling-group-markers))
-			do (goto-char marker)
-			and do (doloop
-				data
-				(nth x children)
-				x
-				result-sorters
-				nil
-				nil
-				format-string
-				(1+ level)
-				before))
-		     (reorg--insert-into-leaves data
-						result-sorters
-						(if before (1+ level) level)
-						format-string)
-		     (redraw-display)		     
-		     ))))))
+;; (cl-defun reorg--drop-into (data template)
+;;   (cl-labels ((doloop
+;; 	       (data
+;; 		template
+;; 		&optional (n 0 np)
+;; 		result-sorters
+;; 		grouper-list
+;; 		grouper-list-results
+;; 		format-string
+;; 		(level 1)
+;; 		(before t))
+;; 	       (let ((grouper `(lambda (x)
+;; 				 (let-alist x
+;; 				   ,(plist-get template :group))))
+;; 		     (children (plist-get template :children))
+;; 		     (heading-sorter (plist-get template :sort))
+;; 		     (heading-sort-getter (or (plist-get template :sort-getter)
+;; 					      #'car))
+;; 		     (format-string (or (plist-get template :format-string)
+;; 					format-string
+;; 					reorg-headline-format))
+;; 		     (result-sort (plist-get template :sort-results)))
+;; 		 (when result-sort
+;; 		   (setq result-sorters
+;; 			 (append result-sorters					  
+;; 				 (cl-loop for (form . pred) in result-sort
+;; 					  collect (cons `(lambda (x)
+;; 							   (let-alist x
+;; 							     ,form))
+;; 							pred)))))
+;; 		 (let ((name (funcall grouper data))
+;; 		       (members (reorg-tree--get-current-group-members))
+;; 		       (current-level (reorg-outline-level)))
+;; 		   (when name
+;; 		     (if (member name members)
+;; 			 (unless (equal name (reorg--get-view-props nil 'reorg-data 'branch-name))
+;; 			   (reorg-tree--goto-next-property-field 'reorg-data name
+;; 								 nil #'equal (lambda (x) (alist-get 'branch-name x))))
+;; 		       (if (and heading-sort-getter heading-sorter members)
+;; 			   (cl-loop with new-branch = (list (cons 'name ,name)
+;; 							    (cons 'branch-name ,name)
+;; 							    (cons 'heading-sorter ,heading-sorter)
+;; 							    (cons 'heading-sort-getter ,heading-sort-getter)
+;; 							    (cons 'format-string ,format-string)
+;; 							    (cons 'level ,level)
+;; 							    (cons 'reorg-branch t)
+;; 							    (cons 'branch-predicate ,grouper)		  )
+;; 				    when (funcall heading-sorter
+;; 						  (funcall heading-sort-getter name)
+;; 						  (funcall heading-sort-getter (reorg--get-view-props nil 'reorg-data 'branch-name)))
+;; 				    return (reorg-tree--branch-insert--insert-heading new-branch)
+;; 				    while (reorg--goto-next-relative-level 0)
+;; 				    finally return (reorg-tree--branch-insert--insert-heading new-branch))
+;; 			 (reorg-tree--branch-insert--insert-heading (list (cons 'name ,name)
+;; 									  (cons 'branch-name ,name)
+;; 									  (cons 'heading-sorter ,heading-sorter)
+;; 									  (cons 'heading-sort-getter ,heading-sort-getter)
+;; 									  (cons 'format-string ,format-string)
+;; 									  (cons 'level ,level)
+;; 									  (cons 'reorg-branch t)
+;; 									  (cons 'branch-predicate ,grouper))
+;; 								    (not before)))))
+;; 		   (if children 
+;; 		       (cl-loop 
+;; 			with before = nil
+;; 			for x below (length children)
+;; 			for marker in (save-excursion
+;; 					(setq before (reorg--goto-next-relative-level 1))
+;; 					(reorg-tree--get-sibling-group-markers))
+;; 			do (goto-char marker)
+;; 			and do (doloop
+;; 				data
+;; 				(nth x children)
+;; 				x
+;; 				result-sorters
+;; 				nil
+;; 				nil
+;; 				format-string
+;; 				(1+ level)
+;; 				before))
+;; 		     (reorg--insert-into-leaves data
+;; 						result-sorters
+;; 						(if before (1+ level) level)
+;; 						format-string)
+;; 		     (redraw-display)		     
+;; 		     ))))))
 
 
-  (goto-char (point-min))
-  (doloop data template))
+;;   (goto-char (point-min))
+;;   (doloop data template))
 
 
 ;;;;; IN PROGRESS
 
 (defmacro reorg--with-source-and-sync (&rest body)
-"Execute BODY in the source buffer and
+  "Execute BODY in the source buffer and
 update the heading at point."
-(declare (indent defun))
-`(progn
-   (let (data)
-     (reorg-view--tree-to-source--goto-heading)
-     (org-with-wide-buffer
-      (org-back-to-heading)
-      ,@body
-      (setq data (reorg--parser nil 'org)))
-     (reorg--select-tree-window)
-     (reorg--map-id (alist-get 'id data)
-		    (reorg-views--delete-leaf)
-		    (reorg-views--delete-headers-maybe))
-     (save-excursion 
-       (reorg--branch-insert--drop-into-outline data
-						reorg-current-template)))))
+  (declare (indent defun))
+  `(progn
+     (let (data)
+       (reorg-view--tree-to-source--goto-heading)
+       (org-with-wide-buffer
+	(org-back-to-heading)
+	,@body
+	(setq data (reorg--parser nil 'org)))
+       (reorg--select-tree-window)
+       (reorg--map-id (alist-get 'id data)
+		      (reorg-views--delete-leaf)
+		      (reorg-views--delete-headers-maybe))
+       (save-excursion 
+	 (reorg--branch-insert--drop-into-outline data
+						  reorg-current-template)))))
+
+
+
 
 (provide 'reorg)
