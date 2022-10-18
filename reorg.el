@@ -1239,11 +1239,8 @@ using `eq', unless PRED is suppied."
 	 ,@body)
        (forward-char 1))))
 
-(reorg--map-id "7dfc861d-f8bb-4dc9-9ed8-36a8cd30c9d8")
-	       ;; => 
-
-	       (defmacro reorg--map-next-level (&rest body)
-		 "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
+(defmacro reorg--map-next-level (&rest body)
+  "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
 level relative to the current one.  For example, if the current outline
 level is 2, and RELATIVE-LEVEL is -1, the function will move to the next
 branch at level 1.  If RELATIVE-LEVEL is 1, the function will move to the
@@ -1252,14 +1249,14 @@ next branch at level 3.
 If PREVIOUS is non-nil, move to the previous branch instead of the next.
 
 Return nil if there is no such branch."
-		 `(let ((start-level (reorg-outline-level))
-			(point (point)))
-		    (cl-loop while (reorg--goto-next-relative-level 1 nil start-level)
-			     if (= (1+ start-level) (reorg-outline-level))
-			     do ,@body
-			     else if (/= start-level (reorg-outline-level))
-			     return nil)
-		    (goto-char point)))
+  `(let ((start-level (reorg-outline-level))
+	 (point (point)))
+     (cl-loop while (reorg--goto-next-relative-level 1 nil start-level)
+	      if (= (1+ start-level) (reorg-outline-level))
+	      do ,@body
+	      else if (/= start-level (reorg-outline-level))
+	      return nil)
+     (goto-char point)))
 
 ;;;; reorg new tree
 

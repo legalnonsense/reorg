@@ -9,7 +9,8 @@
 							       "asdfasfd"))
 				  :children (( :group (substring .headline 0 1)
 					       :sort string<
-					       :sort-getter (lambda (x) (downcase x)))))))
+					       :sort-getter (lambda (x) (downcase x)))
+					     ))))
 
 ;; (defun xxx-reorg-test-14 ()
 ;;   (interactive)
@@ -43,7 +44,11 @@
 					      .headline
 					    .filename)
 					  .todo)
-		   :children (( :group (substring .headline 0 1))))))))
+		   :children (( :group (substring .headline 0 1))
+			      ( :group (substring .headline -1)
+				:format-string (concat " "
+						       .ts
+						       .headline))))))))
 
 (defun xxx-reorg-test-13 ()
   (interactive)
