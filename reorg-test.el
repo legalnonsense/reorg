@@ -1,7 +1,15 @@
 
 ;;; -*- lexical-binding: t; -*-
 
-
+(--> (reorg--getter '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
+		      (files . "find ~/Desktop -type f")))
+     (reorg--group-and-sort it '( :group .todo
+				  :format-string (concat " " (if (eq .class 'org)
+								 .headline
+							       "asdfasfd"))
+				  :children (( :group (substring .headline 0 1)
+					       :sort string<
+					       :sort-getter (lambda (x) (downcase x)))))))
 
 ;; (defun xxx-reorg-test-14 ()
 ;;   (interactive)
@@ -20,6 +28,23 @@
 
 ;; 		   ;; )))))
 
+(defun xxx-reorg-test-14 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((files . "find ~/Desktop -type f")
+	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+   :template
+   '( :group "TEST"
+      :children (( :group .todo
+		   :sort string<
+		   :sort-getter (lambda (x) (downcase x))
+		   :format-string (concat " "
+					  (if (eq .class 'org)
+					      .headline
+					    .filename)
+					  .todo)
+		   :children (( :group (substring .headline 0 1))))))))
+
 (defun xxx-reorg-test-13 ()
   (interactive)
   (reorg-open-sidebar
@@ -32,16 +57,16 @@
 				    "Orgmode")
 				   ((eq .class 'files)
 				    "Files")))
-		   :sort string<
+		   ;; :sort string<
 		   :format-string (concat " "
 					  (if (eq .class 'org)
 					      .headline
-					    .filename))
+					    .filename)))))))
 		   ;; (cond ((eq .class 'org)
 		   ;; 	 (concat " " .headline))
 		   ;; 	((eq .class 'files)
 		   ;; 	 (concat " " .filename)))
-		   :sort-getter (lambda (x) (downcase x)))))))
+		   ;; :sort-getter (lambda (x) (downcase x)))))))
 
 
 
