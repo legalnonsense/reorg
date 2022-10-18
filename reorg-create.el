@@ -241,9 +241,9 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					 num)
 				       ?*)))
     (apply #'propertize 
-	   (if (plist-get data :reorg-branch)
+	   (if (alist-get 'reorg-branch data)
 	       (propertize 
-		(concat (create-stars level) " " (plist-get data :branch-name))
+		(concat (create-stars level) " " (alist-get 'branch-name data))
 		reorg--field-property-name
 		'branch)
 	     ;; TODO:get rid of this copy-tree
