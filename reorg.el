@@ -223,7 +223,7 @@ get nested properties."
 			       (if (not payload)
 				   (->> (get-text-property (or point (point)) (car props))
 					(get-props (cdr props)))
-				 (->> (plist-get payload (car props))
+				 (->> (alist-get (car props) payload)
 				      (get-props (cdr props)))))
 			   payload)))
     (if props 
