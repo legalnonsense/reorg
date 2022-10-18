@@ -1784,7 +1784,7 @@ make a list of the results."
 	 (level 1)
 	 (before t))
 	(let ((grouper `(lambda (x)
-			  (reorg--let-plist x
+			  (let-alist x
 			    ,(plist-get template :group))))
 	      (children (plist-get template :children))
 	      (heading-sorter (plist-get template :sort))
@@ -1799,7 +1799,7 @@ make a list of the results."
 		  (append result-sorters					  
 			  (cl-loop for (form . pred) in result-sort
 				   collect (cons `(lambda (x)
-						    (reorg--let-plist x
+						    (let-alist x
 						      ,form))
 						 pred)))))
 	  (let ((name (funcall grouper data))
@@ -1973,10 +1973,7 @@ make a list of the results."
 update the heading at point."
   (declare (indent defun))
   `(progn
-     (let ((val (field-string-no-properties))
-	   (inhibit-field-text-motion t)
-	   (search-invisible t)
-	   data)
+     (let (data)
        (reorg-view--tree-to-source--goto-heading)
        (org-with-wide-buffer
 	(org-back-to-heading)
