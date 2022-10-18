@@ -1741,7 +1741,9 @@ make a list of the results."
 			   before))
 		(reorg--insert-into-leaves data
 					   result-sorters
-					   (if before (1+ level) level)
+					   (if (reorg-tree--branch-has-leaves-p)
+					       (1+ level)
+					     level)
 					   format-string)
 		(redraw-display)
 		
