@@ -1648,9 +1648,15 @@ will extract the single value prior to comparing to VAL."
 		(members (reorg-tree--get-current-group-members)))
 	    (when name
 	      (if (member name members)
-		  (unless (equal name (reorg--get-view-props nil 'reorg-data 'branch-name))
-		    (reorg-tree--goto-next-property-field 'reorg-data name
-							  nil #'equal (lambda (x) (alist-get 'branch-name x))))
+		  (unless (equal name (reorg--get-view-props nil
+							     'reorg-data
+							     'branch-name))
+		    (reorg-tree--goto-next-property-field
+		     'reorg-data
+		     name
+		     nil
+		     #'equal
+		     (lambda (x) (alist-get 'branch-name x))))
 		(if (and heading-sort-getter heading-sorter members)
 		    (cl-loop
 		     with new-data = (list (cons 'name name)
@@ -1711,12 +1717,7 @@ will extract the single value prior to comparing to VAL."
 					       (1+ level)
 					     level)
 					   format-string)
-		(redraw-display)
-		
-
-		))))))
-
-
+		(redraw-display)))))))
     (goto-char (point-min))
     (doloop data template)))
 
