@@ -131,27 +131,27 @@ get nested properties."
   "Get the outline level of the heading at point."
   (reorg--get-view-prop 'reorg-level))
 
-;; (defun reorg--get-field-at-point (&optional point)
-;;   "Get the reorg-field-type at point."
-;;   (get-text-property (or point (point)) reorg--field-property-name))
+(defun reorg--get-field-at-point (&optional point)
+  "Get the reorg-field-type at point."
+  (get-text-property (or point (point)) reorg--field-property-name))
 
-;; (defun reorg--get-field-bounds ()
-;;   "Get the bounds of the field at point."
-;;   (when-let ((field (reorg--get-field-at-point)))
-;;     (cons
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg--get-field-at-point)
-;; 				  field)
-;; 			   (not (bobp)))
-;; 		do (forward-char -1)
-;; 		finally return (1+ (point))))
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg--get-field-at-point)
-;; 				  field)
-;; 			   (not (eobp)))
+(defun reorg--get-field-bounds ()
+  "Get the bounds of the field at point."
+  (when-let ((field (reorg--get-field-at-point)))
+    (cons
+     (save-excursion 
+       (cl-loop while (and (equal (reorg--get-field-at-point)
+				  field)
+			   (not (bobp)))
+		do (forward-char -1)
+		finally return (1+ (point))))
+     (save-excursion 
+       (cl-loop while (and (equal (reorg--get-field-at-point)
+				  field)
+			   (not (eobp)))
 
-;; 		do (forward-char 1)
-;; 		finally return (point))))))
+		do (forward-char 1)
+		finally return (point))))))
 ;;; main
 
 (defun reorg-open-sidebar-clone (&optional file)
@@ -205,25 +205,6 @@ get nested properties."
       (erase-buffer))
     (reorg--insert-org-headlines results)
     (fundamental-mode)))
-
-(defun reorg-open-sidebar (template &optional file)
-  "Open this shit in the sidebar."
-  (let ((results (--> (org-meta--run-org-ql file)
-		      (reorg-group it template)
-		      (reorg-process-results it))))
-    (when (get-buffer org-meta-view-buffer-name)
-      (kill-buffer org-meta-view-buffer-name))
-    (org-meta--open-in-side-window)
-    (org-meta--select-view-window)
-    (fundamental-mode)
-    (let ((inhibit-read-only t))
-      (erase-buffer))
-    (reorg--insert-org-headlines results)
-    (org-meta-view-mode)
-    (org-dynamic-bullets-mode -1)
-    (reorg-dynamic-bullets-mode 1)
-    (org-show-all)
-    (goto-char (point-min))))
 
 ;;; reorg-views
 ;;;; clone functions
@@ -584,13 +565,13 @@ the point and return nil."
 ;;   "The value of header-line-format when `reorg-edits-mode' is 
 ;; invoked.")
 
-;; (defvar reorg-edits--current-field-overlay
-;;   (let ((overlay (make-overlay 1 2)))
-;;     (overlay-put overlay 'face '( :box (:line-width -1)
-;; 				  :foreground "cornsilk"))    
-;;     (overlay-put overlay 'priority 1000)
-;;     overlay)
-;;   "Overlay for field at point.")
+(defvar reorg-edits--current-field-overlay
+  (let ((overlay (make-overlay 1 2)))
+    (overlay-put overlay 'face '( :box (:line-width -1)
+				  :foreground "cornsilk"))    
+    (overlay-put overlay 'priority 1000)
+    overlay)
+  "Overlay for field at point.")
 
 ;; (defvar reorg-edits-field-mode-map
 ;;   (let ((map (make-sparse-keymap)))
@@ -849,9 +830,9 @@ the point and return nil."
 ;; 	      (not (get-text-property (1+ (point)) reorg--field-property-name)))
 ;; 	 (forward-char -1))))
 
-;; (defun reorg-edits--get-field-at-point (&optional point)
-;;   "Get the `reorg--field-property-name' at point."
-;;   (get-text-property (or point (point)) reorg--field-property-name))
+(defun reorg-edits--get-field-at-point (&optional point)
+  "Get the `reorg--field-property-name' at point."
+  (get-text-property (or point (point)) reorg--field-property-name))
 
 ;; (defun reorg-edits--kill-line ()
 ;;   "Kill up to the end of the end point."
@@ -859,23 +840,23 @@ the point and return nil."
 ;;   (pcase-let ((`(,start . ,end) (reorg-edits--get-field-bounds)))
 ;;     (delete-region start end)))
 
-;; (defun reorg-edits--get-field-bounds ()
-;;   "Get the bounds of the field at point."
-;;   (when-let ((field (reorg-edits--get-field-at-point)))
-;;     (cons
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg-edits--get-field-at-point)
-;; 				  field)
-;; 			   (not (bobp)))
-;; 		do (forward-char -1)
-;; 		finally return (1+ (point))))
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg-edits--get-field-at-point)
-;; 				  field)
-;; 			   (not (eobp)))
+(defun reorg-edits--get-field-bounds ()
+  "Get the bounds of the field at point."
+  (when-let ((field (reorg-edits--get-field-at-point)))
+    (cons
+     (save-excursion 
+       (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				  field)
+			   (not (bobp)))
+		do (forward-char -1)
+		finally return (1+ (point))))
+     (save-excursion 
+       (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				  field)
+			   (not (eobp)))
 
-;; 		do (forward-char 1)
-;; 		finally return (point))))))
+		do (forward-char 1)
+		finally return (point))))))
 
 (defun reorg-views--insert-before-point (data &optional level format-string)
   "insert a hearing before the heading at point."
@@ -1198,20 +1179,6 @@ the point and return nil."
     (reorg-dynamic-bullets--fontify-heading)))
 
 
-
-
-;;;; Footer
-
-
-
-
-
-;;; reorg-view starts here
-
-;;;; text property navigation 
-
-
-
 (defun reorg--goto-previous-property-field (prop val &optional pred transformer)
   "Move to the beginning of the buffer position that
 text property PROP that matches VAL.  Check for matching VAL
@@ -1275,22 +1242,7 @@ Return nil if there is no such branch."
   (and (eq (reorg--get-view-props nil 'reorg-field-type) 'branch)
        (reorg--get-view-props nil 'reorg-data 'children)))
 
-
-
-
-;; goto next header 
-;; goto the next child
-;; goto to last child 
-;; goto next sibling
-;; goto next level lower 
-;; goto next last level lower
-
-
 ;;; inserting into branch
-
-
-
-
 
 (defun reorg--insert-into-branch-or-make-new-branch (data &optional point)
   (let* ((children (reorg-into--get-list-of-child-branches-at-point)))
@@ -1325,23 +1277,18 @@ Return nil if there is no such branch."
 						  (cons 'reorg-level (reorg-current-level)))))
 	     (reorg--insert-into-branch-or-make-new-branch data))))
 
-
-
-
-
 (defun reorg-into--at-branch-p ()
   (eq (reorg--get-view-props nil 'reorg-field-type)
       'branch))
 
 (defun reorg-into--descend-into-branch-at-point (data)
-"IDK what to do."
-(when (reorg-into--at-branch-p)   
-  (pcase `(,(reorg--children-p) ,(reorg-into--member-of-this-header? data))
-    (`(nil t) (reorg--insert-into-leaves data (reorg--get-view-props nil 'reorg-data 'results-sorters)))
-    (`(t t) (reorg--goto-next-relative-level 1) (reorg--into--descend-into-branch-at-point))
-    (`(t nil) (reorg--goto-next-relative-level 0) (reorg--into--descend-into-branch-at-point))
-    (`(nil nil) (reorg--goto-next-relative-level 
-		 )))))
+  "IDK what to do."
+  (when (reorg-into--at-branch-p)   
+    (pcase `(,(reorg--children-p) ,(reorg-into--member-of-this-header? data))
+      (`(nil t) (reorg--insert-into-leaves data (reorg--get-view-props nil 'reorg-data 'results-sorters)))
+      (`(t t) (reorg--goto-next-relative-level 1) (reorg--into--descend-into-branch-at-point))
+      (`(t nil) (reorg--goto-next-relative-level 0) (reorg--into--descend-into-branch-at-point))
+      (`(nil nil) (reorg--goto-next-relative-level)))))
 
 (defun reorg-into--member-of-this-header? (data)
   "Is DATA a member of the header?" 
@@ -1365,7 +1312,6 @@ Return nil if there is no such branch."
 (defun reorg-tree--expand-node ()
   (outline-show-subtree))
 
-
 (defun reorg-tree--is-cloned-p ()
   (when-let ((id (reorg--get-view-prop 'id)))
     (setf (point) (point-min))
@@ -1376,7 +1322,6 @@ Return nil if there is no such branch."
 				     (alist-get 'id alist)
 				     val))
 				  'not-current)))
-
 
 (defun reorg-tree--is-folded-p ()
   "Is the current heading folded?"
@@ -1397,7 +1342,6 @@ Return nil if there is no such branch."
 
 
 ;;;; reorg-tree
-
 
 (defun reorg--goto-next-relative-level (&optional relative-level backward start-level no-error)
   "Goto the next branch that is at RELATIVE-LEVEL up to any branch that is a
@@ -1545,17 +1489,17 @@ and TEST-FN."
      (reorg--get-view-props nil 'reorg-data 'branch-name))))
 
 (defun reorg-tree--map-siblings-by-group (func)
-(reorg-tree--with-wide-buffer
- (cl-loop with results = nil
-	  do (push (reorg-tree--map-siblings
-		    func
-		    (lambda ()
-		      (reorg--get-view-props nil
-					     'reorg-data
-					     'branch-predicate)))
-		   results)
-	  while (reorg-tree--goto-next-sibling-group)
-	  finally return results)))
+  (reorg-tree--with-wide-buffer
+   (cl-loop with results = nil
+	    do (push (reorg-tree--map-siblings
+		      func
+		      (lambda ()
+			(reorg--get-view-props nil
+					       'reorg-data
+					       'branch-predicate)))
+		     results)
+	    while (reorg-tree--goto-next-sibling-group)
+	    finally return results)))
 
 (defun reorg-tree--get-sibling-group-markers ()
   "Get the markers for the starting point of each
