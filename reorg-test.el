@@ -1,34 +1,6 @@
 
 ;;; -*- lexical-binding: t; -*-
 
-(--> (reorg--getter '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
-		      (files . "find ~/Desktop -type f")))
-     (reorg--group-and-sort it '( :group .todo
-				  :format-string (concat " " (if (eq .class 'org)
-								 .headline
-							       "asdfasfd"))
-				  :children (( :group (substring .headline 0 1)
-					       :sort string<
-					       :sort-getter (lambda (x) (downcase x)))
-					     ))))
-
-;; (defun xxx-reorg-test-14 ()
-;;   (interactive)
-;;   (reorg-open-sidebar
-;;    :sources '((files . "find ~/Desktop -type f")
-;; 	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org")
-;; 	      (email . "mu find bananas --format=sexp"))
-;;    :template
-;;    '( :group "TEST"
-;;       :children (( :group (cond (.subject "Emails")
-;; 				(.headline "Notes")
-;; 				(.filename "Files"))
-;; 		   :sort string<
-;; 		   :sort-getter (lambda (x) (downcase x))
-;; 		   :children
-
-;; 		   ;; )))))
-
 (defun xxx-reorg-test-14 ()
   (interactive)
   (reorg-open-sidebar

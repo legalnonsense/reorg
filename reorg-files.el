@@ -8,13 +8,13 @@
  :keymap (("x" . (lambda () (interactive) (message "adf")))
 	  ("e" . (lambda ()
 		   (interactive)
-		   (find-file-other-window (reorg--get-view-prop 'fullname))))
+		   (find-file-other-window
+		    (reorg--get-view-prop 'fullname))))
 	  ("y" . (lambda () (interactive) (message "yyyy")))
 	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
 	  ("o" . (lambda () (interactive)
 		   (xdg-open (reorg--get-view-prop 'path)))))
- :extra-props ( test asfasfd
-		face '(:underline t)))
+ :extra-props (face '(:underline t)))
 
 (reorg-create-data-type
  :name depth 

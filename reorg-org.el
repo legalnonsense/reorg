@@ -1,13 +1,43 @@
 ;; -*- lexical-binding: t; -*-
 ;;; data 
 
+(defun xxx ()
+  (interactive)
+  )
+
 (reorg-create-class-type :name org
-			 :getter 
-			 (with-current-buffer (find-file-noselect SOURCE)
-			   (widen)
-			   (org-show-all)
-			   (org-map-entries
-			    #'PARSER)))
+			 :keymap (("h" . (lambda (&optional arg)					   
+					   (interactive)
+					   (reorg--with-source-and-sync 
+					     (org-edit-headline (read-string "New headline: "
+									     (org-get-heading t t t t))))))
+				  ("t" . (lambda (&optional arg) (interactive "P")
+					   (reorg--with-source-and-sync
+					     (funcall-interactively #'org-todo arg))))
+				  ("a" . (lambda (&optional arg) (interactive "P")
+					   (reorg--with-source-and-sync
+					     (funcall-interactively #'org-set-tags-command arg))))
+				  ("d" . (lambda (&optional arg) (interactive "P")
+					   (reorg--with-source-and-sync
+					     (funcall-interactively #'org-deadline arg))))
+				  ("s" . (lambda (&optional arg) (interactive "P")
+					   (reorg--with-source-and-sync
+					     (funcall-interactively #'org-schedule arg))))
+				  ("r" . (lambda (&optional arg) (interactive )
+					   (reorg--with-source-and-sync
+					     (funcall-interactively #'org-set-property))))
+				  ("i" . (lambda (&optional arg) (interactive "P")
+					   (reorg--with-source-and-sync
+					     (funcall-interactively #'org-priority arg))))
+				  ("g" . (lambda (&optional arg) (interactive)
+					   (reorg--with-source-and-sync))))
+			 :getter (with-current-buffer (find-file-noselect SOURCE)
+				   (widen)
+				   (org-show-all)
+				   (org-map-entries
+				    #'PARSER))
+			 :extra-props (a b))
+
 
 (reorg-create-data-type :name headline
 			:class org
