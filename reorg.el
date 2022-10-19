@@ -464,7 +464,7 @@ the point and return nil."
     ;; (define-key map (kbd "S-<down>") #'reorg--shift-down)
     ;; (define-key map (kbd "b") #'reorg-edits-move-to-previous-field)
     (define-key map (kbd "c") #'reorg--jump-to-next-clone)
-    ;;(define-key map (kbd "C") #'reorg--jump-to-previous-clone)
+    (define-key map (kbd "C") #'reorg--jump-to-previous-clone)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
     (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
     (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-follow)
