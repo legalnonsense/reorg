@@ -257,6 +257,8 @@ template.  Use LEVEL number of leading stars.  Add text properties
 
 	   'reorg-class
 	   (alist-get 'class data)
+	   'reorg-level
+	   level
 	   'reorg-data
 	   data
 	   (alist-get (alist-get 'class data)
