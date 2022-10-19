@@ -1,4 +1,3 @@
-
 ;;; -*- lexical-binding: t; -*-
 
 (defun xxx-reorg-test-14 ()
