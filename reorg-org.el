@@ -1,9 +1,136 @@
 ;; -*- lexical-binding: t; -*-
-;;; data 
 
-(defun xxx ()
-  (interactive)
-  )
+;;; syncing macro
+
+(defmacro reorg--with-source-and-sync (&rest body)
+  "Execute BODY in the source buffer and
+update the heading at point."
+  (declare (indent defun))
+  `(progn
+     (let (data)
+       (reorg-view--tree-to-source--goto-heading)
+       (org-with-wide-buffer
+	(org-back-to-heading)
+	,@body
+	(setq data (reorg--parser nil 'org)))
+       (reorg--select-tree-window)
+       (reorg--map-id (alist-get 'id data)
+		      (reorg-views--delete-leaf)
+		      (reorg-views--delete-headers-maybe))
+       (save-excursion 
+	 (reorg--branch-insert--drop-into-outline data
+						  reorg-current-template)))))
+
+;;; parsing functions 
+
+(defun reorg--ts-hhmm-p (ts)
+  (string-match (rx (or (seq (** 1 2 digit)
+			     ":"
+			     (= 2 digit))
+			(seq (** 1 2 digit)
+			     (or "am"
+				 "pm"
+				 "AM"
+				 "PM"))))
+		ts))
+
+(defun reorg--format-time-string (ts no-time-format &optional time-format)
+  (format-time-string
+   (if (reorg--ts-hhmm-p ts)
+       (or time-format no-time-format)
+     no-time-format)
+   (org-read-date nil t ts )))
+
+
+(defun reorg-parser--get-property-drawer ()
+  "asdf"
+  (save-excursion
+    (org-back-to-heading)
+    (let (seen-base props)
+      (while (re-search-forward org-property-re (org-entry-end-position) t)
+	(let* ((key (upcase (match-string-no-properties 2)))
+	       (extendp (string-match-p "\\+\\'" key))
+	       (key-base (if extendp (substring key 0 -1) key))
+	       (value (match-string-no-properties 3)))
+	  (cond
+	   ((member-ignore-case key-base org-special-properties))
+	   (extendp
+	    (setq props
+		  (org--update-property-plist key value props)))
+	   ((member key seen-base))
+	   (t (push key seen-base)
+	      (let ((p (assoc-string key props t)))
+		(if p (setcdr p (concat value " " (cdr p)))
+		  (unless (or (null key)
+			      (equal "" key)
+			      (equal "PROPERTIES" key)
+			      (equal "END" key))
+		    (setq props (append (list
+					 (reorg--add-remove-colon (intern (downcase key)))
+					 value)
+					props)))))))))
+      props)))
+
+(defun reorg--timestamp-parser (&optional inactive range)
+  "Find the fist timestamp in the current heading and return it. 
+if INACTIVE is non-nil, get the first inactive timestamp.  If 
+RANGE is non-nil, only look for timestamp ranges."
+  (save-excursion
+    (cl-loop while (re-search-forward (pcase `(,inactive ,range)
+					(`(nil t)
+					 org-tr-regexp)
+					(`(nil nil)
+					 org-ts-regexp)
+					(`(t nil)
+					 org-ts-regexp-inactive)
+					(`(t t)
+					 (concat 
+					  org-ts-regexp-inactive
+					  "--?-?"
+					  org-ts-regexp-inactive)))
+				      (org-entry-end-position)
+				      t)
+	     when (save-match-data (not (eq (car (org-element-at-point))
+					    'planning)))
+	     return (org-no-properties (match-string 0)))))
+
+(defun reorg--get-body ()
+  "get headings body text"
+  (org-element-interpret-data
+   (org-element--parse-elements (save-excursion (org-back-to-heading)
+						(org-end-of-meta-data t)
+						(point))
+				(or (save-excursion (outline-next-heading))
+				    (point-max))
+				'first-section nil nil nil nil)))
+
+(defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
+  "Execute BODY with point at the heading with ID at point."
+  `(when-let ((id (or ,id (reorg--get-view-prop :id))))
+     (with-current-buffer (or ,buffer (reorg--get-view-prop :buffer))
+       (reorg--with-restore-state
+	(goto-char (point-min))
+	;; NOTE: Can't use `org-id-goto' here or it will keep the
+	;;       buffer open after the edit.  Getting the buffer
+	;;       and searching for the ID should ensure the buffer
+	;;       stays hidden.  It also avoids using `org-id'
+	;;       for anything other than ID generation. 
+	(save-match-data
+	  (if (re-search-forward id)
+	      (progn 
+		,@body)
+	    (error "Heading with ID %s not found." id)))))))
+
+(defmacro reorg--with-restore-state (&rest body)
+  "do BODY while saving, excursion, restriction, etc."
+  (declare (debug (body)))
+  `(save-excursion
+     (save-restriction       
+       (widen)
+       (let ((inhibit-field-text-motion t))
+	 ,@body))))
+
+;;; org custom data type
 
 (reorg-create-class-type :name org
 			 :keymap (("h" . (lambda (&optional arg)					   
@@ -35,9 +162,7 @@
 				   (widen)
 				   (org-show-all)
 				   (org-map-entries
-				    #'PARSER))
-			 :extra-props (a b))
-
+				    #'PARSER)))
 
 (reorg-create-data-type :name headline
 			:class org
