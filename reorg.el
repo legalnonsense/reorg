@@ -1,4 +1,5 @@
-;;; -*- lexical-binding: t; -*-
+;; -*- lexical-binding: t; -*-
+
 (require 'reorg-tree)
 (require 'reorg-sort)
 
@@ -474,16 +475,16 @@ the point and return nil."
     map)
   "keymap")
 
-(defmacro reorg--with-source-buffer (&rest body)
-  "Execute BODY in the source buffer and
-update the heading at point."
-  (declare (indent defun))
-  `(progn
-     (let ((val (field-string-no-properties)))
-       (reorg-view--tree-to-source--goto-heading)
-       (save-restriction
-	 (save-excursion 
-	   ,@body)))))
+;; (defmacro reorg--with-source-buffer (&rest body)
+;;   "Execute BODY in the source buffer and
+;; update the heading at point."
+;;   (declare (indent defun))
+;;   `(progn
+;;      (let ((val (field-string-no-properties)))
+;;        (reorg-view--tree-to-source--goto-heading)
+;;        (save-restriction
+;; 	 (save-excursion 
+;; 	   ,@body)))))
 
 
 
@@ -635,28 +636,28 @@ invoked.")
 		    (cdr bounds))
     (delete-overlay reorg-edits--current-field-overlay)))
 
-(defun reorg-edits-move-to-next-field (&optional previous)
-  "Move to the next field at the current heading."
-  (interactive)
-  (let ((current-field (reorg-edits--get-field-at-point)))
-    (unless (if previous (= (point) (org-entry-beginning-position))
-	      (= (point) (org-entry-end-position)))
-      (cl-loop with point = (point)
-	       do (if previous (cl-decf point) (cl-incf point))
-	       when (and (reorg-edits--get-field-at-point point)
-			 (not (equal (reorg-edits--get-field-at-point point)
-				     current-field)))
-	       return (prog1 (setf (point) point)
-			(reorg-edits--post-field-navigation-hook))
-	       when (if previous (= point (org-entry-beginning-position))
-		      (= point (org-entry-end-position)))
-	       return nil)
-      (reorg-edits--post-field-navigation-hook))))
+;; (defun reorg-edits-move-to-next-field (&optional previous)
+;;   "Move to the next field at the current heading."
+;;   (interactive)
+;;   (let ((current-field (reorg-edits--get-field-at-point)))
+;;     (unless (if previous (= (point) (org-entry-beginning-position))
+;; 	      (= (point) (org-entry-end-position)))
+;;       (cl-loop with point = (point)
+;; 	       do (if previous (cl-decf point) (cl-incf point))
+;; 	       when (and (reorg-edits--get-field-at-point point)
+;; 			 (not (equal (reorg-edits--get-field-at-point point)
+;; 				     current-field)))
+;; 	       return (prog1 (setf (point) point)
+;; 			(reorg-edits--post-field-navigation-hook))
+;; 	       when (if previous (= point (org-entry-beginning-position))
+;; 		      (= point (org-entry-end-position)))
+;; 	       return nil)
+;;       (reorg-edits--post-field-navigation-hook))))
 
-(defun reorg-edits-move-to-previous-field ()
-  "Move to the next field at the current heading."
-  (interactive)  
-  (reorg-edits-move-to-next-field 'previous))
+;; (defun reorg-edits-move-to-previous-field ()
+;;   "Move to the next field at the current heading."
+;;   (interactive)  
+;;   (reorg-edits-move-to-next-field 'previous))
 
 ;;;; field editing
 
@@ -819,10 +820,10 @@ to its previous state, and turn off the minor mode."
   (setq reorg-edits--restore-state nil)
   (message "Discarded edit."))
 
-(defun reorg-edits--start-edit ()
-  "Start editing the headline at point."
-  (interactive)
-  (reorg-edits-mode 1))
+;; (defun reorg-edits--start-edit ()
+;;   "Start editing the headline at point."
+;;   (interactive)
+;;   (reorg-edits-mode 1))
 
 (defun reorg-edits--move-into-field ()
   "If the point is at the border of a field, then 
