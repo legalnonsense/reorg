@@ -122,13 +122,18 @@ get nested properties."
 	;;(plist-get props property)
 	props))))
 
+;; (defun reorg-outline-level ()
+;;   "Get the outline level of the heading at point."
+;;   (save-excursion
+;;     (let ((search-invisible t))
+;;       (outline-back-to-heading t)
+;;       (re-search-forward "^*+ " (point-at-eol))
+;;       (1- (length (match-string 0))))))
+
 (defun reorg-outline-level ()
   "Get the outline level of the heading at point."
-  (save-excursion
-    (let ((search-invisible t))
-      (outline-back-to-heading t)
-      (re-search-forward "^*+ " (point-at-eol))
-      (1- (length (match-string 0))))))
+  (reorg--get-view-prop 'reorg-level))
+
 
 ;; (defun reorg--get-field-at-point (&optional point)
 ;;   "Get the reorg-field-type at point."
