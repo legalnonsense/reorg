@@ -84,10 +84,7 @@
 	      (files . "find ~/Desktop -type f"))
    :template
    '( :group "MEETING VIEW"
-<<<<<<< HEAD
       :format-string (concat .stars " " .headline)
-=======
->>>>>>> origin/main
       :children
       (( :group "CASE LIST"
 	 :children
@@ -151,7 +148,7 @@
 	       :sort-getter identity
 	       :children
 	       (( :group
-<<<<<<< HEAD
+		  <<<<<<< HEAD
 
 		  (when-let ((time (or .timestamp
 				       .deadline
@@ -184,25 +181,6 @@
 	 :sort string<
 	 :sort-getter identity
 	 :sort-results ((.filename . string<)))))))
-
-
-
-=======
-
-		  (when-let ((time (or .timestamp
-				       .deadline
-				       .scheduled
-				       .timestamp-ia)))
-		    (concat 
-		     (s-pad-left 2
-				 "0"
-				 (number-to-string
-				  (ts-day (ts-parse time))))
-		     " "
-		     (ts-day-name (ts-parse time))))
-		  :sort string<
-		  :sort-getter identity)))))))))))
->>>>>>> origin/main
 
 
 
