@@ -16,11 +16,19 @@
 					      .headline
 					    .filename)
 					  .todo)
-		   :children (( :group (substring .headline 0 1))
+		   :sort-results ((.headline . string<))
+		   :children (( :group (substring .headline 0 1)
+				:sort string<
+				:sort-getter (lambda (x) (downcase x)))
 			      ( :group (substring .headline -1)
+				:sort string<
+				:sort-getter (lambda (x) (downcase x))
 				:format-string (concat " "
 						       .ts
-						       .headline))))))))
+						       .headline))))
+		 ( :group (when (eq .class 'files)
+			    .extension)
+		   :format-string (concat " " .filename))))))
 
 (defun xxx-reorg-test-13 ()
   (interactive)
