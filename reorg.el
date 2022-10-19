@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
-(require 'reorg-tree)
+;; (require 'reorg-tree)
 (require 'reorg-sort)
 
 (require 'reorg-utils)
