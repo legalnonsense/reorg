@@ -1652,29 +1652,37 @@ will extract the single value prior to comparing to VAL."
 		    (reorg-tree--goto-next-property-field 'reorg-data name
 							  nil #'equal (lambda (x) (alist-get 'branch-name x))))
 		(if (and heading-sort-getter heading-sorter members)
-		    (cl-loop with new-data = (list (cons 'name name)
-						   (cons 'branch-name name)
-						   (cons 'heading-sorter heading-sorter)
-						   (cons 'heading-sort-getter heading-sort-getter)
-						   (cons 'format-string format-string)
-						   (cons 'level level)
-						   (cons 'reorg-branch t)
-						   (cons 'branch-predicate grouper))
-			     when (funcall heading-sorter
-					   (funcall heading-sort-getter name)
-					   (funcall heading-sort-getter (reorg--get-view-props nil 'reorg-data 'branch-name)))
-			     return (reorg-tree--branch-insert--insert-heading new-data)
-			     while (reorg--goto-next-relative-level 0)
-			     finally return (reorg-tree--branch-insert--insert-heading new-data))
-		  (reorg-tree--branch-insert--insert-heading (list (cons 'name name)
-								   (cons 'branch-name name)
-								   (cons 'heading-sorter heading-sorter)
-								   (cons 'heading-sort-getter heading-sort-getter)
-								   (cons 'format-string format-string)
-								   (cons 'level level)
-								   (cons 'reorg-branch t)
-								   (cons 'branch-predicate grouper))
-							     (not before))))	  
+		    (cl-loop
+		     with new-data = (list (cons 'name name)
+					   (cons 'branch-name name)
+					   (cons 'heading-sorter heading-sorter)
+					   (cons 'heading-sort-getter heading-sort-getter)
+					   (cons 'format-string format-string)
+					   (cons 'level level)
+					   (cons 'reorg-level level)
+					   (cons 'reorg-branch t)
+					   (cons 'branch-predicate grouper))
+		     when (funcall heading-sorter
+				   (funcall heading-sort-getter name)
+				   (funcall heading-sort-getter
+					    (reorg--get-view-props
+					     nil
+					     'reorg-data
+					     'branch-name)))
+		     return (reorg-tree--branch-insert--insert-heading new-data)
+		     while (reorg--goto-next-relative-level 0)
+		     finally return (reorg-tree--branch-insert--insert-heading new-data))
+		  (reorg-tree--branch-insert--insert-heading
+		   (list (cons 'name name)
+			 (cons 'branch-name name)
+			 (cons 'heading-sorter heading-sorter)
+			 (cons 'heading-sort-getter heading-sort-getter)
+			 (cons 'format-string format-string)
+			 (cons 'level level)
+			 (cons 'reorg-branch t)
+			 (cons 'reorg-level level)
+			 (cons 'branch-predicate grouper))
+		   (not before))))	  
 	      (if children 
 		  (cl-loop 
 		   with before = nil
@@ -1693,6 +1701,10 @@ will extract the single value prior to comparing to VAL."
 			   format-string
 			   (1+ level)
 			   before))
+		(push (cons 'reorg-level (if (reorg-tree--branch-has-leaves-p)
+					     (1+ level)
+					   level))
+		      data)
 		(reorg--insert-into-leaves data
 					   result-sorters
 					   (if (reorg-tree--branch-has-leaves-p)
