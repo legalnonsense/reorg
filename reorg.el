@@ -34,11 +34,8 @@
 
 ;;; variables 
 
-(defvar-local reorg-current-template nil
+(defvar-local reorg--current-template nil
   "the current template in this buffer")
-
-(defvar reorg-parser-list nil
-  "parser list")
 
 ;; (defvar reorg-words nil
 ;;   "A list of `reorg-words'.")
@@ -134,7 +131,6 @@ get nested properties."
   "Get the outline level of the heading at point."
   (reorg--get-view-prop 'reorg-level))
 
-
 ;; (defun reorg--get-field-at-point (&optional point)
 ;;   "Get the reorg-field-type at point."
 ;;   (get-text-property (or point (point)) reorg--field-property-name))
@@ -191,7 +187,7 @@ get nested properties."
     (reorg-dynamic-bullets-mode)
     (org-visual-indent-mode)
     (toggle-truncate-lines 1)
-    (setq reorg-current-template template)
+    (setq reorg--current-template template)
     (setq-local cursor-type nil)
     (goto-char (point-min))))
 
