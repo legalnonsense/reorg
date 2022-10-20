@@ -6,9 +6,9 @@
   (reorg-open-sidebar
    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
    :template
-   '( :group .tags 
-      :children (( :group 
-		   :format-string (concat " " .headline))))))
+   '( :group .@at-name
+      :format-string (concat " " .headline))))
+
 
 ;; group by cited file
 (defun xxx-reorg-test-15 ()
