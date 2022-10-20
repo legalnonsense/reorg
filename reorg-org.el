@@ -166,6 +166,15 @@ RANGE is non-nil, only look for timestamp ranges."
 	    #'PARSER)))
 
 (reorg-create-data-type
+ :name tag-list
+ :class org
+ :parse (org-get-tags))
+
+
+
+
+
+(reorg-create-data-type
  :name headline
  :class org
  ;; :set (lambda ()
