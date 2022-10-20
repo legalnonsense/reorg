@@ -93,11 +93,11 @@ call from the template macro.
 				   name
 				   '--get-from-source)
 	 (&rest sources)
-       (cl-flet ((PARSER (&optional d) (reorg--parser d ',name)))
+       (cl-flet ((PARSER (&optional d)
+			 (reorg--parser d ',name)))
 	 (cl-loop
 	  for SOURCE in sources
-	  append
-	  ,getter)))
+	  append ,getter)))
      (if (boundp 'reorg--getter-list)
 	 (setf (alist-get ',name reorg--getter-list) nil)
        (defvar reorg--getter-list nil "Getter list for all classes"))
