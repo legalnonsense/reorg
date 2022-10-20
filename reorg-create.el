@@ -42,12 +42,12 @@
 
 ;;; class macro
 
-(cl-defmacro reorg-create-class-type (&optional &key name
-						getter
-						follow
-						keymap
-						extra-props 
-						display-buffer)
+(cl-defmacro reorg-create-class-type (&key name
+					   getter
+					   follow
+					   keymap
+					   extra-props 
+					   display-buffer)
   "Create a new class type. NAME is the name of the class.
 GETTER is a form that does two things:
 1. Retrieves data;
