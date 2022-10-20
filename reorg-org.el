@@ -225,69 +225,71 @@ RANGE is non-nil, only look for timestamp ranges."
 	    ("scheduled" "⬎")
 	    (_ " ")))
 
-(reorg-create-data-type :name priority
-			:class org
-			:parse (org-entry-get (point) "PRIORITY")
-			:display (pcase (alist-get 'priority alist)
-				   ("A" "⚡")
-				   ("B" "➙")
-				   ("C" "﹍")
-				   (_ " ")))
+(reorg-create-data-type
+ :name priority
+ :class org
+ :parse (org-entry-get (point) "PRIORITY")
+ :display (pcase (alist-get 'priority alist)
+	    ("A" "⚡")
+	    ("B" "➙")
+	    ("C" "﹍")
+	    (_ " ")))
 
 ;; (reorg-create-data-type :name body
 ;; 			:class org
 ;; 			:parse (reorg--get-body))
 
-(reorg-create-data-type :name deadline
-			:class org
-			:parse (org-entry-get (point) "DEADLINE")
-			;; :set (lambda ()
-			;;        (reorg--with-source-and-sync
-			;; 	 (if val (org-deadline nil val)
-			;; 	   (org-deadline '(4)))))
-			;; :display (if (plist-get plist :deadline)
-			;; 	     (concat 
-			;; 	      (propertize "DEADLINE: "
+(reorg-create-data-type
+ :name deadline
+ :class org
+ :parse (org-entry-get (point) "DEADLINE")
+ ;; :set (lambda ()
+ ;;        (reorg--with-source-and-sync
+ ;; 	 (if val (org-deadline nil val)
+ ;; 	   (org-deadline '(4)))))
+ ;; :display (if (plist-get plist :deadline)
+ ;; 	     (concat 
+ ;; 	      (propertize "DEADLINE: "
 
-			;; 			  'font-lock-face 'org-special-keyword)
-			;; 	      (propertize (plist-get plist :deadline)
-			;; 			  'font-lock-face 'org-date))
-			;; 	   "__________")
-			:display (when (alist-get 'deadline alist)
-				   (string-pad 
-				    (ts-format "%B %e, %Y" ;
-					       (ts-parse-org (alist-get 'deadline alist)))
-				    18
-				    nil t)))
+ ;; 			  'font-lock-face 'org-special-keyword)
+ ;; 	      (propertize (plist-get plist :deadline)
+ ;; 			  'font-lock-face 'org-date))
+ ;; 	   "__________")
+ :display (when (alist-get 'deadline alist)
+	    (string-pad 
+	     (ts-format "%B %e, %Y" ;
+			(ts-parse-org (alist-get 'deadline alist)))
+	     18
+	     nil t)))
 
-(reorg-create-data-type :name scheduled
-			:class org 
-			:parse (org-entry-get (point) "SCHEDULED")
-			;; :set (lambda ()
-			;;        (reorg--with-source-and-sync
-			;; 	 (if val (org-scheduled nil val)
-			;; 	   (org-scheduled '(4)))))
-			:display (if (alist-get 'scheduled alist)
-				     (concat 
-				      (propertize "SCHEDULED: "
+(reorg-create-data-type
+ :name scheduled
+ :class org 
+ :parse (org-entry-get (point) "SCHEDULED")
+ ;; :set (lambda ()
+ ;;        (reorg--with-source-and-sync
+ ;; 	 (if val (org-scheduled nil val)
+ ;; 	   (org-scheduled '(4)))))
+ :display (if (alist-get 'scheduled alist)
+	      (concat 
+	       (propertize "SCHEDULED: "
 
-						  'font-lock-face 'org-special-keyword)
-				      (propertize (alist-get 'scheduled alist)
-						  'font-lock-face 'org-date))
-				   "__________"))
+			   'font-lock-face 'org-special-keyword)
+	       (propertize (alist-get 'scheduled alist)
+			   'font-lock-face 'org-date))
+	    "__________"))
 
-(reorg-create-data-type :name headline
-			:class org
-			;; :set (lambda ()
-			;;        (let ((val (field-string-no-properties)))
-			;; 	 (reorg--with-source-and-sync val
-			;; 	   (org-edit-headline val))))
-			;; :face org-level-3
-			:display (alist-get 'headline alist)
-			:parse (s-replace
-				
-				(org-no-properties
-				 (org-get-heading t t t t)))
+(reorg-create-data-type
+ :name headline
+ :class org
+ ;; :set (lambda ()
+ ;;        (let ((val (field-string-no-properties)))
+ ;; 	 (reorg--with-source-and-sync val
+ ;; 	   (org-edit-headline val))))
+ ;; :face org-level-3
+ :display (alist-get 'headline alist)
+ :parse (org-no-properties
+	 (org-get-heading t t t t)))
 
 ;; (reorg-create-data-type
 ;;  :name property
@@ -517,5 +519,14 @@ RANGE is non-nil, only look for timestamp ranges."
  :parse (save-excursion (cl-loop while (org-up-heading-safe)
 				 when (reorg--timestamp-parser t nil)
 				 return (reorg--timestamp-parser t nil))))
+
+(reorg-create-data-type
+ :name at-name
+ :class org
+ :parse (let ((headline (org-get-heading t t t t)))
+	  (cl-loop with start = 0
+		   while (setq start (and (string-match "@\\([[:word:]]+\\)" headline start)
+					  (match-end 1)))
+		   collect (match-string-no-properties 1 headline))))
 
 (provide 'reorg-org)
