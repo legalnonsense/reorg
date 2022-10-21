@@ -1,0 +1,8 @@
+* @alex phone call @jones :aaa:bbb:
+:PROPERTIES:
+:ID:       3f3c54e9-9800-42e1-8420-bf71920ba50d
+:END:
+* @alex email @jones :aaa:ccc:
+:PROPERTIES:
+:ID:       a69d3763-3d57-48e3-b327-803683cf472d
+:END:
