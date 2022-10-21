@@ -38,5 +38,5 @@ symbol, and each cdr is the same symbol without the `.'."
 					      (setf (alist-get dot ppp) x)
 					      ppp)))
 	    else append each)))
-yyy
+
 

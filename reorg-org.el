@@ -170,10 +170,6 @@ RANGE is non-nil, only look for timestamp ranges."
  :class org
  :parse (org-get-tags))
 
-
-
-
-
 (reorg-create-data-type
  :name headline
  :class org

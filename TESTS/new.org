@@ -1,25 +1,25 @@
 
-* @alex phone call @jones :aaa:bbb:
+* @alex phone call @jones :aaa:ccc:
 :PROPERTIES:
 :ID:       3f3c54e9-9800-42e1-8420-bf71920ba50d
 :END:
-* @alex email @jones :aaa:ccc:
+* @alex email @jones :bbb:aaa:
 :PROPERTIES:
 :ID:       a69d3763-3d57-48e3-b327-803683cf472d
 :END:
-* @Dan calls @Diane and @Don @Vanessa @Whitney
+* @Dan calls @Diane and @Don @Vanessa @Whitney :aaa:bbb:
 :PROPERTIES:
 :ID:       c02046de-6867-4807-97fc-2967228a65ac
 :END:
-* @Doc calls @Dan and @Dan
+* @Doc calls @Dan and @Dan :ccc:aaa:
 :PROPERTIES:
 :ID:       73aed4d2-7952-42c2-847e-6600c665d777
 :END:
-* @Doc says nothing
+* @Doc says nothing :bbb:
 :PROPERTIES:
 :ID:       c04e860a-6b5d-4151-8e03-9a712d489b57
 :END:
-* No one
+* No one :bbb:
 :PROPERTIES:
 :ID:       a1e8814b-651c-4aba-9235-d9580e95470b
 :END:
