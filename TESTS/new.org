@@ -1,0 +1,8 @@
+* @Dan calls @Diane and @Don
+:PROPERTIES:
+:ID:       c02046de-6867-4807-97fc-2967228a65ac
+:END:
+* @Doc calls @Dan and @Dan
+:PROPERTIES:
+:ID:       73aed4d2-7952-42c2-847e-6600c665d777
+:END:
