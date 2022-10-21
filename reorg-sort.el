@@ -127,7 +127,6 @@ function created by the type creation macro."
 										    ppp))
 							  finally return data)))
 			   (setq grouper (reorg--depth-first-apply grouper #'reorg--turn-at-dot-to-dot)))
-			 (debug nil "HERE")
 			 (->> it			      
 			      (reorg--seq-group-by grouper)
 			      (seq-map (lambda (x) (list (car x) (cdr x)))))))
