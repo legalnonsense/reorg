@@ -200,36 +200,23 @@ parser for that type."
 
 ;;; creating headline strings from parsed data 
 
-;; (defun reorg--depth-first-apply (form func &optional data)
-;;   "Run FUNC at each node of TREE using a depth-first traversal
-;; and destructively modify TREE. 
-;; FUNC is a function that accepts one argument, which is the
-;; current element of TREE."
-;;   (let ((tree (copy-tree form)))
-;;     (cl-labels ((doloop (tree func)
-;; 			(setf (car tree) (funcall func (car tree) data))
-;; 			(cl-loop for n below (length (cdr tree))
-;; 				 if (listp (nth n (cdr tree))) do
-;; 				 (doloop (nth n (cdr tree)) func)
-;; 				 else do
-;; 				 (setf (nth n (cdr tree))
-;; 				       (funcall func (nth n (cdr tree)) data)))))
-;;       (doloop tree func))
-;;     tree))
-
-;; (defun reorg--turn-dot-to-field (elem data)
-;;   "turn a .symbol into a string by either getting
-;; the value from the parsed data or calling the display
-;; function created by the type creation macro."
-;;   (if (and (symbolp elem)
-;; 	   (string-match "\\`\\." (symbol-name elem)))
-;;       (let ((class (alist-get 'class data))
-;; 	    (type (intern (substring (symbol-name elem) 1)))
-;; 	    (sym (intern (substring (symbol-name elem) 1))))
-;; 	(if (fboundp (reorg--get-display-func-name class type))
-;; 	    (funcall (reorg--get-display-func-name class type) data)
-;; 	  (alist-get elem data)))
-;;     elem))
+(defun reorg--depth-first-apply (form func &optional data)
+  "Run FUNC at each node of TREE using a depth-first traversal
+and destructively modify TREE. 
+FUNC is a function that accepts one argument, which is the
+current element of TREE."
+  (let ((tree (copy-tree form)))
+    (cl-labels ((doloop (tree func)
+			(setf (car tree) (funcall func (car tree) data))
+			(cl-loop for n below (length (cdr tree))
+				 if (listp (nth n (cdr tree))) do
+				 (doloop (nth n (cdr tree)) func)
+				 else do
+				 (setf (nth n (cdr tree))
+				       (funcall func (nth n (cdr tree)) data)))))
+      (if (listp tree)
+	  (doloop tree func))
+      (funcall func tree))))
 
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the

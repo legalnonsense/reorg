@@ -1,3 +1,4 @@
+
 * @alex phone call @jones :aaa:bbb:
 :PROPERTIES:
 :ID:       3f3c54e9-9800-42e1-8420-bf71920ba50d
@@ -5,4 +6,20 @@
 * @alex email @jones :aaa:ccc:
 :PROPERTIES:
 :ID:       a69d3763-3d57-48e3-b327-803683cf472d
+:END:
+* @Dan calls @Diane and @Don @Vanessa @Whitney
+:PROPERTIES:
+:ID:       c02046de-6867-4807-97fc-2967228a65ac
+:END:
+* @Doc calls @Dan and @Dan
+:PROPERTIES:
+:ID:       73aed4d2-7952-42c2-847e-6600c665d777
+:END:
+* @Doc says nothing
+:PROPERTIES:
+:ID:       c04e860a-6b5d-4151-8e03-9a712d489b57
+:END:
+* No one
+:PROPERTIES:
+:ID:       a1e8814b-651c-4aba-9235-d9580e95470b
 :END:
