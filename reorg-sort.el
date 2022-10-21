@@ -31,6 +31,28 @@ keys.  Keys are compared using `equal'."
    (seq-reverse sequence)
    nil))
 
+(defun reorg--dot-at-search (data)
+  "Return alist of symbols inside DATA that start with a `.'.
+Perform a deep search and return an alist where each car is the
+symbol, and each cdr is the same symbol without the `.'."
+  (cond
+   ((symbolp data)
+    (let ((name (symbol-name data)))
+      (when (string-match "\\`\\.@" name)
+        ;; Return the cons cell inside a list, so it can be appended
+        ;; with other results in the clause below.
+        (list (cons data (intern (replace-match "" nil nil name)))))))
+   ((vectorp data)
+    (apply #'nconc (mapcar #'reorg--dot-at-search data)))
+   ((not (consp data)) nil)
+   ((eq (car data) 'let-alist)
+    ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
+    ;; inner body because they don’t refer to the alist currently
+    ;; being processed.  See Bug#24641.
+    (reorg--dot-at-search (cadr data)))
+   (t (append (reorg--dot-at-search (car data))
+              (reorg--dot-at-search (cdr data))))))
+
 (cl-defun reorg--group-and-sort (list template &optional (n 0 np))
   "Group RESULTS according to TEMPLATE."
   (let ((copy (copy-tree list)))
@@ -76,7 +98,22 @@ keys.  Keys are compared using `equal'."
 	    (setf
 	     (nth n (cdr data))
 	     (--> (nth n (cdr data))
+		  ;; START DEBUG HERE
+		  (debug nil "Grouper: " grouper)
 		  (cond ((functionp grouper)
+			 (--> it
+			      (cl-loop for each in it
+				       if (listp (funcall grouper each))
+				       append (cl-loop
+					       with dots = (cl-delete-duplicates
+							    (reorg--dot-at-search grouper)
+							    :test #'equal)
+					       for (_ . dot) in dots
+					       append (cl-loop for x in (alist-get dot each)
+							       collect (let ((ppp (copy-alist each)))
+									 (setf (alist-get dot ppp) x)
+									 ppp)))
+				       else append each))
 			 (->> it
 			      (seq-group-by grouper)
 			      (seq-map (lambda (x) (list (car x) (cdr x))))))

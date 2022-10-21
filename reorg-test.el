@@ -1,5 +1,39 @@
 ;;; -*- lexical-binding: t; -*-
 
+
+(defun xxx-reorg-test-16 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
+   :template
+   '( :group .@at-name
+      :format-string (concat " " .headline))))
+
+
+;; group by cited file
+(defun xxx-reorg-test-15 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((files . "find ~/legal/Dropbox/hannah -type f")
+	      (org . "~/org/Hannah.org"))
+   :template
+   '( :group "Olivia Hannah"
+      :children (( :group 
+		   :format-string (concat " " .headline))))))
+
+;; sort by inactive timestamp in any ancestor node 
+(defun xxx-reorg-test-15 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((files . "find ~/legal/Dropbox/hannah -type f")
+	      (org . "~/org/Hannah.org"))
+   :template
+   '( :group "Olivia Hannah"
+      :children (( :group (or .root-ts-inactive .timestamp-ia)
+		   :format-string (concat " " .headline))))))
+
+
+
 (defun xxx-reorg-test-14 ()
   (interactive)
   (reorg-open-sidebar

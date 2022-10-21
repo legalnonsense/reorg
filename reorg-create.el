@@ -42,12 +42,12 @@
 
 ;;; class macro
 
-(cl-defmacro reorg-create-class-type (&optional &key name
-						getter
-						follow
-						keymap
-						extra-props 
-						display-buffer)
+(cl-defmacro reorg-create-class-type (&key name
+					   getter
+					   follow
+					   keymap
+					   extra-props 
+					   display-buffer)
   "Create a new class type. NAME is the name of the class.
 GETTER is a form that does two things:
 1. Retrieves data;
@@ -93,11 +93,11 @@ call from the template macro.
 				   name
 				   '--get-from-source)
 	 (&rest sources)
-       (cl-flet ((PARSER (&optional d) (reorg--parser d ',name)))
+       (cl-flet ((PARSER (&optional d)
+			 (reorg--parser d ',name)))
 	 (cl-loop
 	  for SOURCE in sources
-	  append
-	  ,getter)))
+	  append ,getter)))
      (if (boundp 'reorg--getter-list)
 	 (setf (alist-get ',name reorg--getter-list) nil)
        (defvar reorg--getter-list nil "Getter list for all classes"))
