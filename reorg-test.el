@@ -6,7 +6,7 @@
   (reorg-open-sidebar
    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
    :template
-   '( :group .headline
+   '( :group .@at-name
       :format-string (concat " " .headline))))
 
 

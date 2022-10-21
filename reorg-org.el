@@ -19,7 +19,7 @@ update the heading at point."
 		      (reorg-views--delete-headers-maybe))
        (save-excursion 
 	 (reorg--branch-insert--drop-into-outline data
-						  reorg-current-template)))))
+						  reorg--current-template)))))
 
 ;;; parsing functions 
 
