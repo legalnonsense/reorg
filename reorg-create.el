@@ -148,14 +148,14 @@ call from the template macro.
 
 (cl-defmacro reorg-create-data-type (&optional
 				     &key
-				     class 
+				     class
 				     name
 				     parse
 				     set
 				     display)
 
 
-"Create the data types that will be used to represent and
+  "Create the data types that will be used to represent and
 interact with the data as key-value pairs.
 
 NAME is the name of the thing.  It can be string or a symbol.
@@ -170,18 +170,18 @@ display tree.
 EXTRA-PROPS is a plist of text properties that are added to the
 text properties of any field displaying the data type.
 "
-(let* ((parsing-func (reorg--get-parser-func-name class name))
-       (display-func (reorg--get-display-func-name class name)))
-  `(progn 
-     (defun ,parsing-func (&optional data)
-       ,parse)
-     (cl-pushnew (cons ',name #',parsing-func)
-		 (alist-get ',class reorg--parser-list))
-     (if ',display 
-	 (defun ,display-func (alist)
-	   ,display)
-       (when (fboundp ',display-func)
-	 (fmakunbound ',display-func))))))
+  (let* ((parsing-func (reorg--get-parser-func-name class name))
+	 (display-func (reorg--get-display-func-name class name)))
+    `(progn 
+       (defun ,parsing-func (&optional data)
+	 ,parse)
+       (cl-pushnew (cons ',name #',parsing-func)
+		   (alist-get ',class reorg--parser-list))
+       (if ',display 
+	   (defun ,display-func (alist)
+	     ,display)
+	 (when (fboundp ',display-func)
+	   (fmakunbound ',display-func))))))
 
 
 (defun reorg--parser (data class &optional type)
