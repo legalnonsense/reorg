@@ -209,6 +209,43 @@ get nested properties."
 	     while result 
 	     collect result
 	     finally (goto-char point))))
+
+(defun reorg-tree--jump-to-next-clone (&optional backward)
+  "Get the point of each clone of the node at point."
+  (interactive)
+  (when-let ((func (if backward
+		       #'text-property-search-backward
+		     #'text-property-search-forward))
+	     (id (reorg--get-view-prop 'id))
+	     (result (funcall func
+			      'reorg-data
+			      id
+			      (lambda (val alist)
+				(string=
+				 (alist-get 'id alist)
+				 val))
+			      t)))
+    (goto-char (prop-match-beginning result))))
+
+(defun reorg-tree--jump-to-previous-clone () 
+  "Get the point of each clone of the node at point."
+  (interactive)
+  (reorg-tree--jump-to-next-clone t))
+
+;; (cl-loop with point = (point)
+;; 	 with id = (reorg--get-view-prop 'id)
+;; 	 with result = nil
+;; 	 do (setq result (funcall func 'reorg-data
+;; 				  id
+;; 				  (lambda (val alist)
+;; 				    (string= 
+;; 				     (alist-get 'id alist)
+;; 				     val))
+;; 				  'not-current))
+;; 	 while result 
+;; 	 collect result
+;; 	 finally (goto-char point))))
+
 ;; TODO re-write all navigation functions
 ;; TODO install magit-todos from git on laptop
 
@@ -236,37 +273,47 @@ get nested properties."
 ;;; reorg-views
 ;;;; clone functions
 
-(defun reorg--jump-to-next-clone (&optional id previous)
+(defun reorg--jump-to-next-clone (&optional previous)
   "Move to the next clone of the current node."
   (interactive)
-  (let ((func (if previous
-		  #'text-property-search-backward
-		#'text-property-search-forward))
-	(id (or id (reorg--get-view-prop 'id))))
-    (if (funcall func reorg--data-property-name
-		 id
-		 (lambda (val alist)
-		   (string=
-		    (alist-get 'id alist)
-		    val))
-		 'not-current)
-	(let ((point (point)))
-	  (when previous (backward-char))
-	  (outline-back-to-heading)
-	  (save-excursion 
-	    (reorg--unfold-at-point point)
-	    (reorg-edits--update-box-overlay)
-	    point))
-      (if previous
-	  (goto-char (point-max))
-	(goto-char (point-min)))
-      (reorg--jump-to-next-clone id previous)))
-  (reorg-edits--post-field-navigation-hook))
+  (when-let* ((func (if previous
+			#'text-property-search-backward
+		      #'text-property-search-forward))
+	      (id (reorg--get-view-prop 'id))
+	      (match (funcall func reorg--data-property-name
+			      id
+			      (lambda (val alist)
+				(string=
+				 (alist-get 'id alist)
+				 val))
+			      'not-current))
+	      (point (point)))
+    (goto-char (prop-match-beginning match))
+    (save-excursion 
+      (reorg--unfold-at-point point)
+      (reorg-edits--update-box-overlay)
+      point)
+    (reorg-edits--post-field-navigation-hook)))
 
-(defun reorg--jump-to-previous-clone (&optional id)
-  "Jump to previous clone"
+(defun reorg--jump-to-previous-clone ()
+  "Jump to previous clone based on matching id."
   (interactive)
-  (reorg--jump-to-next-clone id 'previous))
+  (cl-loop with id = (reorg--get-view-prop 'id)
+	   with point = (point)
+	   while (text-property-search-backward
+		  'reorg-data
+		  id
+		  (lambda (a b)
+		    t)
+		  t)
+	   when (progn (backward-char 1)
+		       (string= (reorg--get-view-prop 'id)
+				id))
+	   return (progn (beginning-of-line)
+			 (reorg--unfold-at-point (point))
+			 (reorg-edits--update-box-overlay)
+			 (point))
+	   finally (progn (goto-char point) nil)))
 
 ;;;; view buffer functions
 
@@ -505,6 +552,7 @@ the point and return nil."
 	 (buffer (window-buffer window)))
     (delete-window window)
     (kill-buffer buffer)))
+
 
 
 ;; (defmacro reorg--with-source-buffer (&rest body)
