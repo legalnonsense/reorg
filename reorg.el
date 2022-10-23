@@ -1,17 +1,18 @@
 ;; -*- lexical-binding: t; -*-
 
-;; (require 'reorg-tree)
+;;; requires
+
+(require 'let-alist)
+(require 'seq)
+(require 'reorg-dynamic-bullets)
+(require 'org-visual-indent)
+
+;;; reorg requires 
 (require 'reorg-sort)
 (require 'reorg-utils)
 (require 'reorg-create)
 (require 'reorg-org)
 (require 'reorg-files)
-
-;;; requires
-
-(require 'let-alist)
-(require 'reorg-dynamic-bullets)
-(require 'org-visual-indent)
 
 ;;; constants
 
@@ -30,14 +31,14 @@
 (defcustom reorg-face-text-prop 'font-lock-face
   "When setting a face, use this text property.")
 (defcustom reorg-headline-format '(concat .stars " " .headline)
-  "Headline format.")
+  "Default headline format.")
 
 ;;; variables 
 
 (defvar-local reorg--current-template nil
   "the current template in this buffer")
 
-(defvar reorg-navigation-hook nil
+(defvar reorg--navigation-hook nil
   "Post-navigation hook.")
 
 ;; (defvar reorg-words nil
@@ -296,7 +297,7 @@ get nested properties."
       (reorg--unfold-at-point point)
       (reorg-edits--update-box-overlay)
       point)
-    (run-hooks 'reorg-navigation-hook)
+    (run-hooks 'reorg--navigation-hook)
     ;; (reorg-edits--post-field-navigation-hook)
     ))
 
@@ -424,7 +425,7 @@ the point and return nil."
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
   ;; (reorg-edits--post-field-navigation-hook)
-  (run-hooks 'reorg-navigation-hook)
+  (run-hooks 'reorg--navigation-hook)
   )
 
 (defun reorg--move-to-previous-entry-follow ()
@@ -435,7 +436,7 @@ the point and return nil."
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
   ;; (reorg-edits--post-field-navigation-hook)
-  (run-hooks 'reorg-navigation-hook)
+  (run-hooks 'reorg--navigation-hook)
   )
 
 (defun reorg--move-to-next-entry-no-follow ()
@@ -446,7 +447,7 @@ the point and return nil."
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
   (reorg--select-tree-window)
-  (run-hooks 'reorg-navigation-hook)
+  (run-hooks 'reorg--navigation-hook)
   )
 
 (defun reorg--move-to-previous-entry-no-follow ()
@@ -457,7 +458,7 @@ the point and return nil."
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
   (reorg--select-tree-window)
-  (run-hooks 'reorg-navigation-hook)
+  (run-hooks 'reorg--navigation-hook)
   ;; (reorg-edits--post-field-navigation-hook)
   )
 
@@ -467,7 +468,7 @@ the point and return nil."
   (when (re-search-forward
 	 (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
     (beginning-of-line)
-    (run-hooks 'reorg-navigation-hook)
+    (run-hooks 'reorg--navigation-hook)
     ;; (reorg-edits--post-field-navigation-hook)
     ;; (reorg-view--update-highlight-overlay)
     ;; (reorg-edits--post-field-navigation-hook)
@@ -477,7 +478,7 @@ the point and return nil."
   "Goto the next parent."
   (interactive)
   (org-up-heading-safe)
-  (run-hooks 'reorg-navigation-hook)
+  (run-hooks 'reorg--navigation-hook)
   ;; (reorg-edits--post-field-navigation-hook)
   ;; (reorg-view--update-highlight-overlay)
   ;; (reorg-edits--post-field-navigation-hook)
@@ -542,12 +543,7 @@ the point and return nil."
   (let ((map (make-keymap)))
     (suppress-keymap map)
     (define-key map (kbd "RET") #'reorg-view--tree-to-source--goto-heading)
-    ;; (define-key map (kbd "e") #'reorg-edits--start-edit)
     (define-key map (kbd "u") #'reorg--goto-parent)
-    ;; (define-key map (kbd "f") #'reorg-edits-move-to-next-field)
-    ;; (define-key map (kbd "S-<up>") #'reorg--shift-up)
-    ;; (define-key map (kbd "S-<down>") #'reorg--shift-down)
-    ;; (define-key map (kbd "b") #'reorg-edits-move-to-previous-field)
     (define-key map (kbd "c") #'reorg--jump-to-next-clone)
     (define-key map (kbd "C") #'reorg--jump-to-previous-clone)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
@@ -583,8 +579,6 @@ the point and return nil."
 ;; 	 (save-excursion 
 ;; 	   ,@body)))))
 
-
-
 (define-derived-mode reorg-view-mode
   fundamental-mode
   "Org tree view"
@@ -593,7 +587,7 @@ the point and return nil."
   (setq cursor-type nil)
   ;;(setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
-  (add-hook 'reorg-navigation-hook #'reorg-edits--update-box-overlay nil t)
+  (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
   ;; (add-hook 'post-command-hook #'reorg-edits--update-box-overlay nil t)
   )
 
@@ -1193,9 +1187,6 @@ the point and return nil."
 ;; 					  (delete-duplicates (append old-val (-list val)) :test #'string=)
 ;; 					(append old-val (-list val)))))
 ;; 			      (t (org-entry-put (point) prop val))))))))
-
-
-
 
 ;;;; inserting headers into the appropriate location
 
