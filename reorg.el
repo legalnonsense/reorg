@@ -37,6 +37,9 @@
 (defvar-local reorg--current-template nil
   "the current template in this buffer")
 
+(defvar reorg-navigation-hook nil
+  "Post-navigation hook.")
+
 ;; (defvar reorg-words nil
 ;;   "A list of `reorg-words'.")
 
@@ -293,7 +296,9 @@ get nested properties."
       (reorg--unfold-at-point point)
       (reorg-edits--update-box-overlay)
       point)
-    (reorg-edits--post-field-navigation-hook)))
+    (run-hooks 'reorg-navigation-hook)
+    ;; (reorg-edits--post-field-navigation-hook)
+    ))
 
 (defun reorg--jump-to-previous-clone ()
   "Jump to previous clone based on matching id."
@@ -317,9 +322,9 @@ get nested properties."
 
 ;;;; view buffer functions
 
-(defun reorg-view--update-highlight-overlay (&optional &rest _args)
-  "update transclusion overlay."
-  nil)
+;; (defun reorg-view--update-highlight-overlay (&optional &rest _args)
+;;   "update transclusion overlay."
+;;   nil)
 ;; (delete-overlay reorg-current-heading-overlay)
 ;; (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
 
@@ -414,39 +419,47 @@ the point and return nil."
 (defun reorg--move-to-next-entry-follow ()
   (interactive)
   (outline-next-visible-heading 1)
-  (reorg-view--update-highlight-overlay)
-  (reorg-edits--post-field-navigation-hook)
+  ;;(reorg-view--update-highlight-overlay)
+  ;; (reorg-edits--post-field-navigation-hook)
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
-  (reorg-edits--post-field-navigation-hook))
+  ;; (reorg-edits--post-field-navigation-hook)
+  (run-hooks 'reorg-navigation-hook)
+  )
 
 (defun reorg--move-to-previous-entry-follow ()
   (interactive)
   (outline-previous-visible-heading 1)
-  (reorg-view--update-highlight-overlay)
-  (reorg-edits--post-field-navigation-hook)
+  ;; (reorg-view--update-highlight-overlay)
+  ;; (reorg-edits--post-field-navigation-hook)
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
-  (reorg-edits--post-field-navigation-hook))
+  ;; (reorg-edits--post-field-navigation-hook)
+  (run-hooks 'reorg-navigation-hook)
+  )
 
 (defun reorg--move-to-next-entry-no-follow ()
   (interactive)
   (outline-next-visible-heading 1)
-  (reorg-edits--post-field-navigation-hook)
-  (reorg-view--update-highlight-overlay)
+  ;; (reorg-edits--post-field-navigation-hook)
+  ;; (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
-  (reorg--select-tree-window))
+  (reorg--select-tree-window)
+  (run-hooks 'reorg-navigation-hook)
+  )
 
 (defun reorg--move-to-previous-entry-no-follow ()
   (interactive)
   (outline-previous-visible-heading 1)
-  (reorg-edits--post-field-navigation-hook)
-  (reorg-view--update-highlight-overlay)
+  ;; (reorg-edits--post-field-navigation-hook)
+  ;; (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
   (reorg--select-tree-window)
-  (reorg-edits--post-field-navigation-hook))
+  (run-hooks 'reorg-navigation-hook)
+  ;; (reorg-edits--post-field-navigation-hook)
+  )
 
 (defun reorg--goto-next-parent ()
   "Goto the next parent."
@@ -454,17 +467,21 @@ the point and return nil."
   (when (re-search-forward
 	 (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
     (beginning-of-line)
-    (reorg-edits--post-field-navigation-hook)
-    (reorg-view--update-highlight-overlay)
-    (reorg-edits--post-field-navigation-hook)))
+    (run-hooks 'reorg-navigation-hook)
+    ;; (reorg-edits--post-field-navigation-hook)
+    ;; (reorg-view--update-highlight-overlay)
+    ;; (reorg-edits--post-field-navigation-hook)
+    ))
 
 (defun reorg--goto-parent ()
   "Goto the next parent."
   (interactive)
   (org-up-heading-safe)
-  (reorg-edits--post-field-navigation-hook)
-  (reorg-view--update-highlight-overlay)
-  (reorg-edits--post-field-navigation-hook))
+  (run-hooks 'reorg-navigation-hook)
+  ;; (reorg-edits--post-field-navigation-hook)
+  ;; (reorg-view--update-highlight-overlay)
+  ;; (reorg-edits--post-field-navigation-hook)
+  )
 
 ;;;; updating the tree
 
@@ -576,7 +593,9 @@ the point and return nil."
   (setq cursor-type nil)
   ;;(setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
-  (add-hook 'post-command-hook #'reorg-edits--update-box-overlay nil t))
+  (add-hook 'reorg-navigation-hook #'reorg-edits--update-box-overlay nil t)
+  ;; (add-hook 'post-command-hook #'reorg-edits--update-box-overlay nil t)
+  )
 
 ;;; reorg-edit-mode
 ;;;; transclusion hook
@@ -708,6 +727,8 @@ the point and return nil."
       ;; (message "You are on the field for the heading's %s"
       ;; 	 (reorg-edits--get-field-type)))
       (setq point (point)))))
+
+
 
 ;; (defun reorg-edits--move-selection-overlay ()
 ;;   (if-let ((bounds (reorg-edits--get-field-bounds)))
