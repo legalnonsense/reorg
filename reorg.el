@@ -487,6 +487,7 @@ the point and return nil."
     (define-key map (kbd "c") #'reorg--jump-to-next-clone)
     (define-key map (kbd "C") #'reorg--jump-to-previous-clone)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
+    (define-key map (kbd "q") #'reorg--close-tree-buffer)
     (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
     (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-follow)
     (define-key map (kbd "TAB") #'outline-cycle)
@@ -494,6 +495,17 @@ the point and return nil."
     (define-key map (kbd "l") #'recenter-top-bottom)
     map)
   "keymap")
+
+(defun reorg-close-tree-buffer ()
+  "Close the tree buffer."
+  (interactive)
+  (let* ((window (select-window
+		  (car 
+		   (window-at-side-list nil reorg-buffer-side))))
+	 (buffer (window-buffer window)))
+    (delete-window window)
+    (kill-buffer buffer)))
+
 
 ;; (defmacro reorg--with-source-buffer (&rest body)
 ;;   "Execute BODY in the source buffer and
