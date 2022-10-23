@@ -191,6 +191,33 @@ get nested properties."
     (setq-local cursor-type nil)
     (goto-char (point-min))))
 
+(defun reorg-tree--get-all-clone-start-points (&optional backward)
+  "Get the point of each clone of the node at point."
+  (let ((func (if backward
+		  #'text-property-search-backward
+		#'text-property-search-forward )))
+    (cl-loop with point = (point)
+	     with id = (reorg--get-view-prop 'id)
+	     with result = nil
+	     do (setq result (funcall func 'reorg-data
+				      id
+				      (lambda (val alist)
+					(string= 
+					 (alist-get 'id alist)
+					 val))
+				      'not-current))
+	     while result 
+	     collect result
+	     finally (goto-char point))))
+;; TODO re-write all navigation functions
+;; TODO install magit-todos from git on laptop
+
+;; (type-of xxx)
+;; (prop-match-p xxx)
+;; (prop-match-value xxx)
+;; (prop-match-beginning xxx)
+;; (prop-match-end xxx)
+
 (defun reorg-open-sidebar-fundamental (template &optional format-string file)
   "Open this shit in the sidebar."
   (interactive)
@@ -1277,7 +1304,8 @@ Return nil if there is no such branch."
 						  (cons 'reorg-level (reorg-current-level)))))
 	     (reorg--insert-into-branch-or-make-new-branch data))))
 
-(defun reorg-into--at-branch-p ()
+(defun reorg-tree--at-branch-p ()
+  "Is the point in the tree view at a branch?"
   (eq (reorg--get-view-props nil 'reorg-field-type)
       'branch))
 

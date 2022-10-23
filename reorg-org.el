@@ -383,6 +383,27 @@ RANGE is non-nil, only look for timestamp ranges."
 	 (cons 'link (match-string-no-properties 1))
 	 (cons 'text (match-string-no-properties 2)))))))
 
+(defun reorg-org--all-link-parser ()
+  "the first link in the current heading and return an alist."
+  (save-excursion 
+    (let ((limit (or (save-excursion (when (re-search-forward
+					    org-heading-regexp
+					    nil t)
+				       (point)))
+		     (point-max))))
+      (cl-loop while (re-search-forward
+		      reorg-org--org-link-regexp
+		      limit
+		      t)
+	       collect (list 
+			(cons 'link (match-string-no-properties 1))
+			(cons 'text (match-string-no-properties 2)))))))
+
+
+(reorg-create-data-type :name links
+			:class org
+			:parse (reorg-org--link-parser))
+
 (reorg-create-data-type :name link
 			:class org
 			:parse (reorg-org--link-parser))
@@ -526,3 +547,6 @@ RANGE is non-nil, only look for timestamp ranges."
 		   collect (match-string-no-properties 1 headline))))
 
 (provide 'reorg-org)
+
+
+(alist-get 'org reorg--parser-list)

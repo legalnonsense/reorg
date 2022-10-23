@@ -1,25 +1,42 @@
 
-* @alex phone call @jones :aaa:ccc:
+* [2022-10-21 Fri 22:56]
+:PROPERTIES:
+:ID:       cd60b5c5-777d-41fe-a592-673fd2fd8280
+:END:
+** @alex phone call @jones :aaa:ccc:
 :PROPERTIES:
 :ID:       3f3c54e9-9800-42e1-8420-bf71920ba50d
 :END:
-* @alex email @jones :bbb:aaa:
+** @Doc says that @Dan is an asshole. <2022-10-22 Sat> :aaa:
+:PROPERTIES:
+:ID:       99a637c1-f1ef-42f6-8e4b-969087a37931
+:END:
+
+* [2022-10-22 Sat 22:56]
+:PROPERTIES:
+:ID:       9e200bf5-42b4-41c4-a994-9d4cf02a8d69
+:END:
+** @alex email @jones :bbb:aaa:
 :PROPERTIES:
 :ID:       a69d3763-3d57-48e3-b327-803683cf472d
 :END:
-* @Dan calls @Diane and @Don @Vanessa @Whitney :aaa:bbb:
+** @Dan calls @Diane and @Don @Vanessa @Whitney :aaa:bbb:
 :PROPERTIES:
 :ID:       c02046de-6867-4807-97fc-2967228a65ac
 :END:
-* @Doc calls @Dan and @Dan :ccc:aaa:
+* [2022-10-28 Fri 22:58]
+:PROPERTIES:
+:ID:       6f6b6744-c043-4f8b-8c2f-1152debe56aa
+:END:
+** @Doc calls @Dan and @Don :ccc:aaa:
 :PROPERTIES:
 :ID:       73aed4d2-7952-42c2-847e-6600c665d777
 :END:
-* @Doc says nothing :bbb:
+** @Doc says nothing at [2022-10-28 Fri 23:20] :bbb:
 :PROPERTIES:
 :ID:       c04e860a-6b5d-4151-8e03-9a712d489b57
 :END:
-* No one :bbb:
+** No one :bbb:
 :PROPERTIES:
 :ID:       a1e8814b-651c-4aba-9235-d9580e95470b
 :END:
