@@ -418,49 +418,38 @@ the point and return nil."
   nil)
 
 (defun reorg--move-to-next-entry-follow ()
+  "move to next entry"
   (interactive)
   (outline-next-visible-heading 1)
-  ;;(reorg-view--update-highlight-overlay)
-  ;; (reorg-edits--post-field-navigation-hook)
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
-  ;; (reorg-edits--post-field-navigation-hook)
-  (run-hooks 'reorg--navigation-hook)
-  )
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--move-to-previous-entry-follow ()
+  "move to previous entry"
   (interactive)
   (outline-previous-visible-heading 1)
-  ;; (reorg-view--update-highlight-overlay)
-  ;; (reorg-edits--post-field-navigation-hook)
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
-  ;; (reorg-edits--post-field-navigation-hook)
-  (run-hooks 'reorg--navigation-hook)
-  )
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--move-to-next-entry-no-follow ()
+  "next entry"
   (interactive)
   (outline-next-visible-heading 1)
-  ;; (reorg-edits--post-field-navigation-hook)
-  ;; (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
   (reorg--select-tree-window)
-  (run-hooks 'reorg--navigation-hook)
-  )
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--move-to-previous-entry-no-follow ()
+  "previous entry"
   (interactive)
   (outline-previous-visible-heading 1)
-  ;; (reorg-edits--post-field-navigation-hook)
-  ;; (reorg-view--update-highlight-overlay)
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
   (reorg--select-tree-window)
-  (run-hooks 'reorg--navigation-hook)
-  ;; (reorg-edits--post-field-navigation-hook)
-  )
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--goto-next-parent ()
   "Goto the next parent."
@@ -468,21 +457,13 @@ the point and return nil."
   (when (re-search-forward
 	 (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
     (beginning-of-line)
-    (run-hooks 'reorg--navigation-hook)
-    ;; (reorg-edits--post-field-navigation-hook)
-    ;; (reorg-view--update-highlight-overlay)
-    ;; (reorg-edits--post-field-navigation-hook)
-    ))
+    (run-hooks 'reorg--navigation-hook)))
 
 (defun reorg--goto-parent ()
   "Goto the next parent."
   (interactive)
   (org-up-heading-safe)
-  (run-hooks 'reorg--navigation-hook)
-  ;; (reorg-edits--post-field-navigation-hook)
-  ;; (reorg-view--update-highlight-overlay)
-  ;; (reorg-edits--post-field-navigation-hook)
-  )
+  (run-hooks 'reorg--navigation-hook))
 
 ;;;; updating the tree
 
@@ -566,8 +547,6 @@ the point and return nil."
     (delete-window window)
     (kill-buffer buffer)))
 
-
-
 ;; (defmacro reorg--with-source-buffer (&rest body)
 ;;   "Execute BODY in the source buffer and
 ;; update the heading at point."
@@ -587,9 +566,7 @@ the point and return nil."
   (setq cursor-type nil)
   ;;(setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
-  (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
-  ;; (add-hook 'post-command-hook #'reorg-edits--update-box-overlay nil t)
-  )
+  (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
 ;;; reorg-edit-mode
 ;;;; transclusion hook
