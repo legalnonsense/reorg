@@ -556,7 +556,7 @@ the point and return nil."
     map)
   "keymap")
 
-(defun reorg-close-tree-buffer ()
+(defun reorg--close-tree-buffer ()
   "Close the tree buffer."
   (interactive)
   (let* ((window (select-window
