@@ -140,26 +140,31 @@ function created by the type creation macro."
 		   for x in it
 		   do (setf
 		       (car x)
-		       (list
-			(cons 'branch-name (car x))
-			(cons 'headline (car x))
-			(cons 'reorg-branch t)
-			(cons 'result-sorters result-sorters)
-			(cons 'grouper-list `(lambda (x)
-					       (let-alist x
-						 ,grouper)))
-			(cons 'branch-predicate `(lambda (x)
-						   (let-alist x
-						     ,grouper)))
-			(cons 'branch-result (car x))
-			(cons 'grouper-list-results (car x))
-			(cons 'format-string format-string)
-			(cons 'result-sorters result-sorters)
-			(cons 'template template)
-			(cons 'children children)
-			(cons 'branch-sorter heading-sorter)
-			(cons 'branch-sort-getter heading-sort-getter)
-			(cons 'reorg-level level)))
+		       (let ((ddd (list
+				   (cons 'branch-name (car x))
+				   (cons 'headline (car x))
+				   (cons 'reorg-branch t)
+				   (cons 'result-sorters result-sorters)
+				   (cons 'grouper-list `(lambda (x)
+							  (let-alist x
+							    ,grouper)))
+				   (cons 'branch-predicate `(lambda (x)
+							      (let-alist x
+								,grouper)))
+				   (cons 'branch-result (car x))
+				   (cons 'grouper-list-results (car x))
+				   (cons 'format-string format-string)
+				   (cons 'result-sorters result-sorters)
+				   (cons 'template template)
+				   (cons 'children children)
+				   (cons 'branch-sorter heading-sorter)
+				   (cons 'branch-sort-getter heading-sort-getter)
+				   (cons 'reorg-level level))))
+			 (append ddd
+				 `((id . ,(md5 (with-temp-buffer
+						 (insert (pp ddd))
+						 (buffer-string))))))))
+		   
 		   finally return it)
 		  (seq-filter (lambda (x) (and (not (null (car x)))
 					       (not (null (cdr x)))
