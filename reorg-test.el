@@ -1,8 +1,11 @@
 ;;; -*- lexical-binding: t; -*-
 
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> origin/main
 (defun xxx-reorg-test-16 ()
   (interactive)
   (reorg-open-sidebar
@@ -11,7 +14,10 @@
    '( :group .@tag-list
       :format-string (concat " " .headline)
       :children (( :group .@at-name )))))
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
 
 ;; group by cited file
 (defun xxx-reorg-test-15 ()

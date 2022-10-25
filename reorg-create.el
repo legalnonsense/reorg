@@ -153,7 +153,8 @@ call from the template macro.
 				     parse
 				     set
 				     display)
-
+  ;; TODO add disabled key to remove data type
+  ;; from the parser list 
 
   "Create the data types that will be used to represent and
 interact with the data as key-value pairs.
@@ -207,16 +208,37 @@ FUNC is a function that accepts one argument, which is the
 current element of TREE."
   (let ((tree (copy-tree form)))
     (cl-labels ((doloop (tree func)
-			(setf (car tree) (funcall func (car tree) data))
+			(setf (car tree) (funcall func (car tree)))
 			(cl-loop for n below (length (cdr tree))
 				 if (listp (nth n (cdr tree))) do
 				 (doloop (nth n (cdr tree)) func)
 				 else do
 				 (setf (nth n (cdr tree))
-				       (funcall func (nth n (cdr tree)) data)))))
+				       (funcall func (nth n (cdr tree)))))))
       (if (listp tree)
-	  (doloop tree func))
-      (funcall func tree))))
+	  (progn 
+	    (doloop tree func)
+	    tree)
+	(funcall func tree)))))
+
+;; old 
+;; (defun reorg--depth-first-apply (form func &optional data)
+;;   "Run FUNC at each node of TREE using a depth-first traversal
+;; and destructively modify TREE. 
+;; FUNC is a function that accepts one argument, which is the
+;; current element of TREE."
+;;   (let ((tree (copy-tree form)))
+;;     (cl-labels ((doloop (tree func)
+;; 			(setf (car tree) (funcall func (car tree) data))
+;; 			(cl-loop for n below (length (cdr tree))
+;; 				 if (listp (nth n (cdr tree))) do
+;; 				 (doloop (nth n (cdr tree)) func)
+;; 				 else do
+;; 				 (setf (nth n (cdr tree))
+;; 				       (funcall func (nth n (cdr tree)) data)))))
+;;       (if (listp tree)
+;; 	  (doloop tree func)
+;; 	(funcall func tree)))))
 
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the

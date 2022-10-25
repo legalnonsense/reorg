@@ -126,6 +126,7 @@ function created by the type creation macro."
 										    (setf (alist-get at-dot ppp) x)
 										    ppp))
 							  finally return data))))
+			 (setq xxx grouper)
 			 (->> it			      
 			      (reorg--seq-group-by
 			       (reorg--depth-first-apply grouper
