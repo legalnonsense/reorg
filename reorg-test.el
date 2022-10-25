@@ -1,19 +1,16 @@
 ;;; -*- lexical-binding: t; -*-
 
-(defun xxx-reorg-test-17 ()
+
+
+
+(defun xxx-reorg-test-16 ()
   (interactive)
-  (reorg-open-sidebar 
-
-
-
-  (defun xxx-reorg-test-16 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
-     :template
-     '( :group .@tag-list
-	:format-string (concat " " .headline)
-	:children (( :group .@at-name )))))
+  (reorg-open-sidebar
+   :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
+   :template
+   '( :group .@tag-list
+      :format-string (concat " " .headline)
+      :children (( :group .@at-name )))))
 
 
 ;; group by cited file
