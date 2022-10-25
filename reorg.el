@@ -71,7 +71,9 @@ switch to that buffer in the window."
   "Select the tree window." 
   (select-window
    (car 
-    (window-at-side-list nil reorg-buffer-side))))
+    (window-at-side-list
+     (frame-focus)
+     reorg-buffer-side))))
 
 ;;; view buffer
 
