@@ -41,27 +41,6 @@
 (defvar reorg--navigation-hook nil
   "Post-navigation hook.")
 
-;; (defvar reorg-words nil
-;;   "A list of `reorg-words'.")
-
-;; (defvar reorg--cache nil
-;;   "The results of the parsed buffer.
-;; For now, only for debugging purposes.")
-
-;; (defvar reorg--grouped-results nil
-;;   "The results of applying reorg--group-and-sort
-;; to parsed data.  For now, only for debugging.")
-
-;; (defvar reorg-setter-alist nil
-;;   "setter alist")
-;; (defvar reorg--last-point nil
-;;   "last point (edit mode)")
-
-;; (defun reorg--clone-outline-results (data &optional format-string)
-;;   "asdf"
-;;   (cl-loop for d in data
-;; 	   collect (reorg--create-headline-string d format-string (plist-get d :level))))
-
 (defun reorg--insert-org-headlines (data)
   "Insert grouped and sorted data into outline."
   (let (results)
@@ -122,14 +101,6 @@ get nested properties."
 	  (alist-get property props)
 	;;(plist-get props property)
 	props))))
-
-;; (defun reorg-outline-level ()
-;;   "Get the outline level of the heading at point."
-;;   (save-excursion
-;;     (let ((search-invisible t))
-;;       (outline-back-to-heading t)
-;;       (re-search-forward "^*+ " (point-at-eol))
-;;       (1- (length (match-string 0))))))
 
 (defun reorg-outline-level ()
   "Get the outline level of the heading at point."
@@ -236,28 +207,7 @@ get nested properties."
   (interactive)
   (reorg-tree--jump-to-next-clone t))
 
-;; (cl-loop with point = (point)
-;; 	 with id = (reorg--get-view-prop 'id)
-;; 	 with result = nil
-;; 	 do (setq result (funcall func 'reorg-data
-;; 				  id
-;; 				  (lambda (val alist)
-;; 				    (string= 
-;; 				     (alist-get 'id alist)
-;; 				     val))
-;; 				  'not-current))
-;; 	 while result 
-;; 	 collect result
-;; 	 finally (goto-char point))))
-
 ;; TODO re-write all navigation functions
-;; TODO install magit-todos from git on laptop
-
-;; (type-of xxx)
-;; (prop-match-p xxx)
-;; (prop-match-value xxx)
-;; (prop-match-beginning xxx)
-;; (prop-match-end xxx)
 
 (defun reorg-open-sidebar-fundamental (template &optional format-string file)
   "Open this shit in the sidebar."
@@ -297,9 +247,7 @@ get nested properties."
       (reorg--unfold-at-point point)
       (reorg-edits--update-box-overlay)
       point)
-    (run-hooks 'reorg--navigation-hook)
-    ;; (reorg-edits--post-field-navigation-hook)
-    ))
+    (run-hooks 'reorg--navigation-hook)))
 
 (defun reorg--jump-to-previous-clone ()
   "Jump to previous clone based on matching id."
@@ -323,33 +271,6 @@ get nested properties."
 
 ;;;; view buffer functions
 
-;; (defun reorg-view--update-highlight-overlay (&optional &rest _args)
-;;   "update transclusion overlay."
-;;   nil)
-;; (delete-overlay reorg-current-heading-overlay)
-;; (move-overlay reorg-current-heading-overlay (reorg--get-headline-start) (point-at-eol)))
-
-;; (defun reorg--initialize-overlay ()
-;;   "initialize the transclusion overlay."
-;;   nil)
-;; (setq reorg-current-heading-overlay
-;; 	(make-overlay 1 2))
-;; (overlay-put reorg-current-heading-overlay
-;; 	       'face
-;; 	       'reorg-current-heading-face)
-;; (overlay-put reorg-current-heading-overlay 'insert-behind-hooks '(reorg--transclusion-logger
-;; 								    reorg-view--update-highlight-overlay
-;; 								    reorg--modification-hook-func))
-;; (overlay-put reorg-current-heading-overlay 'insert-in-front-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-;; (overlay-put reorg-current-heading-overlay 'modification-hooks '(reorg--transclusion-logger reorg--modification-hook-func))
-;; (delete-overlay reorg-current-heading-overlay))
-
-
-
-
-
-;; (reorg-props 'headline :val (propertize (plist-get props :headline)
-;; 					    reorg--data-property-name props))
 (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
   (interactive)
