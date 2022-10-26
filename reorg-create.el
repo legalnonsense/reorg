@@ -263,11 +263,6 @@ template.  Use LEVEL number of leading stars.  Add text properties
 			    (let-alist data 
 			      ,format-string))
 			 data))))
-
-	   ;; 'reorg-class
-	   ;; (alist-get 'class data)
-	   ;; 'reorg-level
-	   ;; level
 	   'reorg-data
 	   (append data
 		   (list 
