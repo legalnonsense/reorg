@@ -264,12 +264,15 @@ template.  Use LEVEL number of leading stars.  Add text properties
 			      ,format-string))
 			 data))))
 
-	   'reorg-class
-	   (alist-get 'class data)
-	   'reorg-level
-	   level
+	   ;; 'reorg-class
+	   ;; (alist-get 'class data)
+	   ;; 'reorg-level
+	   ;; level
 	   'reorg-data
-	   data
+	   (append data
+		   (list 
+		    (cons 'reorg-class (alist-get 'class data))
+		    (cons 'reorg-level level)))
 	   (alist-get (alist-get 'class data)
 		      reorg--extra-prop-list)
 	   )))
