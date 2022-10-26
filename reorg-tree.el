@@ -3,7 +3,7 @@
 ;;; TODO
 ;;;; deal with disappearing headings 
 (defun reorg-outline-level ()
-  (get-text-property (point) 'reorg-level))
+  (reorg--get-view-prop 'reorg-level))
 
 (defun reorg--goto-next-relative-level (&optional relative-level backward start-level no-error)
   "Goto the next branch that is at RELATIVE-LEVEL up to any branch that is a
