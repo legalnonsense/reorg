@@ -107,31 +107,35 @@ function created by the type creation macro."
 	    (setf
 	     (nth n (cdr data))
 	     (--> (nth n (cdr data))
-		  (cond ((functionp grouper)
-			 (->> it
-			      (seq-group-by grouper)
-			      (seq-map (lambda (x) (list (car x) (cdr x))))))
-			((stringp grouper)
-			 (list (list grouper it)))
-			(t
-			 (when-let ((at-dots (cl-delete-duplicates
-					      (reorg--dot-at-search grouper)
-					      :test #'equal)))
-			   (setq it 				 
-				 (cl-loop for data in it
-					  append (cl-loop for (_ . at-dot) in at-dots
-							  if (listp (alist-get at-dot data))
-							  return (cl-loop for x in (alist-get at-dot data)
-									  collect (let ((ppp (copy-alist data)))
-										    (setf (alist-get at-dot ppp) x)
-										    ppp))
-							  finally return data))))
-			 (setq xxx grouper)
-			 (->> it			      
-			      (reorg--seq-group-by
-			       (reorg--depth-first-apply grouper
-							 #'reorg--turn-at-dot-to-dot))
-			      (seq-map (lambda (x) (list (car x) (cdr x)))))))
+		  (cond
+		   ((functionp grouper)
+		    (->> it
+			 (seq-group-by grouper)
+			 (seq-map (lambda (x) (list (car x) (cdr x))))))
+		   ((stringp grouper)
+		    (list (list grouper it)))
+		   (t
+		    (when-let ((at-dots (cl-delete-duplicates
+					 (reorg--dot-at-search grouper)
+					 :test #'equal)))
+		      (setq
+		       it 				 
+		       (cl-loop
+			for data in it
+			append (cl-loop
+				for (_ . at-dot) in at-dots
+				if (listp (alist-get at-dot data))
+				return (cl-loop for x in (alist-get at-dot data)
+						collect (let ((ppp (copy-alist data)))
+							  (setf (alist-get at-dot ppp) x)
+							  ppp))
+				finally return data))))
+		    (setq xxx grouper)
+		    (->> it			      
+			 (reorg--seq-group-by
+			  (reorg--depth-first-apply grouper
+						    #'reorg--turn-at-dot-to-dot))
+			 (seq-map (lambda (x) (list (car x) (cdr x)))))))
 		  (seq-filter (lambda (x) (and (not (null (car x)))
 					       (not (null (cdr x)))
 					       (not (null x))))
