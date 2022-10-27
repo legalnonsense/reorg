@@ -11,23 +11,24 @@
 		     (reorg--group-and-sort it template))))
   results)
 
-(defun reorg-insert--find-by-prop (&optional backward &rest )
+(defun reorg-insert--find-by-prop (prop val &optional backward)
   "find the first branch that matches LEVEL."
   (when-let* ((func (if backward
 			#'text-property-search-backward
 		      #'text-property-search-forward))
 	      (match (funcall func 
 			      'reorg-data
-			      id
-			      (lambda (a b) (string= (alist-get 'id b)
+			      val
+			      (lambda (a b) (string= (alist-get prop b)
 						     a)))))
     (goto-char (prop-match-beginning match))))
 
-(setq yyy (reorg-insert--find-first-branch "743034db81a0b72264db2b225e3ae9e9"))
 
 
 
-(insert xxx)* ccc
+
+(insert xxx)
+* ccc
 
 
 
