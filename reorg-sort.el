@@ -165,7 +165,10 @@ function created by the type creation macro."
 				   (cons 'branch-sort-getter heading-sort-getter)
 				   (cons 'reorg-level level))))
 			 (append ddd
-				 `((id . ,(md5 (with-temp-buffer
+				 `((group-id . ,(md5 (with-temp-buffer
+						       (insert (pp grouper))
+						       (buffer-string))))
+				   (id . ,(md5 (with-temp-buffer
 						 (insert (pp ddd))
 						 (buffer-string))))))))
 		   
