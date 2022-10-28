@@ -24,7 +24,8 @@ text property data.  VAL is a target value."
 	     collect (cons beg end))))
 
 (defun reorg--get-next-prop (prop &optional val test)
-  "Find the next text prop PROP that matches VAL."
+  "Find the next text prop PROP that matches VAL.
+Returns (beg . end) points of the matching property."
   (when-let ((next (reorg--find-prop prop val (point) nil test)))
     (cl-loop for (beg . end) in next
 	     unless (and (>= (point) beg)
@@ -33,12 +34,18 @@ text property data.  VAL is a target value."
 
 
 (defun reorg--get-previous-prop (prop &optional val test)
-  "Find the previous text prop PROP that matches VAL."
+  "Find the previous text prop PROP that matches VAL.
+Returns (beg . end) points of the matching property."
   (when-let ((previous (reorg--find-prop prop val nil (point) test)))
     (cl-loop for (beg . end) in (reverse previous)
 	     unless (and (>= (point) beg)
 			 (<= (point) end))
 	     return (cons beg end))))
+
+(defun reorg--goto-char (point)
+  "Goto POINT and run hook funcs."
+  (goto-char point)
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--goto-next-prop (prop &optional val test)
   "Go to next PROP that matches VAL."
@@ -50,8 +57,4 @@ text property data.  VAL is a target value."
   (when-let ((target (reorg--get-previous-prop prop val test)))
     (reorg--goto-char (car target))))
 
-(defun reorg--goto-char (point)
-  "Goto POINT and run hook funcs."
-  (goto-char point)
-  (run-hooks 'reorg--navigation-hook))
 
