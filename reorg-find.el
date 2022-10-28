@@ -15,10 +15,12 @@ text property data.  VAL is a target value."
 	     property 'reorg-data
 	     from (or from (point-min))
 	     to (or to (point-max))
-	     when (funcall test
-			   (alist-get prop
-				      (get-text-property beg 'reorg-data))
-			   val)
+	     when (funcall
+		   test
+		   (alist-get
+		    prop
+		    (get-text-property beg 'reorg-data))
+		   val)
 	     collect (cons beg end))))
 
 (defun reorg--get-next-prop (prop &optional val test)
@@ -50,6 +52,6 @@ text property data.  VAL is a target value."
 
 (defun reorg--goto-char (point)
   "Goto POINT and run hook funcs."
-  (goto-char (point))
+  (goto-char point)
   (run-hooks 'reorg--navigation-hook))
 
