@@ -2,6 +2,18 @@
 
 ;; Functions to find by text properties in the buffer 
 
+(defun reorg--get-view-prop (&optional property)
+  "Get PROPERTY from the current heading.  If PROPERTY
+is omitted or nil, get the 'reorg-data' prop.  If it is
+supplied, get that property from 'reorg-data'."
+  (save-excursion 
+    (beginning-of-line)
+    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
+      (if property
+	  (alist-get property props)
+	;;(plist-get props property)
+	props))))
+
 (defun reorg--get-view-props (&optional point &rest props)
   "Get text property PROPS at point. If there are multiple PROPS,
 get nested properties."
@@ -18,18 +30,6 @@ get nested properties."
 	(get-props props)
       (let ((inhibit-field-text-motion t))
 	(get-text-property (or point (point)) reorg--data-property-name)))))
-
-(defun reorg--get-view-prop (&optional property)
-  "Get PROPERTY from the current heading.  If PROPERTY
-is omitted or nil, get the 'reorg-data' prop.  If it is
-supplied, get that property from 'reorg-data'."
-  (save-excursion 
-    (beginning-of-line)
-    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
-      (if property
-	  (alist-get property props)
-	;;(plist-get props property)
-	props))))
 
 (defun reorg--find-prop (prop &optional val from to test)
   "TEST is a function that accepts two arguments: VAL and
