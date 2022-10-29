@@ -180,13 +180,13 @@ ID."
 current view entry."
   (let (new)
     (reorg--with-point-at-orig-entry id
-      (apply reorg-get-set-props prop :val val keys)
-      (setq new (reorg-parser--headline-parser)))
+				     (apply reorg-get-set-props prop :val val keys)
+				     (setq new (reorg-parser--headline-parser)))
     (puthash id new reorg-hash-table)
     (reorg--create-headline-string
      new
      reorg-headline-format
-     (reorg-outline-level))))
+     (reorg--get-outline-level))))
 
 (defun reorg--shift-up (arg)
   "Shift priority or timestamp."
@@ -250,7 +250,7 @@ current view entry."
 
 (defun reorg-views--replace-heading (data)
   "Replace the heading at point with NEW."
-  (let ((level (reorg-outline-level)))
+  (let ((level (reorg--get-outline-level)))
     (outline-back-to-heading)
     (delete-region (point)
 		   (save-excursion (outline-next-heading) (point)))

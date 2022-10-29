@@ -2,17 +2,17 @@
 
 ;;; TODO
 ;;;; deal with disappearing headings 
-(defun reorg-outline-level ()
+(defun reorg--get-outline-level ()
   (reorg--get-view-prop 'reorg-level))
 
 (defun reorg--goto-next-relative-level (&optional relative-level backward start-level no-error)
   "Goto the next branch that is at RELATIVE-LEVEL up to any branch that is a
 lower level than the current branch."
   ;; Outline levels start at 1, so make sure the destination is not out of bounds.  
-  (when-let* ((start-level (or start-level (reorg-outline-level)))
+  (when-let* ((start-level (or start-level (reorg--get-outline-level)))
 	      (point (point)))
     (cond  ((if backward (bobp) (eobp)) nil)
-	   ((>= 0 (abs (+ (reorg-outline-level) (or relative-level 0))))
+	   ((>= 0 (abs (+ (reorg--get-outline-level) (or relative-level 0))))
 	    (if no-error nil
 	      (error "Cannot move to relative-level %d from current level %d"
 		     relative-level
@@ -24,7 +24,7 @@ lower level than the current branch."
 					 ((pred (< 0)) 'descendant)
 					 ((pred (> 0)) 'ancestor)
 					 ((pred (= 0)) 'sibling))))
-		      (current-level () (reorg-outline-level))
+		      (current-level () (reorg--get-outline-level))
 		      (exit () (progn (if (if backward (bobp) (eobp))
 					  (if backward (point-min) (point-max))
 					(setf (point) point) nil)))
@@ -66,7 +66,7 @@ lower level than the current branch."
 (defun reorg-into--get-list-of-sibling-branches-at-point ()
   "Get a list of cons cells in the form (FUNCTION . RESULTS)."
   (save-excursion
-    (let ((level (reorg-outline-level))
+    (let ((level (reorg--get-outline-level))
 	  (disable-point-adjustment t))
       (while (reorg--goto-next-relative-level 0 t))
       (cl-loop with alist = nil
@@ -85,7 +85,7 @@ lower level than the current branch."
 (defun reorg-into--get-list-of-child-branches-at-point ()
   "Get a list of cons cells in the form (FUNCTION . RESULTS)."
   (save-excursion
-    (let ((level (reorg-outline-level))
+    (let ((level (reorg--get-outline-level))
 	  (disable-point-adjustment t))
       (when (reorg--goto-next-relative-level 1)
 	(cl-loop with alist = nil
@@ -253,11 +253,11 @@ will extract the single value prior to comparing to VAL."
 make a list of the results."
   (let (results)
     (save-excursion
-      (cl-loop with level = (reorg-outline-level)
+      (cl-loop with level = (reorg--get-outline-level)
 	       while (and (reorg-tree--goto-next-property-field nil
 								'reorg-data val nil #'equal
 								(lambda (x) (plist-get x prop)))
-			  (> (reorg-outline-level) level))
+			  (> (reorg--get-outline-level) level))
 	       do (cl-pushnew (funcall func) results :test #'equal)))
     (reverse results)))
 
@@ -268,7 +268,7 @@ make a list of the results."
     (reorg-tree--goto-first-sibling-in-current-group)
     (let* ((branch-predicate (reorg--get-view-props nil 'reorg-branch-form))
 	   (name (funcall branch-predicate data))
-	   (level (reorg-outline-level))
+	   (level (reorg--get-outline-level))
 	   (format-string (reorg--get-view-props nil 'reorg-data :format-string))
 	   (branch-sorter (reorg--get-view-props nil 'reorg-data :branch-sorter))
 	   (branch-sort-getter (reorg--get-view-props nil 'reorg-data :branch-sort-getter))

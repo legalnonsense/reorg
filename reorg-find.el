@@ -152,3 +152,7 @@ Returns (beg . end) points of the matching property."
   (interactive)
   (reorg--goto-previous-prop 'reorg-level
 			     (1- (reorg--get-view-prop 'reorg-level))))
+
+(defun reorg--get-outline-level ()
+  "Get the outline level of the heading at point."
+  (reorg--get-view-prop 'reorg-level))

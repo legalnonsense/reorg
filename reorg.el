@@ -79,9 +79,7 @@ switch to that buffer in the window."
 
 
 
-(defun reorg-outline-level ()
-  "Get the outline level of the heading at point."
-  (reorg--get-view-prop 'reorg-level))
+
 
 ;; (defun reorg--get-field-at-point (&optional point)
 ;;   "Get the reorg-field-type at point."
@@ -478,7 +476,7 @@ the point and return nil."
 ;;     (save-match-data
 ;;       (let* ((overlay-beg (overlay-start overlay))
 ;; 	     (headline-beg (reorg--get-headline-start))
-;; 	     (relative-beg (if (<= (- beg headline-beg) 0)
+;; 	     (beg (if (<= (- beg headline-beg) 0)
 ;; 			       0
 ;; 			     (- beg headline-beg)))
 ;; 	     (adjustment (if (< beg overlay-beg)
@@ -543,25 +541,25 @@ the point and return nil."
 ;;   "The value of header-line-format when `reorg-edits-mode' is 
 ;; invoked.")
 
-  (defvar reorg-edits--current-field-overlay
-    (let ((overlay (make-overlay 1 2)))
-      (overlay-put overlay 'face '( :box (:line-width -1)
-				    :foreground "cornsilk"))    
-      (overlay-put overlay 'priority 1000)
-      overlay)
-    "Overlay for field at point.")
+(defvar reorg-edits--current-field-overlay
+  (let ((overlay (make-overlay 1 2)))
+    (overlay-put overlay 'face '( :box (:line-width -1)
+				  :foreground "cornsilk"))    
+    (overlay-put overlay 'priority 1000)
+    overlay)
+  "Overlay for field at point.")
 
-  ;; (defvar reorg-edits-field-mode-map
-  ;;   (let ((map (make-sparse-keymap)))
-  ;;     (define-key map (kbd reorg-edits-commit-edit-shortcut)
-  ;;       #'reorg-edits--commit-edit)
-  ;;     (define-key map (kbd reorg-edits-abort-edit-shortcut)
-  ;;       #'reorg-edits--discard-edit)
-  ;;     (define-key map (kbd "TAB") #'reorg-edits-move-to-next-field)
-  ;;     (define-key map (kbd "BACKTAB") #'reorg-edits-move-to-previous-field)
-  ;;     (define-key map [remap kill-line] #'reorg--kill-field)
-  ;;     map)
-  ;;   "keymap.")
+;; (defvar reorg-edits-field-mode-map
+;;   (let ((map (make-sparse-keymap)))
+;;     (define-key map (kbd reorg-edits-commit-edit-shortcut)
+;;       #'reorg-edits--commit-edit)
+;;     (define-key map (kbd reorg-edits-abort-edit-shortcut)
+;;       #'reorg-edits--discard-edit)
+;;     (define-key map (kbd "TAB") #'reorg-edits-move-to-next-field)
+;;     (define-key map (kbd "BACKTAB") #'reorg-edits-move-to-previous-field)
+;;     (define-key map [remap kill-line] #'reorg--kill-field)
+;;     map)
+;;   "keymap.")
 
 ;;;; macros
 
@@ -569,20 +567,20 @@ the point and return nil."
 
 ;;;; field navigation 
 
-  ;; (defun reorg-edits--post-field-navigation-hook ()
-  ;;   "Tell the user what field they are on."
-  ;;   (reorg-edits--update-box-overlay)
-  ;;   (setf (point) (car 
-  ;; 		 (reorg-edits--get-field-bounds))))
+;; (defun reorg-edits--post-field-navigation-hook ()
+;;   "Tell the user what field they are on."
+;;   (reorg-edits--update-box-overlay)
+;;   (setf (point) (car 
+;; 		 (reorg-edits--get-field-bounds))))
 
-  (defun reorg--unfold-at-point (&optional point)
-    "Unfold so the heading at point is visible."
-    (save-excursion 
-      (reorg--goto-parent)
-      (outline-show-subtree)
-      (goto-char point)
-      (outline-show-subtree)
-      (goto-char point)))
+(defun reorg--unfold-at-point (&optional point)
+  "Unfold so the heading at point is visible."
+  (save-excursion 
+    (reorg--goto-parent)
+    (outline-show-subtree)
+    (goto-char point)
+    (outline-show-subtree)
+    (goto-char point)))
 
 (let ((point nil))
   (defun reorg-edits--update-box-overlay ()
@@ -847,7 +845,7 @@ the point and return nil."
    (beginning-of-line)
    (let ((string (reorg--create-headline-string data
 						(or format-string reorg-headline-format)
-						(or level (reorg-outline-level)))))
+						(or level (reorg--get-outline-level)))))
      (insert string)
      (reorg-dynamic-bullets--fontify-heading)
      (1+ (length string)))))
@@ -861,7 +859,7 @@ the point and return nil."
    ;; (end-of-line)
    (let ((string (reorg--create-headline-string data
 						(or format-string reorg-headline-format)
-						(or level (reorg-outline-level)))))
+						(or level (reorg--get-outline-level)))))
      (insert string)
      (reorg-dynamic-bullets--fontify-heading)
      (1+ (length string)))))
@@ -883,7 +881,7 @@ the point and return nil."
 
 (defun reorg-views--replace-heading (data) 
   "Replace the heading at point with DATA. SUSPECT"
-  (let ((level (reorg-outline-level))
+  (let ((level (reorg--get-outline-level))
 	(inhibiit-field-text-motion t)
 	(search-invisible t))
     (save-excursion
@@ -896,7 +894,7 @@ the point and return nil."
   (let ((inhibit-modification-hooks t)
 	(props (reorg--with-point-at-orig-entry nil nil
 						(reorg--parser nil 'org)))
-	(level (reorg-outline-level))
+	(level (reorg--get-outline-level))
 	(format (save-excursion
 		  (cl-loop while (org-up-heading-safe)
 			   when (reorg--get-view-prop 'format-string)
@@ -1108,7 +1106,7 @@ the point and return nil."
 	    (forward-line 1) ;; this should be a text-property forward, not a line forward
 	    (cl-loop while (not (eq (reorg--get-view-props nil 'reorg-field-type)
 				    'branch))
-		     with level = (or level (reorg-outline-level))
+		     with level = (or level (reorg--get-outline-level))
 		     if (cl-loop for (func . pred) in sorters
 				 if (funcall pred
 					     (funcall func data)
@@ -1150,7 +1148,7 @@ the point and return nil."
     (insert 
      (reorg--create-headline-string (or data (reorg--get-view-props nil))
 				    (or format reorg-headline-format)
-				    (or level (reorg-outline-level)))
+				    (or level (reorg--get-outline-level)))
      "\n")
     (forward-line -1)
     (reorg-dynamic-bullets--fontify-heading)))
@@ -1203,12 +1201,12 @@ next branch at level 3.
 If PREVIOUS is non-nil, move to the previous branch instead of the next.
 
 Return nil if there is no such branch."
-  `(let ((start-level (reorg-outline-level))
+  `(let ((start-level (reorg--get-outline-level))
 	 (point (point)))
      (cl-loop while (reorg--goto-next-relative-level 1 nil start-level)
-	      if (= (1+ start-level) (reorg-outline-level))
+	      if (= (1+ start-level) (reorg--get-outline-level))
 	      do ,@body
-	      else if (/= start-level (reorg-outline-level))
+	      else if (/= start-level (reorg--get-outline-level))
 	      return nil)
      (goto-char point)))
 
@@ -1307,7 +1305,7 @@ Return nil if there is no such branch."
     (invisible-p (point-at-eol))))
 
 (defun reorg-tree--is-root-p ()
-  (= (reorg-outline-level 1)))
+  (= (reorg--get-outline-level 1)))
 
 (defun reorg--org-shortcut-deadline (arg)
   "Execute org-deadline in the source buffer and update the heading at point."
@@ -1325,9 +1323,9 @@ Return nil if there is no such branch."
   "Goto the next branch that is at RELATIVE-LEVEL up to any branch that is a
 lower level than the current branch."
   ;; Outline levels start at 1, so make sure the destination is not out of bounds. 
-  (let* ((start-level (or start-level (reorg-outline-level)))
+  (let* ((start-level (or start-level (reorg--get-outline-level)))
 	 (point (point)))
-    (cond  ((>= 0 (abs (+ (reorg-outline-level) (or relative-level 0))))
+    (cond  ((>= 0 (abs (+ (reorg--get-outline-level) (or relative-level 0))))
 	    (if no-error nil
 	      (error "Cannot move to relative-level %d from current level %d"
 		     relative-level
@@ -1339,7 +1337,7 @@ lower level than the current branch."
 					 ((pred (< 0)) 'descendant)
 					 ((pred (> 0)) 'ancestor)
 					 ((pred (= 0)) 'sibling))))
-		      (current-level () (reorg-outline-level))
+		      (current-level () (reorg--get-outline-level))
 		      (exit () (progn (setf (point) point) nil))
 		      (goto-next () (reorg-tree--goto-next-property-field
 				     'reorg-field-type
@@ -1379,7 +1377,7 @@ lower level than the current branch."
 (defun reorg-into--get-list-of-sibling-branches-at-point ()
   "Get a list of cons cells in the form (FUNCTION . RESULTS)."
   (save-excursion
-    (let ((level (reorg-outline-level))
+    (let ((level (reorg--get-outline-level))
 	  (disable-point-adjustment t))
       (while (reorg--goto-next-relative-level 0 t))
       (cl-loop with alist = nil
@@ -1398,7 +1396,7 @@ lower level than the current branch."
 (defun reorg-into--get-list-of-child-branches-at-point ()
   "Get a list of cons cells in the form (FUNCTION . RESULTS)."
   (save-excursion
-    (let ((level (reorg-outline-level))
+    (let ((level (reorg--get-outline-level))
 	  (disable-point-adjustment t))
       (when (reorg--goto-next-relative-level 1)
 	(cl-loop with alist = nil
@@ -1545,11 +1543,11 @@ will extract the single value prior to comparing to VAL."
 ;; make a list of the results."
 ;;   (let (results)
 ;;     (save-excursion
-;;       (cl-loop with level = (reorg-outline-level)
+;;       (cl-loop with level = (reorg--get-outline-level)
 ;; 	       while (and (reorg-tree--goto-next-property-field nil
 ;; 								'reorg-data val nil #'equal
 ;; 								(lambda (x) (alist-get prop x)))
-;; 			  (> (reorg-outline-level) level))
+;; 			  (> (reorg--get-outline-level) level))
 ;; 	       do (cl-pushnew (funcall func) results :test #'equal)))
 ;;     (reverse results)))
 
@@ -1560,7 +1558,7 @@ will extract the single value prior to comparing to VAL."
 ;;   (reorg-tree--goto-first-sibling-in-current-group)
 ;;   (let* ((branch-predicate (reorg--get-view-props nil 'reorg-data 'branch-predicate))
 ;; 	 (name (funcall branch-predicate data))
-;; 	 (level (reorg-outline-level))
+;; 	 (level (reorg--get-outline-level))
 ;; 	 (format-string (reorg--get-view-props nil 'reorg-data 'format-string))
 ;; 	 (branch-sorter (reorg--get-view-props nil 'reorg-data 'branch-sorter))
 ;; 	 (branch-sort-getter (reorg--get-view-props nil 'reorg-data 'branch-sort-getter))
