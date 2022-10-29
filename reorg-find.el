@@ -2,17 +2,15 @@
 
 ;; Functions to find by text properties in the buffer 
 
-(defun reorg--get-view-prop (&optional property)
+(defun reorg--get-view-prop (&optional property point)
   "Get PROPERTY from the current heading.  If PROPERTY
 is omitted or nil, get the 'reorg-data' prop.  If it is
 supplied, get that property from 'reorg-data'."
-  (save-excursion 
-    (beginning-of-line)
-    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
-      (if property
-	  (alist-get property props)
-	;;(plist-get props property)
-	props))))
+  (let ((props (get-text-property (or point (point)) reorg--data-property-name)))
+    (if property
+	(alist-get property props)
+      ;;(plist-get props property)
+      props)))
 
 (defun reorg--get-view-props (&optional point &rest props)
   "Get text property PROPS at point. If there are multiple PROPS,
@@ -36,21 +34,20 @@ get nested properties."
 the text property at the beginning of the region.  
 PROP is a property that is contained within the reorg-data
 text property data.  VAL is a target value."
-  (cl-flet ((truth (&rest args) t))
-    (cl-loop with test = (if val
-			     (or test #'equal )
-			   #'truth)
-	     for (beg . end) being the intervals
-	     property 'reorg-data
-	     from (or from (point-min))
-	     to (or to (point-max))
-	     when (funcall
-		   test
-		   (alist-get
-		    prop
-		    (reorg--get-view-prop prop))
-		   val)
-	     collect (cons beg end))))
+  (save-excursion 
+    (cl-flet ((truth (&rest args) t))
+      (cl-loop with test = (if val
+			       (or test #'equal )
+			     #'truth)
+	       for (beg . end) being the intervals
+	       property 'reorg-data
+	       from (or from (point-min))
+	       to (or to (point-max))
+	       when (funcall
+		     test
+		     (reorg--get-view-prop prop beg)
+		     val)
+	       collect (cons beg end)))))
 
 (defun reorg--get-next-prop (prop &optional val test)
   "Find the next text prop PROP that matches VAL.
@@ -89,3 +86,8 @@ Returns (beg . end) points of the matching property."
 			(car target)))))
 
 
+(defun reorg--get-all-clone-start-points ()
+  "get all clone start points for the clone at point"
+  (let ((id (reorg--get-view-prop 'id)))
+    (mapcar #'car 
+	    (reorg--find-prop 'id id))))
