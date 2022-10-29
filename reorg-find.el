@@ -31,45 +31,48 @@ get nested properties."
 
 (defun reorg--find-prop (prop &optional val from to test transform first-only)
   "TEST is a function that accepts two arguments: VAL and
-the text property at the beginning of the region.  
+the text property at the beginning of the region.  If TEST is nil, use 'equal'.
 PROP is a property that is contained within the reorg-data
-text property data.  VAL is a target value."
+text property data.  VAL is a target value.  TRANSFORM is a function
+that accepts to arguments (PROP and the current BEG) and returns
+a value to be compared against VAL used TEST.  FIRST-ONLY means to return
+the first match location; otherwise return all matching locations."
   (save-excursion 
-    (cl-flet ((truth (&rest args) t))
-      (cl-loop with test = (if val
-			       (or test #'equal )
-			     #'truth)
-	       with from = (or from (point-min))
-	       with to = (or to (point-max))
-	       for (beg . end) being the intervals
-	       property 'reorg-data
-	       from from
-	       to to
-	       when (funcall
-		     test
-		     (if transform
-			 (funcall transform prop beg)
-		       (reorg--get-view-prop prop beg))
-		     val)
-	       if (and first-only
-		       (or
-			(> beg (point))
-			(< end (point))))
-	       return (cons beg end)
-	       else if first-only
-	       do (+ 1 1)
-	       else
-	       collect (cons beg end)))))
+    (cl-loop
+     with test = (if val
+		     (or test #'equal)
+		   (lambda (&rest args) t))
+     with from = (or from (point-min))
+     with to = (or to (point-max))
+     for (beg . end) being the intervals
+     property 'reorg-data
+     from from
+     to to
+     when (funcall
+	   test
+	   (if transform
+	       (funcall transform prop beg)
+	     (reorg--get-view-prop prop beg))
+	   val)
+     if (and first-only
+	     (or
+	      (> beg (point))
+	      (< end (point))))
+     return (cons beg end)
+     else if first-only
+     do (+ 1 1)
+     else
+     collect (cons beg end))))
 
-(defun reorg--get-next-prop (prop &optional val test transform)
+(defun reorg--get-next-prop (prop &optional val test transform limit)
   "Find the next text prop PROP that matches VAL.
 Returns (beg . end) points of the matching property."
-  (reorg--find-prop prop val (point) nil test transform t))
+  (reorg--find-prop prop val (point) limit test transform t))
 
-(defun reorg--get-previous-prop (prop &optional val test transform)
+(defun reorg--get-previous-prop (prop &optional val test transform limit)
   "Find the previous text prop PROP that matches VAL.
 Returns (beg . end) points of the matching property."
-  (when-let ((previous (reorg--find-prop prop val nil (point) test transform)))
+  (when-let ((previous (reorg--find-prop prop val limit (point) test transform)))
     (cl-loop for (beg . end) in (reverse previous)
 	     unless (and (>= (point) beg)
 			 (<= (point) end))
@@ -80,16 +83,16 @@ Returns (beg . end) points of the matching property."
   (goto-char point)
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--goto-next-prop (prop &optional val test end transform)
+(defun reorg--goto-next-prop (prop &optional val test end transform limit)
   "Go to next PROP that matches VAL."
-  (when-let ((target (reorg--get-next-prop prop val test transform)))
+  (when-let ((target (reorg--get-next-prop prop val test transform limit)))
     (reorg--goto-char (if end
 			  (cdr target)
 			(car target)))))
 
-(defun reorg--goto-previous-prop (prop &optional val test end transform)
+(defun reorg--goto-previous-prop (prop &optional val test end transform limit)
   "Go to next PROP that matches VAL."
-  (when-let ((target (reorg--get-previous-prop prop val test transform)))
+  (when-let ((target (reorg--get-previous-prop prop val test transform limit)))
     (reorg--goto-char (if end (cdr target)
 			(car target)))))
 
@@ -103,15 +106,29 @@ Returns (beg . end) points of the matching property."
 
 (defun reorg--goto-next-sibling ()
   "goto next sibling in same subtree"
-  (reorg--goto-next-prop nil
-			 (list (reorg--get-view-prop 'reorg-level)
-			       (reorg--get-view-prop 'group-id))
+  (interactive)
+  (reorg--goto-next-prop 'reorg-level
+			 (reorg--get-view-prop 'reorg-level)
 			 #'equal
 			 nil
-			 (lambda (_prop point)
-			   (list 
-			    (reorg--get-view-prop 'reorg-level point)
-			    (reorg--get-view-prop 'group-id point)))))
+			 nil
+			 (car (reorg--get-next-prop
+			       'reorg-level
+			       (1-
+				(reorg--get-view-prop 'reorg-level))))))
+
+(defun reorg--goto-previous-sibling ()
+  "goto next sibling in same subtree"
+  (interactive)
+  (reorg--goto-previous-prop 'reorg-level
+			     (reorg--get-view-prop 'reorg-level)
+			     #'equal
+			     nil
+			     nil
+			     (car (reorg--get-previous-prop
+				   'reorg-level
+				   (1-
+				    (reorg--get-view-prop 'reorg-level))))))
 
 (defun reorg--goto-next-clone ()
   "goto next clone"
@@ -125,4 +142,14 @@ Returns (beg . end) points of the matching property."
   (reorg--goto-previous-prop 'id
 			     (reorg--get-view-prop 'id)))
 
+(defun reorg--goto-next-parent ()
+  "Goto the next parent."
+  (interactive)
+  (reorg--goto-next-prop 'reorg-level
+			 (1- (reorg--get-view-prop 'reorg-level))))
 
+(defun reorg--goto-parent ()
+  "Goto the next parent."
+  (interactive)
+  (reorg--goto-previous-prop 'reorg-level
+			     (1- (reorg--get-view-prop 'reorg-level))))

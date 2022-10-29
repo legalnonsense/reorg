@@ -349,19 +349,19 @@ the point and return nil."
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--goto-next-parent ()
-  "Goto the next parent."
-  (interactive)
-  (when (re-search-forward
-	 (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
-    (beginning-of-line)
-    (run-hooks 'reorg--navigation-hook)))
+;; (defun reorg--goto-next-parent ()
+;;   "Goto the next parent."
+;;   (interactive)
+;;   (when (re-search-forward
+;; 	 (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
+;;     (beginning-of-line)
+;;     (run-hooks 'reorg--navigation-hook)))
 
-(defun reorg--goto-parent ()
-  "Goto the next parent."
-  (interactive)
-  (org-up-heading-safe)
-  (run-hooks 'reorg--navigation-hook))
+;; (defun reorg--goto-parent ()
+;;   "Goto the next parent."
+;;   (interactive)
+;;   (org-up-heading-safe)
+;;   (run-hooks 'reorg--navigation-hook))
 
 ;;;; updating the tree
 
@@ -424,6 +424,8 @@ the point and return nil."
     (define-key map (kbd "RET") #'reorg-view--tree-to-source--goto-heading)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "c") #'reorg--goto-next-clone)
+    (define-key map (kbd "f") #'reorg--goto-next-sibling)
+    (define-key map (kbd "b") #'reorg--goto-previous-sibling)
     (define-key map (kbd "C") #'reorg--goto-previous-clone)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
     (define-key map (kbd "q") #'reorg--close-tree-buffer)
@@ -435,15 +437,15 @@ the point and return nil."
     map)
   "keymap")
 
-(defun reorg--close-tree-buffer ()
-  "Close the tree buffer."
-  (interactive)
-  (let* ((window (select-window
-		  (car 
-		   (window-at-side-list nil reorg-buffer-side))))
-	 (buffer (window-buffer window)))
-    (delete-window window)
-    (kill-buffer buffer)))
+  (defun reorg--close-tree-buffer ()
+    "Close the tree buffer."
+    (interactive)
+    (let* ((window (select-window
+		    (car 
+		     (window-at-side-list nil reorg-buffer-side))))
+	   (buffer (window-buffer window)))
+      (delete-window window)
+      (kill-buffer buffer)))
 
 ;; (defmacro reorg--with-source-buffer (&rest body)
 ;;   "Execute BODY in the source buffer and
@@ -464,6 +466,7 @@ the point and return nil."
   (setq cursor-type nil)
   ;;(setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
+  ;;  (add-hook 'reorg--navigation-hook #'reorg--unfold-at-point nil t)
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
 ;;; reorg-edit-mode
@@ -540,25 +543,25 @@ the point and return nil."
 ;;   "The value of header-line-format when `reorg-edits-mode' is 
 ;; invoked.")
 
-(defvar reorg-edits--current-field-overlay
-  (let ((overlay (make-overlay 1 2)))
-    (overlay-put overlay 'face '( :box (:line-width -1)
-				  :foreground "cornsilk"))    
-    (overlay-put overlay 'priority 1000)
-    overlay)
-  "Overlay for field at point.")
+  (defvar reorg-edits--current-field-overlay
+    (let ((overlay (make-overlay 1 2)))
+      (overlay-put overlay 'face '( :box (:line-width -1)
+				    :foreground "cornsilk"))    
+      (overlay-put overlay 'priority 1000)
+      overlay)
+    "Overlay for field at point.")
 
-;; (defvar reorg-edits-field-mode-map
-;;   (let ((map (make-sparse-keymap)))
-;;     (define-key map (kbd reorg-edits-commit-edit-shortcut)
-;;       #'reorg-edits--commit-edit)
-;;     (define-key map (kbd reorg-edits-abort-edit-shortcut)
-;;       #'reorg-edits--discard-edit)
-;;     (define-key map (kbd "TAB") #'reorg-edits-move-to-next-field)
-;;     (define-key map (kbd "BACKTAB") #'reorg-edits-move-to-previous-field)
-;;     (define-key map [remap kill-line] #'reorg--kill-field)
-;;     map)
-;;   "keymap.")
+  ;; (defvar reorg-edits-field-mode-map
+  ;;   (let ((map (make-sparse-keymap)))
+  ;;     (define-key map (kbd reorg-edits-commit-edit-shortcut)
+  ;;       #'reorg-edits--commit-edit)
+  ;;     (define-key map (kbd reorg-edits-abort-edit-shortcut)
+  ;;       #'reorg-edits--discard-edit)
+  ;;     (define-key map (kbd "TAB") #'reorg-edits-move-to-next-field)
+  ;;     (define-key map (kbd "BACKTAB") #'reorg-edits-move-to-previous-field)
+  ;;     (define-key map [remap kill-line] #'reorg--kill-field)
+  ;;     map)
+  ;;   "keymap.")
 
 ;;;; macros
 
@@ -566,20 +569,20 @@ the point and return nil."
 
 ;;;; field navigation 
 
-(defun reorg-edits--post-field-navigation-hook ()
-  "Tell the user what field they are on."
-  (reorg-edits--update-box-overlay)
-  (setf (point) (car 
-		 (reorg-edits--get-field-bounds))))
+  ;; (defun reorg-edits--post-field-navigation-hook ()
+  ;;   "Tell the user what field they are on."
+  ;;   (reorg-edits--update-box-overlay)
+  ;;   (setf (point) (car 
+  ;; 		 (reorg-edits--get-field-bounds))))
 
-(defun reorg--unfold-at-point (&optional point)
-  "Unfold so the heading at point is visible."
-  (save-excursion 
-    (reorg--goto-parent)
-    (outline-show-subtree)
-    (goto-char point)
-    (outline-show-subtree)
-    (goto-char point)))
+  (defun reorg--unfold-at-point (&optional point)
+    "Unfold so the heading at point is visible."
+    (save-excursion 
+      (reorg--goto-parent)
+      (outline-show-subtree)
+      (goto-char point)
+      (outline-show-subtree)
+      (goto-char point)))
 
 (let ((point nil))
   (defun reorg-edits--update-box-overlay ()
