@@ -6,6 +6,7 @@
 (require 'seq)
 (require 'reorg-dynamic-bullets)
 (require 'org-visual-indent)
+(require 'dash)
 
 ;;; reorg requires 
 (require 'reorg-sort)
