@@ -6,7 +6,7 @@
   "Get PROPERTY from the current heading.  If PROPERTY
 is omitted or nil, get the 'reorg-data' prop.  If it is
 supplied, get that property from 'reorg-data'."
-  (let ((props (get-text-property (or point (point)) reorg--data-property-name)))
+  (let ((props (get-text-property (or point (point)) 'reorg-data)))
     (if property
 	(alist-get property props)
       props)))
@@ -157,7 +157,5 @@ Returns (beg . end) points of the matching property."
   "Get the outline level of the heading at point."
   (reorg--get-view-prop 'reorg-level))
 
-;; (defun reorg--goto-next-relative-level (delta)
-;;   (reorg--goto-next-prop 'reorg-level
-;; 			 (+ delta (reorg--get-view-prop 'reorg-level))
-			 
+
+
