@@ -228,6 +228,10 @@ function created by the type creation macro."
 				      collect
 				      (progn (setf (alist-get 'reorg-stars each) (1+ level))
 					     (push (cons 'reorg-level (1+ level)) each)
+					     (push (cons 'group-id (md5 (with-temp-buffer
+									  (insert (pp grouper))
+									  (buffer-string))))
+						   each)
 					     (reorg--create-headline-string each format-string (1+ level)))))))))))
       (doloop copy template)
       (cadr copy))))
