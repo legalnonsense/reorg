@@ -75,14 +75,17 @@ Returns (beg . end) points of the matching property."
   (goto-char point)
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--goto-next-prop (prop &optional val test)
+(defun reorg--goto-next-prop (prop &optional val test end)
   "Go to next PROP that matches VAL."
   (when-let ((target (reorg--get-next-prop prop val test)))
-    (reorg--goto-char (car target))))
+    (reorg--goto-char (if end
+			  (cdr target)
+			(car target)))))
 
-(defun reorg--goto-previous-prop (prop &optional val test)
+(defun reorg--goto-previous-prop (prop &optional val test end)
   "Go to next PROP that matches VAL."
   (when-let ((target (reorg--get-previous-prop prop val test)))
-    (reorg--goto-char (car target))))
+    (reorg--goto-char (if end (cdr target)
+			(car target)))))
 
 
