@@ -83,45 +83,45 @@ switch to that buffer in the window."
   "Get the outline level of the heading at point."
   (reorg--get-view-prop 'reorg-level))
 
-(defun reorg--get-field-at-point (&optional point)
-  "Get the reorg-field-type at point."
-  (get-text-property (or point (point)) reorg--field-property-name))
+;; (defun reorg--get-field-at-point (&optional point)
+;;   "Get the reorg-field-type at point."
+;;   (get-text-property (or point (point)) reorg--field-property-name))
 
-(defun reorg--get-field-bounds ()
-  "Get the bounds of the field at point."
-  (when-let ((field (reorg--get-field-at-point)))
-    (cons
-     (save-excursion 
-       (cl-loop while (and (equal (reorg--get-field-at-point)
-				  field)
-			   (not (bobp)))
-		do (forward-char -1)
-		finally return (1+ (point))))
-     (save-excursion 
-       (cl-loop while (and (equal (reorg--get-field-at-point)
-				  field)
-			   (not (eobp)))
+;; (defun reorg--get-field-bounds ()
+;;   "Get the bounds of the field at point."
+;;   (when-let ((field (reorg--get-field-at-point)))
+;;     (cons
+;;      (save-excursion 
+;;        (cl-loop while (and (equal (reorg--get-field-at-point)
+;; 				  field)
+;; 			   (not (bobp)))
+;; 		do (forward-char -1)
+;; 		finally return (1+ (point))))
+;;      (save-excursion 
+;;        (cl-loop while (and (equal (reorg--get-field-at-point)
+;; 				  field)
+;; 			   (not (eobp)))
 
-		do (forward-char 1)
-		finally return (point))))))
+;; 		do (forward-char 1)
+;; 		finally return (point))))))
 ;;; main
 
-(defun reorg-open-sidebar-clone (&optional file)
-  "Open this shit in the sidebar."
-  (interactive)
-  (let ((results (--> (reorg--map-entries file)
-		      (reorg--clone-outline-results it '((stars) (" ") (headline))))))
-    (when (get-buffer reorg-buffer-name)
-      (kill-buffer reorg-buffer-name))
-    (reorg--open-side-window)
-    (reorg--select-tree-window)
-    (let ((inhibit-read-only t))
-      (erase-buffer))
-    (reorg--insert-org-headlines results)
-    (reorg-view-mode)
-    (reorg-dynamic-bullets-mode)
-    (org-visual-indent-mode)    
-    (goto-char (point-min))))
+;; (defun reorg-open-sidebar-clone (&optional file)
+;;   "Open this shit in the sidebar."
+;;   (interactive)
+;;   (let ((results (--> (reorg--map-entries file)
+;; 		      (reorg--clone-outline-results it '((stars) (" ") (headline))))))
+;;     (when (get-buffer reorg-buffer-name)
+;;       (kill-buffer reorg-buffer-name))
+;;     (reorg--open-side-window)
+;;     (reorg--select-tree-window)
+;;     (let ((inhibit-read-only t))
+;;       (erase-buffer))
+;;     (reorg--insert-org-headlines results)
+;;     (reorg-view-mode)
+;;     (reorg-dynamic-bullets-mode)
+;;     (org-visual-indent-mode)    
+;;     (goto-char (point-min))))
 
 (cl-defun reorg-open-sidebar (&key sources template)
   "Open this shit in the sidebar."
@@ -143,108 +143,108 @@ switch to that buffer in the window."
     (setq-local cursor-type nil)
     (goto-char (point-min))))
 
-(defun reorg-tree--get-all-clone-start-points (&optional backward)
-  "Get the point of each clone of the node at point."
-  (let ((func (if backward
-		  #'text-property-search-backward
-		#'text-property-search-forward )))
-    (cl-loop with point = (point)
-	     with id = (reorg--get-view-prop 'id)
-	     with result = nil
-	     do (setq result (funcall func 'reorg-data
-				      id
-				      (lambda (val alist)
-					(string= 
-					 (alist-get 'id alist)
-					 val))
-				      'not-current))
-	     while result 
-	     collect result
-	     finally (goto-char point))))
+;; (defun reorg-tree--get-all-clone-start-points (&optional backward)
+;;   "Get the point of each clone of the node at point."
+;;   (let ((func (if backward
+;; 		  #'text-property-search-backward
+;; 		#'text-property-search-forward )))
+;;     (cl-loop with point = (point)
+;; 	     with id = (reorg--get-view-prop 'id)
+;; 	     with result = nil
+;; 	     do (setq result (funcall func 'reorg-data
+;; 				      id
+;; 				      (lambda (val alist)
+;; 					(string= 
+;; 					 (alist-get 'id alist)
+;; 					 val))
+;; 				      'not-current))
+;; 	     while result 
+;; 	     collect result
+;; 	     finally (goto-char point))))
 
-(defun reorg-tree--jump-to-next-clone (&optional backward)
-  "Get the point of each clone of the node at point."
-  (interactive)
-  (when-let ((func (if backward
-		       #'text-property-search-backward
-		     #'text-property-search-forward))
-	     (id (reorg--get-view-prop 'id))
-	     (result (funcall func
-			      'reorg-data
-			      id
-			      (lambda (val alist)
-				(string=
-				 (alist-get 'id alist)
-				 val))
-			      t)))
-    (goto-char (prop-match-beginning result))))
+;; (defun reorg-tree--jump-to-next-clone (&optional backward)
+;;   "Get the point of each clone of the node at point."
+;;   (interactive)
+;;   (when-let ((func (if backward
+;; 		       #'text-property-search-backward
+;; 		     #'text-property-search-forward))
+;; 	     (id (reorg--get-view-prop 'id))
+;; 	     (result (funcall func
+;; 			      'reorg-data
+;; 			      id
+;; 			      (lambda (val alist)
+;; 				(string=
+;; 				 (alist-get 'id alist)
+;; 				 val))
+;; 			      t)))
+;;     (goto-char (prop-match-beginning result))))
 
-(defun reorg-tree--jump-to-previous-clone () 
-  "Get the point of each clone of the node at point."
-  (interactive)
-  (reorg-tree--jump-to-next-clone t))
+;; (defun reorg-tree--jump-to-previous-clone () 
+;;   "Get the point of each clone of the node at point."
+;;   (interactive)
+;;   (reorg-tree--jump-to-next-clone t))
 
 ;; TODO re-write all navigation functions
 
-(defun reorg-open-sidebar-fundamental (template &optional format-string file)
-  "Open this shit in the sidebar."
-  (interactive)
-  (let ((results (--> (reorg--map-entries file)
-		      (reorg--group-and-sort it template)
-		      (reorg--process-results it format-string))))
-    (when (get-buffer reorg-buffer-name)
-      (kill-buffer reorg-buffer-name))
-    (reorg--open-side-window)
-    (reorg--select-tree-window)
-    (let ((inhibit-read-only t))
-      (erase-buffer))
-    (reorg--insert-org-headlines results)
-    (fundamental-mode)))
+;; (defun reorg-open-sidebar-fundamental (template &optional format-string file)
+;;   "Open this shit in the sidebar."
+;;   (interactive)
+;;   (let ((results (--> (reorg--map-entries file)
+;; 		      (reorg--group-and-sort it template)
+;; 		      (reorg--process-results it format-string))))
+;;     (when (get-buffer reorg-buffer-name)
+;;       (kill-buffer reorg-buffer-name))
+;;     (reorg--open-side-window)
+;;     (reorg--select-tree-window)
+;;     (let ((inhibit-read-only t))
+;;       (erase-buffer))
+;;     (reorg--insert-org-headlines results)
+;;     (fundamental-mode)))
 
 ;;; reorg-views
 ;;;; clone functions
 
-(defun reorg--jump-to-next-clone (&optional previous)
-  "Move to the next clone of the current node."
-  (interactive)
-  (when-let* ((func (if previous
-			#'text-property-search-backward
-		      #'text-property-search-forward))
-	      (id (reorg--get-view-prop 'id))
-	      (match (funcall func reorg--data-property-name
-			      id
-			      (lambda (val alist)
-				(string=
-				 (alist-get 'id alist)
-				 val))
-			      'not-current))
-	      (point (point)))
-    (goto-char (prop-match-beginning match))
-    (save-excursion 
-      (reorg--unfold-at-point point)
-      (reorg-edits--update-box-overlay)
-      point)
-    (run-hooks 'reorg--navigation-hook)))
+;; (defun reorg--jump-to-next-clone (&optional previous)
+;;   "Move to the next clone of the current node."
+;;   (interactive)
+;;   (when-let* ((func (if previous
+;; 			#'text-property-search-backward
+;; 		      #'text-property-search-forward))
+;; 	      (id (reorg--get-view-prop 'id))
+;; 	      (match (funcall func reorg--data-property-name
+;; 			      id
+;; 			      (lambda (val alist)
+;; 				(string=
+;; 				 (alist-get 'id alist)
+;; 				 val))
+;; 			      'not-current))
+;; 	      (point (point)))
+;;     (goto-char (prop-match-beginning match))
+;;     (save-excursion 
+;;       (reorg--unfold-at-point point)
+;;       (reorg-edits--update-box-overlay)
+;;       point)
+;;     (run-hooks 'reorg--navigation-hook)))
 
-(defun reorg--jump-to-previous-clone ()
-  "Jump to previous clone based on matching id."
-  (interactive)
-  (cl-loop with id = (reorg--get-view-prop 'id)
-	   with point = (point)
-	   while (text-property-search-backward
-		  'reorg-data
-		  id
-		  (lambda (a b)
-		    t)
-		  t)
-	   when (progn (backward-char 1)
-		       (string= (reorg--get-view-prop 'id)
-				id))
-	   return (progn (beginning-of-line)
-			 (reorg--unfold-at-point (point))
-			 (reorg-edits--update-box-overlay)
-			 (point))
-	   finally (progn (goto-char point) nil)))
+;; (defun reorg--jump-to-previous-clone ()
+;;   "Jump to previous clone based on matching id."
+;;   (interactive)
+;;   (cl-loop with id = (reorg--get-view-prop 'id)
+;; 	   with point = (point)
+;; 	   while (text-property-search-backward
+;; 		  'reorg-data
+;; 		  id
+;; 		  (lambda (a b)
+;; 		    t)
+;; 		  t)
+;; 	   when (progn (backward-char 1)
+;; 		       (string= (reorg--get-view-prop 'id)
+;; 				id))
+;; 	   return (progn (beginning-of-line)
+;; 			 (reorg--unfold-at-point (point))
+;; 			 (reorg-edits--update-box-overlay)
+;; 			 (point))
+;; 	   finally (progn (goto-char point) nil)))
 
 ;;;; view buffer functions
 
@@ -423,8 +423,8 @@ the point and return nil."
     (suppress-keymap map)
     (define-key map (kbd "RET") #'reorg-view--tree-to-source--goto-heading)
     (define-key map (kbd "u") #'reorg--goto-parent)
-    (define-key map (kbd "c") #'reorg--jump-to-next-clone)
-    (define-key map (kbd "C") #'reorg--jump-to-previous-clone)
+    (define-key map (kbd "c") #'reorg--goto-next-clone)
+    (define-key map (kbd "C") #'reorg--goto-previous-clone)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
     (define-key map (kbd "q") #'reorg--close-tree-buffer)
     (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
