@@ -29,7 +29,7 @@ get nested properties."
       (let ((inhibit-field-text-motion t))
 	(get-text-property (or point (point)) reorg--data-property-name)))))
 
-(defun reorg--find-prop (prop &optional val from to test)
+(defun reorg--find-prop (prop &optional val from to test transform first-only)
   "TEST is a function that accepts two arguments: VAL and
 the text property at the beginning of the region.  
 PROP is a property that is contained within the reorg-data
@@ -39,29 +39,37 @@ text property data.  VAL is a target value."
       (cl-loop with test = (if val
 			       (or test #'equal )
 			     #'truth)
+	       with from = (or from (point-min))
+	       with to = (or to (point-max))
 	       for (beg . end) being the intervals
 	       property 'reorg-data
-	       from (or from (point-min))
-	       to (or to (point-max))
+	       from from
+	       to to
 	       when (funcall
 		     test
-		     (reorg--get-view-prop prop beg)
+		     (if transform
+			 (funcall transform prop beg)
+		       (reorg--get-view-prop prop beg))
 		     val)
+	       if (and first-only
+		       (or
+			(> beg (point))
+			(< end (point))))
+	       return (cons beg end)
+	       else if first-only
+	       do (+ 1 1)
+	       else
 	       collect (cons beg end)))))
 
-(defun reorg--get-next-prop (prop &optional val test)
+(defun reorg--get-next-prop (prop &optional val test transform)
   "Find the next text prop PROP that matches VAL.
 Returns (beg . end) points of the matching property."
-  (when-let ((next (reorg--find-prop prop val (point) nil test)))
-    (cl-loop for (beg . end) in next
-	     unless (and (>= (point) beg)
-			 (<= (point) end))
-	     return (cons beg end))))
+  (reorg--find-prop prop val (point) nil test transform t))
 
-(defun reorg--get-previous-prop (prop &optional val test)
+(defun reorg--get-previous-prop (prop &optional val test transform)
   "Find the previous text prop PROP that matches VAL.
 Returns (beg . end) points of the matching property."
-  (when-let ((previous (reorg--find-prop prop val nil (point) test)))
+  (when-let ((previous (reorg--find-prop prop val nil (point) test transform)))
     (cl-loop for (beg . end) in (reverse previous)
 	     unless (and (>= (point) beg)
 			 (<= (point) end))
@@ -72,22 +80,49 @@ Returns (beg . end) points of the matching property."
   (goto-char point)
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--goto-next-prop (prop &optional val test end)
+(defun reorg--goto-next-prop (prop &optional val test end transform)
   "Go to next PROP that matches VAL."
-  (when-let ((target (reorg--get-next-prop prop val test)))
+  (when-let ((target (reorg--get-next-prop prop val test transform)))
     (reorg--goto-char (if end
 			  (cdr target)
 			(car target)))))
 
-(defun reorg--goto-previous-prop (prop &optional val test end)
+(defun reorg--goto-previous-prop (prop &optional val test end transform)
   "Go to next PROP that matches VAL."
-  (when-let ((target (reorg--get-previous-prop prop val test)))
+  (when-let ((target (reorg--get-previous-prop prop val test transform)))
     (reorg--goto-char (if end (cdr target)
 			(car target)))))
 
 
 (defun reorg--get-all-clone-start-points ()
   "get all clone start points for the clone at point"
-  (let ((id (reorg--get-view-prop 'id)))
-    (mapcar #'car 
-	    (reorg--find-prop 'id id))))
+  (cl-loop for (b . e) in (reorg--find-prop
+			   'id
+			   (reorg--get-view-prop 'id))
+	   collect b))
+
+(defun reorg--goto-next-sibling ()
+  "goto next sibling in same subtree"
+  (reorg--goto-next-prop nil
+			 (list (reorg--get-view-prop 'reorg-level)
+			       (reorg--get-view-prop 'group-id))
+			 #'equal
+			 nil
+			 (lambda (_prop point)
+			   (list 
+			    (reorg--get-view-prop 'reorg-level point)
+			    (reorg--get-view-prop 'group-id point)))))
+
+(defun reorg--goto-next-clone ()
+  "goto next clone"
+  (interactive)
+  (reorg--goto-next-prop 'id
+			 (reorg--get-view-prop 'id)))
+
+(defun reorg--goto-previous-clone ()
+  "goto next clone"
+  (interactive)
+  (reorg--goto-previous-prop 'id
+			     (reorg--get-view-prop 'id)))
+
+
