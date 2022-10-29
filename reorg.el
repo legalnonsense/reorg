@@ -77,32 +77,7 @@ switch to that buffer in the window."
 
 ;;; view buffer
 
-(defun reorg--get-view-props (&optional point &rest props)
-  "Get text property PROPS at point. If there are multiple PROPS,
-get nested properties."
-  (cl-labels ((get-props (props &optional payload)
-			 (if props 
-			     (let ((props (if (listp props) props (list props))))
-			       (if (not payload)
-				   (->> (get-text-property (or point (point)) (car props))
-					(get-props (cdr props)))
-				 (->> (alist-get (car props) payload)
-				      (get-props (cdr props)))))
-			   payload)))
-    (if props 
-	(get-props props)
-      (let ((inhibit-field-text-motion t))
-	(get-text-property (or point (point)) reorg--data-property-name)))))
 
-(defun reorg--get-view-prop (&optional property)
-  "Get PROPERTY from the current heading."
-  (save-excursion 
-    (beginning-of-line)
-    (let ((props (get-text-property (point-at-bol) reorg--data-property-name)))
-      (if property
-	  (alist-get property props)
-	;;(plist-get props property)
-	props))))
 
 (defun reorg-outline-level ()
   "Get the outline level of the heading at point."
