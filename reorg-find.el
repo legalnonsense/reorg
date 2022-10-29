@@ -9,7 +9,6 @@ supplied, get that property from 'reorg-data'."
   (let ((props (get-text-property (or point (point)) reorg--data-property-name)))
     (if property
 	(alist-get property props)
-      ;;(plist-get props property)
       props)))
 
 (defun reorg--get-view-props (&optional point &rest props)
@@ -27,7 +26,7 @@ get nested properties."
     (if props 
 	(get-props props)
       (let ((inhibit-field-text-motion t))
-	(get-text-property (or point (point)) reorg--data-property-name)))))
+	(reorg--get-view-prop nil (or point (point)))))))
 
 (defun reorg--find-prop (prop &optional val from to test transform first-only)
   "TEST is a function that accepts two arguments: VAL and
