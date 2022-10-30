@@ -64,7 +64,7 @@ the first match location; otherwise return all matching locations."
      else if first-only
      do (+ 1 1) ;; isn't there a PASS command? 
      else
-     collect (cons beg end))))))
+     collect (cons beg end))))
 
 (defun reorg--get-next-prop (prop &optional val test transform limit)
   "Find the next text prop PROP that matches VAL.
@@ -86,7 +86,7 @@ Returns (beg . end) points of the matching property."
   (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--goto-next-prop (prop &optional val test end transform limit)
-  "Go to next PROP that matches VAL."
+  "Go to next PROP that matches VAL.  END means goto the end of the region."
   (when-let ((target (reorg--get-next-prop prop val test transform limit)))
     (reorg--goto-char (if end
 			  (cdr target)
@@ -98,7 +98,6 @@ Returns (beg . end) points of the matching property."
     (reorg--goto-char (if end (cdr target)
 			(car target)))))
 
-
 (defun reorg--get-all-clone-start-points ()
   "get all clone start points for the clone at point"
   (cl-loop for (b . e) in (reorg--find-prop
@@ -106,18 +105,24 @@ Returns (beg . end) points of the matching property."
 			   (reorg--get-view-prop 'id))
 	   collect b))
 
+(defun reorg--get-next-sibling ()
+  "goto next sibling in same subtree"
+  (interactive)
+  (when-let ((result
+	      (reorg--get-next-prop 'reorg-level
+				    (reorg--get-view-prop 'reorg-level)
+				    #'equal
+				    nil
+				    (car (reorg--get-next-prop
+					  'reorg-level
+					  (1-
+					   (reorg--get-view-prop 'reorg-level)))))))
+    (car result)))
+
 (defun reorg--goto-next-sibling ()
   "goto next sibling in same subtree"
   (interactive)
-  (reorg--goto-next-prop 'reorg-level
-			 (reorg--get-view-prop 'reorg-level)
-			 #'equal
-			 nil
-			 nil
-			 (car (reorg--get-next-prop
-			       'reorg-level
-			       (1-
-				(reorg--get-view-prop 'reorg-level))))))
+  (reorg--goto-char (reorg--get-next-sibling)))
 
 (defun reorg--goto-previous-sibling ()
   "goto next sibling in same subtree"
@@ -147,13 +152,20 @@ Returns (beg . end) points of the matching property."
 (defun reorg--goto-next-heading ()
   "goto next heading"
   (interactive)
-  (reorg--goto-next-prop nil)
+  (reorg--goto-next-prop nil))
 
 (defun reorg--goto-next-child ()
   "goto next child"
   (interactive)
-  (reorg--goto-next-prop 
-   ))
+  (reorg--goto-next-prop 'reorg-level
+			 (1+ (reorg--get-view-prop 'reorg-level))
+			 nil
+			 nil
+			 nil
+			 (reorg--get-next-sib
+			 
+
+			 ))
 (defun reorg--goto-next-parent ()
   "Goto the next parent."
   (interactive)
@@ -176,3 +188,96 @@ Returns (beg . end) points of the matching property."
   ;; (save-excursion 
   ;;   (forward-line)
   ;;   (not (eq 'branch (get-text-property (point) 'reorg-field-type)))))
+  )
+
+(defun reorg--get-next-prop (property &optional value predicate
+				      limit)
+  "Based on 'text-property-search-forward' but include LIMIT"
+  (cond
+   ((eobp)
+    nil)
+   ((> (point) (or limit (point-max)))
+    nil)
+   (t    
+    (let ((origin (point))
+          (ended nil)
+	  (limit (or limit (point-max)))
+          pos)
+      ;; skip the current property if NOT-CURRENT is non-nil 
+      ;; (when (text-property--match-p value (get-text-property (point) property)
+      ;; 				    predicate)
+      ;; 	(text-property--find-end-forward (point) property value predicate))
+
+      ;; Find the next candidate.
+      (cl-loop with found = nil
+	       while (not ended)
+	       do (setq pos (next-single-property-change (point) property nil limit))
+	       if (or (not pos)		
+		      (>= pos limit))
+	       return
+	       (progn (reorg--goto-char origin)
+		      (run-hooks 'reorg--navigation-hook)
+		      (setq ended t)
+		      nil)
+	       else do
+	       (progn (goto-char pos)
+		      (if (text-property--match-p value (get-text-property (point) property)
+						  predicate)
+			  (progn 
+			    (setq ended t)
+			    (setq found t))
+			(setq pos (next-single-property-change (point) property nil limit))
+			(when (or (not pos)
+				  (>= pos limit))
+			  (goto-char origin)
+			  (setq ended t))))
+	       finally return (if (not found)
+				  nil
+				(run-hooks 'reorg--navigation-hook)
+				(point)))))))
+
+
+(defun reorg--get-previous-prop (property &optional value predicate
+					  limit)
+  "Based on 'text-property-search-backward' but include LIMIT"
+  (cond
+   ((bobp)
+    nil)
+   ((< (point) limit)
+    nil)
+   (t    
+    (let ((origin (point))
+          (ended nil)
+          pos)
+      ;; skip the current property if NOT-CURRENT is non-nil 
+      (when (text-property--match-p value (get-text-property (point) property)
+				    predicate)
+	(text-property--find-end-backward (point) property value predicate))
+
+      ;; Find the next candidate.
+      (cl-loop with found = nil
+	       while (not ended)
+	       do (setq pos (previous-single-property-change (point) property nil limit))
+	       if (or (not pos)		
+		      (< pos limit))
+	       return
+	       (progn (reorg--goto-char origin)
+		      (run-hooks 'reorg--navigation-hook)
+		      (setq ended t)
+		      nil)
+	       else do
+	       (progn (goto-char pos)
+		      (if (text-property--match-p value (get-text-property (point) property)
+						  predicate)
+			  (progn 
+			    (setq ended t)
+			    (setq found t))
+			(setq pos (previous-single-property-change (point) property nil limit))
+			(when (or (not pos)
+				  (<= pos limit))
+			  (goto-char origin)
+			  (setq ended t))))
+	       finally return (if (not found)
+				  nil
+				(run-hooks 'reorg--navigation-hook)
+				(point)))))))
