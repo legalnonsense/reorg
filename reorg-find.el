@@ -243,16 +243,17 @@ Returns (beg . end) points of the matching property."
   (cond
    ((bobp)
     nil)
-   ((< (point) limit)
+   ((< (point) (or limit (point-min)))
     nil)
    (t    
     (let ((origin (point))
           (ended nil)
+	  (limit (or limit (point-min)))
           pos)
       ;; skip the current property if NOT-CURRENT is non-nil 
-      (when (text-property--match-p value (get-text-property (point) property)
-				    predicate)
-	(text-property--find-end-backward (point) property value predicate))
+      ;; (when (text-property--match-p value (get-text-property (point) property)
+      ;; 				    predicate)
+      ;; 	(text-property--find-end-backward (point) property value predicate))
 
       ;; Find the next candidate.
       (cl-loop with found = nil
@@ -274,7 +275,7 @@ Returns (beg . end) points of the matching property."
 			    (setq found t))
 			(setq pos (previous-single-property-change (point) property nil limit))
 			(when (or (not pos)
-				  (<= pos limit))
+				  (< pos limit))
 			  (goto-char origin)
 			  (setq ended t))))
 	       finally return (if (not found)
