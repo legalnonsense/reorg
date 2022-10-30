@@ -49,9 +49,12 @@ the first match location; otherwise return all matching locations."
      to to
      when (funcall
 	   test
-	   (if transform
-	       (funcall transform prop beg)
-	     (reorg--get-view-prop prop beg))
+	   (cond (transform
+		  (funcall transform (reorg--get-view-prop)))
+		 (t
+		  (alist-get prop
+			     (get-text-property beg 'reorg-data))))
+	   ;;		  (reorg--get-view-prop prop beg)))
 	   val)
      if (and first-only
 	     (or
@@ -59,9 +62,9 @@ the first match location; otherwise return all matching locations."
 	      (< end (point))))
      return (cons beg end)
      else if first-only
-     do (+ 1 1)
+     do (+ 1 1) ;; isn't there a PASS command? 
      else
-     collect (cons beg end))))
+     collect (cons beg end))))))
 
 (defun reorg--get-next-prop (prop &optional val test transform limit)
   "Find the next text prop PROP that matches VAL.
@@ -141,6 +144,16 @@ Returns (beg . end) points of the matching property."
   (reorg--goto-previous-prop 'id
 			     (reorg--get-view-prop 'id)))
 
+(defun reorg--goto-next-heading ()
+  "goto next heading"
+  (interactive)
+  (reorg--goto-next-prop nil)
+
+(defun reorg--goto-next-child ()
+  "goto next child"
+  (interactive)
+  (reorg--goto-next-prop 
+   ))
 (defun reorg--goto-next-parent ()
   "Goto the next parent."
   (interactive)
@@ -157,5 +170,9 @@ Returns (beg . end) points of the matching property."
   "Get the outline level of the heading at point."
   (reorg--get-view-prop 'reorg-level))
 
-
-
+(defun reorg--last-branch-p ()
+  "Does the current branch have any children?"
+  (reorg--get-next-prop 'reorg-branch t)
+  ;; (save-excursion 
+  ;;   (forward-line)
+  ;;   (not (eq 'branch (get-text-property (point) 'reorg-field-type)))))
