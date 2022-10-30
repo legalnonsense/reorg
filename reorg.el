@@ -47,7 +47,7 @@
   (let (results)
     (cl-labels ((recurse (data)
 			 (cond ((stringp data)
-				(insert data "\n"))
+				(insert data))
 			       (data (cl-loop for entry in data
 					      do (recurse entry))))))
       (recurse data))))

@@ -250,19 +250,20 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					 num)
 				       ?*)))
     (apply #'propertize 
-	   (if (alist-get 'reorg-branch data)
-	       (propertize 
-		(concat (create-stars level) " " (alist-get 'branch-name data))
-		reorg--field-property-name
-		'branch)
-	     ;; TODO:get rid of this copy-tree
-	     (let ((format-copy (copy-tree format-string)))
-	       (concat
-		(when level (propertize (create-stars level) reorg--field-property-name 'stars))
-		(funcall `(lambda (data)
-			    (let-alist data 
-			      ,format-string))
-			 data))))
+	   (concat (if (alist-get 'reorg-branch data)
+		       (propertize 
+			(concat (create-stars level) " " (alist-get 'branch-name data))
+			reorg--field-property-name
+			'branch)
+		     ;; TODO:get rid of this copy-tree
+		     (let ((format-copy (copy-tree format-string)))
+		       (concat
+			(when level (propertize (create-stars level) reorg--field-property-name 'stars))
+			(funcall `(lambda (data)
+				    (let-alist data 
+				      ,format-string))
+				 data))))
+		   "\n")
 	   'reorg-data
 	   (append data
 		   (list 
