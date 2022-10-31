@@ -221,18 +221,21 @@ function created by the type creation macro."
 			       (cadr (nth x (nth n (cdr data))))
 			       (reorg--multi-sort result-sorters
 						  (cadr (nth x (nth n (cdr data))))))))
-		(cl-loop for x below (length (nth n (cdr data)))
-			 do (setf
-			     (cadr (nth x (nth n (cdr data))))
-			     (cl-loop for each in (cadr (nth x (nth n (cdr data))))
-				      collect
-				      (progn (setf (alist-get 'reorg-stars each) (1+ level))
-					     (push (cons 'reorg-level (1+ level)) each)
-					     (push (cons 'group-id (md5 (with-temp-buffer
-									  (insert (pp grouper))
-									  (buffer-string))))
-						   each)
-					     (reorg--create-headline-string each format-string (1+ level)))))))))))
+		(cl-loop
+		 for x below (length (nth n (cdr data)))
+		 do
+		 (setf
+		  (cadr (nth x (nth n (cdr data))))
+		  (cl-loop
+		   for each in (cadr (nth x (nth n (cdr data))))
+		   collect
+		   (progn (setf (alist-get 'reorg-stars each) (1+ level))
+			  (push (cons 'reorg-level (1+ level)) each)
+			  (push (cons 'group-id (md5 (with-temp-buffer
+						       (insert (pp grouper))
+						       (buffer-string))))
+				each)
+			  (reorg--create-headline-string each format-string (1+ level)))))))))))
       (doloop copy template)
       (cadr copy))))
 
