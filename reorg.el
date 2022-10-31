@@ -104,7 +104,6 @@ switch to that buffer in the window."
 ;;        (cl-loop while (and (equal (reorg--get-field-at-point)
 ;; 				  field)
 ;; 			   (not (eobp)))
-
 ;; 		do (forward-char 1)
 ;; 		finally return (point))))))
 ;;; main
@@ -813,9 +812,9 @@ the point and return nil."
 ;; 	      (not (get-text-property (1+ (point)) reorg--field-property-name)))
 ;; 	 (forward-char -1))))
 
-;; (defun reorg-edits--get-field-at-point (&optional point)
-;;   "Get the `reorg--field-property-name' at point."
-;;   (get-text-property (or point (point)) reorg--field-property-name))
+(defun reorg-edits--get-field-at-point (&optional point)
+  "Get the `reorg--field-property-name' at point."
+  (get-text-property (or point (point)) reorg--field-property-name))
 
 ;; (defun reorg-edits--kill-line ()
 ;;   "Kill up to the end of the end point."
@@ -823,23 +822,23 @@ the point and return nil."
 ;;   (pcase-let ((`(,start . ,end) (reorg-edits--get-field-bounds)))
 ;;     (delete-region start end)))
 
-;; (defun reorg-edits--get-field-bounds ()
-;;   "Get the bounds of the field at point."
-;;   (when-let ((field (reorg-edits--get-field-at-point)))
-;;     (cons
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg-edits--get-field-at-point)
-;; 				  field)
-;; 			   (not (bobp)))
-;; 		do (forward-char -1)
-;; 		finally return (1+ (point))))
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg-edits--get-field-at-point)
-;; 				  field)
-;; 			   (not (eobp)))
+(defun reorg-edits--get-field-bounds ()
+  "Get the bounds of the field at point."
+  (when-let ((field (reorg-edits--get-field-at-point)))
+    (cons
+     (save-excursion 
+       (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				  field)
+			   (not (bobp)))
+		do (forward-char -1)
+		finally return (1+ (point))))
+     (save-excursion 
+       (cl-loop while (and (equal (reorg-edits--get-field-at-point)
+				  field)
+			   (not (eobp)))
 
-;; 		do (forward-char 1)
-;; 		finally return (point))))))
+		do (forward-char 1)
+		finally return (point))))))
 
 (defun reorg-views--insert-before-point (data &optional level format-string)
   "insert a hearing before the heading at point."
