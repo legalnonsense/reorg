@@ -4,14 +4,18 @@
 
 (require 'let-alist)
 (require 'seq)
-(require 'reorg-dynamic-bullets)
 (require 'org-visual-indent)
 (require 'dash)
+(require 's)
 
 ;;; reorg requires 
 (require 'reorg-sort)
 (require 'reorg-utils)
-(require 'reorg-create)
+(require 'reorg-data)
+(require 'reorg-find)
+(require 'reorg-dynamic-bullets)
+
+;;; reorg data types 
 (require 'reorg-org)
 (require 'reorg-files)
 
@@ -1175,7 +1179,7 @@ using `eq', unless PRED is suppied."
   "Execute BODY at each entry that matches ID."
   `(save-excursion  
      (goto-char (point-min))
-     (while (text-property-search-forward reorg--data-property-name
+     (while (text-property-search-forward 'reorg-data
 					  ,id
 					  (lambda (val alist)
 					    (string= 
@@ -1287,7 +1291,7 @@ Return nil if there is no such branch."
 (defun reorg-tree--is-cloned-p ()
   (when-let ((id (reorg--get-view-prop 'id)))
     (setf (point) (point-min))
-    (text-property-search-forward reorg--data-property-name
+    (text-property-search-forward 'reorg-data
 				  id
 				  (lambda (val alist)
 				    (string= 
