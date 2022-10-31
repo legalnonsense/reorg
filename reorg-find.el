@@ -75,7 +75,7 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 			  (progn 
 			    (setq ended t)
 			    (setq found t))
-			(setq pos (next-single-property-change (point) 'reorg-data nil limit))
+			;; (setq pos (next-single-property-change (point) 'reorg-data nil limit))
 			(when (or (not pos)
 				  (>= pos limit))
 			  (goto-char origin)
@@ -120,7 +120,6 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 			  (progn 
 			    (setq ended t)
 			    (setq found t))
-
 			(when (or (not pos)
 				  (bobp)
 				  (<= pos limit))
@@ -264,7 +263,7 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 			     (lambda (a b) (> a b)))
     (run-hooks 'reorg--navigation-hook)))
 
-(defun reorg--goto-previous-parent ()
+(defun reorg--goto-parent ()
   "Goto the next parent."
   (interactive)
   (when 
