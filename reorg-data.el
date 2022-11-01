@@ -208,30 +208,21 @@ FUNC is a function that accepts one argument, which is the
 current element of TREE."
   (let ((tree (copy-tree form)))
     (cl-labels ((doloop (tree func)
-			(setf (car tree) (funcall func (car tree) data))
-			(cl-loop for n below (length (cdr tree))
-				 if (listp (nth n (cdr tree))) do
-				 (doloop (nth n (cdr tree)) func)
-				 else do
-				 (setf (nth n (cdr tree))
-				       (funcall func (nth n (cdr tree)) data)))))
+			(if (listp (car tree))
+			    (doloop (car tree) func)
+			  (setf (car tree) (funcall func (car tree) data))
+			  (cl-loop for n below (length (cdr tree))
+				   if (listp (nth n (cdr tree))) do
+				   (doloop (nth n (cdr tree)) func)
+				   else do
+				   (setf (nth n (cdr tree))
+					 (funcall func (nth n (cdr tree)) data))))))
       (if (listp tree)
 	  (progn 
 	    (doloop tree func)
 	    tree)
 	(funcall func tree)))))
 
-;; (reorg--depth-first-apply
-;;  '(.todo " " .headline)
-;;  #'reorg--turn-dot-to-display-string
-;;  '((todo . "xxx")
-;;    (headline . "yyy")))
-
-;; (reorg--depth-first-apply
-;;  '((s-pad-right 10 " " .todo) " " .headline)
-;;  #'reorg--turn-dot-to-display-string
-;;  '((todo . "xxx")
-;;    (headline . "yyy")))
 
 ;; TODO ensure a call to display function instead of relying on the data alist 
 (defun reorg--create-headline-string (data format-string &optional level)
