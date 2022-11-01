@@ -231,38 +231,40 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					   (funcall num data)
 					 num)
 				       ?*)))
-    (apply #'propertize 
-	   (concat
-	    (if (alist-get 'reorg-branch data)
-		(propertize 
-		 (concat (create-stars level) " " (alist-get 'branch-name data))
-		 reorg--field-property-name
-		 'branch)
-	      ;; TODO:get rid of this copy-tree
-	      (let ((format-copy (copy-tree format-string)))
-		(concat
-		 (when level (propertize (create-stars level) reorg--field-property-name 'stars))
-		 (let ((xxx (reorg--depth-first-apply format-string
-						      #'reorg--turn-dot-to-display-string
-						      data)))
-		   (funcall `(lambda (data) ,xxx) data)))))
-	    
-	    ;; (apply (car xxx)
-	    ;; 	 (cdr xxx)))
-	    
-	    ;; `(lambda (data)
-	    ;;    (let-alist data 
-	    ;;      ,format-string))
-	    ;; data))))
-	    "\n")
-	   'reorg-data
-	   (append data
-		   (list 
-		    (cons 'reorg-class (alist-get 'class data))
-		    (cons 'reorg-level level)))
-	   (alist-get (alist-get 'class data)
-		      reorg--extra-prop-list)
-	   )))
+    (apply
+     #'propertize 
+     (concat
+      (if (alist-get 'reorg-branch data)
+	  (propertize 
+	   (concat (create-stars level) " " (alist-get 'branch-name data))
+	   reorg--field-property-name
+	   'branch)
+	;; TODO:get rid of this copy-tree
+	(let ((format-copy (copy-tree format-string)))
+	  (concat
+	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
+	   (let ((xxx (reorg--depth-first-apply format-string
+						#'reorg--turn-dot-to-display-string
+						data)))
+	     (funcall `(lambda (data)
+			 (concat ,@xxx))
+		      data)))))
+      ;; (apply (car xxx)
+      ;; 	 (cdr xxx)))
+      
+      ;; `(lambda (data)
+      ;;    (let-alist data 
+      ;;      ,format-string))
+      ;; data))))
+      "\n")
+     'reorg-data
+     (append data
+	     (list 			;
+	      (cons 'reorg-class (alist-get 'class data))
+	      (cons 'reorg-level level)))
+     (alist-get (alist-get 'class data)
+		reorg--extra-prop-list)
+     )))
 
 (defun reorg--getter (sources)
   "Get entries from SOURCES, which is an alist
