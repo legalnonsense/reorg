@@ -66,12 +66,12 @@ function created by the type creation macro."
   "turn .symbol to a string using a display function."
   (if (and (symbolp elem)
 	   (string-match "\\`\\." (symbol-name elem)))
-      (let* ((sym (substring (symbol-name elem) 1))
+      (let* ((sym (intern (substring (symbol-name elem) 1)))
 	     (fu (reorg--get-display-func-name
 		  'org
 		  (substring (symbol-name elem) 1))))
 	(cond ((eq sym 'stars)
-	       (make-string (alist-get 'reorg-level data)))
+	       (make-string (alist-get 'reorg-level data) ?*))
 	      ((fboundp fu) (funcall fu data))
 	      (t (let-alist data elem))))
     elem))
