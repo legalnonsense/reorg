@@ -56,7 +56,7 @@
    :sources '((org . "~/Desktop/tmp.org"))
    :template
    '( :group "MEETING VIEW"
-      :format-string (" " .headline)
+      :format-string (.stars " " .headline)
       :children
       (
        ( :group "CASE LIST"
@@ -73,7 +73,7 @@
 				 (not (string= .todo "OPP_DUE"))
 				 (not (string= .todo "DEADLINE")))
 			"TASKS" )
-	       :format-string (.stars " " (s-pad-right 10 " " .todo) .headline)
+	       :format-string ((s-pad-right 10 " " .todo) " " .headline)
 	       :sort-results ((.todo . string<)
 			      ((downcase .headline) . string<)))
 	     ( :group (when (and

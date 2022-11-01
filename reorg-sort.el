@@ -73,7 +73,10 @@ function created by the type creation macro."
 	(cond ((eq sym 'stars)
 	       (make-string (alist-get 'reorg-level data) ?*))
 	      ((fboundp fu) (funcall fu data))
-	      (t (let-alist data elem))))
+	      (t
+	       (funcall `(lambda ()
+			   (let-alist ',data
+			     ,elem))))))
     elem))
 
 (cl-defun reorg--group-and-sort (list template &optional (n 0 np))

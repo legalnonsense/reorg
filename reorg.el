@@ -320,7 +320,7 @@ the point and return nil."
 (defun reorg--move-to-next-entry-follow ()
   "move to next entry"
   (interactive)
-  (outline-next-visible-heading 1)
+  (reorg--goto-next-heading)
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
@@ -328,7 +328,7 @@ the point and return nil."
 (defun reorg--move-to-previous-entry-follow ()
   "move to previous entry"
   (interactive)
-  (outline-previous-visible-heading 1)
+  (reorg--goto-previous-heading)
   (reorg-view--tree-to-source--goto-heading)
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
@@ -336,7 +336,7 @@ the point and return nil."
 (defun reorg--move-to-next-entry-no-follow ()
   "next entry"
   (interactive)
-  (outline-next-visible-heading 1)
+  (reorg--goto-next-heading)
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
   (reorg--select-tree-window)
@@ -345,7 +345,7 @@ the point and return nil."
 (defun reorg--move-to-previous-entry-no-follow ()
   "previous entry"
   (interactive)
-  (outline-previous-visible-heading 1)
+  (reorg--goto-previous-heading)
   (reorg-view--tree-to-source--goto-heading)
   (org-back-to-heading)
   (reorg--select-tree-window)
