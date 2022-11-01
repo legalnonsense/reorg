@@ -73,7 +73,7 @@
 				 (not (string= .todo "OPP_DUE"))
 				 (not (string= .todo "DEADLINE")))
 			"TASKS" )
-	       :format-string (" " (s-pad-right 10 " " .todo) .headline)
+	       :format-string (.stars " " (s-pad-right 10 " " .todo) .headline)
 	       :sort-results ((.todo . string<)
 			      ((downcase .headline) . string<)))
 	     ( :group (when (and
@@ -84,7 +84,8 @@
 				 .deadline
 				 .scheduled))
 			"CALENDAR")
-	       :format-string (" "
+	       :format-string (.stars
+			       " "
 			       .ts-type
 			       " "
 			       (s-pad-right 50
@@ -94,7 +95,7 @@
 	       :sort-results ((.ts . string<)))
 	     ( :group (when (string= .headline "_NOTES_")
 			"Progress Notes")
-	       :format-string (" Notes"))))))
+	       :format-string (.stars " Notes"))))))
        ( :group "Date tree"
 	 :children
 	 (( :group (when-let ((time (or .timestamp
