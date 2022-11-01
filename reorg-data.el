@@ -200,7 +200,7 @@ parser for that type."
 	     collect (cons type (funcall func data)))))
 
 ;;; creating headline strings from parsed data 
-
+;;; TODO START HERE
 (defun reorg--depth-first-apply (form func &optional data)
   "Run FUNC at each node of TREE using a depth-first traversal
 and destructively modify TREE. 
@@ -220,6 +220,18 @@ current element of TREE."
 	    (doloop tree func)
 	    tree)
 	(funcall func tree)))))
+
+;; (reorg--depth-first-apply
+;;  '(.todo " " .headline)
+;;  #'reorg--turn-dot-to-display-string
+;;  '((todo . "xxx")
+;;    (headline . "yyy")))
+
+;; (reorg--depth-first-apply
+;;  '((s-pad-right 10 " " .todo) " " .headline)
+;;  #'reorg--turn-dot-to-display-string
+;;  '((todo . "xxx")
+;;    (headline . "yyy")))
 
 ;; TODO ensure a call to display function instead of relying on the data alist 
 (defun reorg--create-headline-string (data format-string &optional level)
