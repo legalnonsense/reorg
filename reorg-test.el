@@ -70,7 +70,7 @@
 					    "\t"
 					    .todo
 					    "\t"
-					    .headline))))))))
+					    .headline)))))))
 
 (defun xxx-reorg-test-16 ()
   (interactive)
