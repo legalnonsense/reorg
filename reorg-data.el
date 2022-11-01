@@ -231,6 +231,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					   (funcall num data)
 					 num)
 				       ?*)))
+    (push (cons 'reorg-level level) data)
     (apply
      #'propertize 
      (concat
@@ -242,7 +243,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	;; TODO:get rid of this copy-tree
 	(let ((format-copy (copy-tree format-string)))
 	  (concat
-;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
+	   ;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
 	   (let ((xxx (reorg--depth-first-apply format-string
 						#'reorg--turn-dot-to-display-string
 						data)))
@@ -262,6 +263,8 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	     (list 			;
 	      (cons 'reorg-class (alist-get 'class data))
 	      (cons 'reorg-level level)))
+     reorg--field-property-name
+     'leaf
      (alist-get (alist-get 'class data)
 		reorg--extra-prop-list)
      )))
