@@ -411,7 +411,7 @@ RANGE is non-nil, only look for timestamp ranges."
 
 (reorg-create-data-type :name links
 			:class org
-			:parse (reorg-org--link-parser))
+			:parse (reorg-org--all-link-parser))
 
 (reorg-create-data-type :name link
 			:class org
@@ -528,8 +528,7 @@ RANGE is non-nil, only look for timestamp ranges."
 			:class org
 			:parse (point))
 
-
-(reorg-create-data-type :name level
+(reorg-create-data-type :name org-level
 			:class org
 			:parse (org-current-level)
 			:display (number-to-string (alist-get 'level alist)))
@@ -540,6 +539,7 @@ RANGE is non-nil, only look for timestamp ranges."
 					       (org-no-properties
 						(org-get-heading t t t t))))
 (reorg-create-data-type
+ ;; inactive timestamp between the current heading and the root
  :name root-ts-inactive
  :class org
  :parse (save-excursion (cl-loop while (org-up-heading-safe)
