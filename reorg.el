@@ -469,6 +469,8 @@ the point and return nil."
   ;;(setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
   ;;  (add-hook 'reorg--navigation-hook #'reorg--unfold-at-point nil t)
+  (remove-hook 'reorg--navigation-hook #'outline-show-entry)
+  (add-hook 'reorg--navigation-hook #'org-show-context)
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
 ;;; reorg-edit-mode
