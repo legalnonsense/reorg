@@ -222,6 +222,15 @@ RANGE is non-nil, only look for timestamp ranges."
 	    (_ " ")))
 
 (reorg-create-data-type
+ :name timestamp-all
+ :class org
+ :parse (or
+	 (org-entry-get (point) "DEADLINE")
+	 (reorg--timestamp-parser)
+	 (org-no-properties (reorg--timestamp-parser nil t))
+	 (org-entry-get (point) "SCHEDULED")))
+
+(reorg-create-data-type
  :name priority
  :class org
  :parse (org-entry-get (point) "PRIORITY")
@@ -525,11 +534,11 @@ RANGE is non-nil, only look for timestamp ranges."
 			:parse (org-current-level)
 			:display (number-to-string (alist-get 'level alist)))
 
-;; (reorg-create-data-type :name root
-;; 			:class org
-;; 			:parse (save-excursion (while (org-up-heading-safe))
-;; 					       (org-no-properties
-;; 						(org-get-heading t t t t))))
+(reorg-create-data-type :name root
+			:class org
+			:parse (save-excursion (while (org-up-heading-safe))
+					       (org-no-properties
+						(org-get-heading t t t t))))
 (reorg-create-data-type
  :name root-ts-inactive
  :class org
@@ -545,6 +554,11 @@ RANGE is non-nil, only look for timestamp ranges."
 		   while (setq start (and (string-match "@\\([[:word:]]+\\)" headline start)
 					  (match-end 1)))
 		   collect (match-string-no-properties 1 headline))))
+
+(reorg-create-data-type
+ :name childrenp
+ :class org
+ :parse (org-sidebar--children-p))
 
 (provide 'reorg-org)
 
