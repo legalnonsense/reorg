@@ -198,83 +198,130 @@ DOES NOT RUN 'reorg--navigation-hooks'."
   (run-hooks 'reorg--navigation-hook))
 
 ;;; Navigation commands 
+
+(defmacro reorg--create-navigation-commands (alist)
+  `(progn 
+     ,@(cl-loop for (name . form) in alist
+		collect `(defun ,(reorg--create-symbol 'reorg--goto- name) nil
+			   ,(concat "Move point to "
+				    (s-replace "-" " " (symbol-name name))
+				    " and run navigation hook.")
+			   (interactive)
+			   (when-let ((point ,form))
+			     (reorg--goto-char point))))))
+
+(reorg--create-navigation-commands
+ ((next-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t)))
+  (previous-heading . (reorg--get-previous-prop nil nil nil (lambda (a b) t)))
+  (next-sibling . (reorg--get-next-prop
+		   'reorg-level
+		   (reorg--get-view-prop 'reorg-level)
+		   (save-excursion
+		     (reorg--get-next-prop 'reorg-level
+					   (reorg--get-view-prop 'reorg-level)
+					   nil
+					   (lambda (a b)
+					     (< b a))))))
+  (previous-sibling . (reorg--get-previous-prop
+		       'reorg-level
+		       (reorg--get-view-prop 'reorg-level)
+		       (save-excursion
+			 (reorg--goto-char (reorg--get-previous-prop
+					    'reorg-level
+					    (reorg--get-view-prop 'reorg-level)
+					    nil
+					    (lambda (a b) (< b a)))))))
+  (next-clone . (reorg--get-next-prop 'id
+				      (reorg--get-view-prop 'id)))
+  (previous-clone . (reorg--get-previous-prop 'id
+					      (reorg--get-view-prop 'id)))
+  (next-parent . (reorg--get-next-prop 'reorg-level
+				       (reorg--get-view-prop 'reorg-level)
+				       nil
+				       (lambda (a b) (> a b))))
+  (parent . (reorg--get-previous-prop 'reorg-level
+				      (1- (reorg--get-view-prop 'reorg-level))))
+  (root . (and (/= 1 (reorg--get-view-prop 'reorg-level))
+	       (reorg--get-previous-prop 'reorg-level 1)))))
+  
+
 ;;;; headings
 
-(defun reorg--goto-next-heading ()
-  "goto next heading"
-  (interactive)
-  (when-let ((point (reorg--get-next-prop nil nil nil (lambda (a b) t))))
-    (reorg--goto-char point)))
+;; (defun reorg--goto-next-heading ()
+;;   "goto next heading"
+;;   (interactive)
+;;   (when-let ((point (reorg--get-next-prop nil nil nil (lambda (a b) t))))
+;;     (reorg--goto-char point)))
 
-(defun reorg--goto-previous-heading ()
-  "goto next heading"
-  (interactive)
-  (when-let ((point (reorg--get-previous-prop nil nil nil (lambda (a b) t))))
-    (reorg--goto-char point)))
+;; (defun reorg--goto-previous-heading ()
+;;   "goto next heading"
+;;   (interactive)
+;;   (when-let ((point (reorg--get-previous-prop nil nil nil (lambda (a b) t))))
+;;     (reorg--goto-char point)))
 
-;;;; siblings
+;; ;;;; siblings
 
-(defun reorg--goto-next-sibling ()
-  "goto next sibling in same subtree"
-  (interactive)
-  (when-let ((point (reorg--get-next-prop
-		     'reorg-level
-		     (reorg--get-view-prop 'reorg-level)
-		     (save-excursion
-		       (reorg--get-next-prop 'reorg-level
-					     (reorg--get-view-prop 'reorg-level)
-					     nil
-					     (lambda (a b)
-					       (< b a)))))))
-    (reorg--goto-char point)))
+;; (defun reorg--goto-next-sibling ()
+;;   "goto next sibling in same subtree"
+;;   (interactive)
+;;   (when-let ((point (reorg--get-next-prop
+;; 		     'reorg-level
+;; 		     (reorg--get-view-prop 'reorg-level)
+;; 		     (save-excursion
+;; 		       (reorg--get-next-prop 'reorg-level
+;; 					     (reorg--get-view-prop 'reorg-level)
+;; 					     nil
+;; 					     (lambda (a b)
+;; 					       (< b a)))))))
+;;     (reorg--goto-char point)))
 
-(defun reorg--goto-previous-sibling ()
-  "goto previous sibling"
-  (interactive)
-  (when-let ((point (reorg--get-previous-prop
-		     'reorg-level
-		     (reorg--get-view-prop 'reorg-level)
-		     (save-excursion
-		       (reorg--goto-char (reorg--get-previous-prop
-					  'reorg-level
-					  (reorg--get-view-prop 'reorg-level)
-					  nil
-					  (lambda (a b) (< b a))))))))
-    (reorg--goto-char point)))
+;; (defun reorg--goto-previous-sibling ()
+;;   "goto previous sibling"
+;;   (interactive)
+;;   (when-let ((point (reorg--get-previous-prop
+;; 		     'reorg-level
+;; 		     (reorg--get-view-prop 'reorg-level)
+;; 		     (save-excursion
+;; 		       (reorg--goto-char (reorg--get-previous-prop
+;; 					  'reorg-level
+;; 					  (reorg--get-view-prop 'reorg-level)
+;; 					  nil
+;; 					  (lambda (a b) (< b a))))))))
+;;     (reorg--goto-char point)))
 
 ;;;; clones
 
-(defun reorg--goto-next-clone ()
-  "goto next clone"
-  (interactive)
-  (when-let ((point (reorg--get-next-prop 'id
-					  (reorg--get-view-prop 'id))))
-    (reorg--goto-char point)))
+;; (defun reorg--goto-next-clone ()
+;;   "goto next clone"
+;;   (interactive)
+;;   (when-let ((point (reorg--get-next-prop 'id
+;; 					  (reorg--get-view-prop 'id))))
+;;     (reorg--goto-char point)))
 
-(defun reorg--goto-previous-clone ()
-  "goto next clone"
-  (interactive)
-  (when-let ((point (reorg--get-previous-prop 'id
-					      (reorg--get-view-prop 'id))))    
-    (reorg--goto-char point )))
+;; (defun reorg--goto-previous-clone ()
+;;   "goto next clone"
+;;   (interactive)
+;;   (when-let ((point (reorg--get-previous-prop 'id
+;; 					      (reorg--get-view-prop 'id))))    
+;;     (reorg--goto-char point )))
 
 ;;;; parents
 
-(defun reorg--goto-next-parent ()
-  "Goto the next parent."
-  (interactive)
-  (when-let ((point (reorg--get-next-prop 'reorg-level
-					  (reorg--get-view-prop 'reorg-level)
-					  nil
-					  (lambda (a b) (> a b)))))
-    (reorg--goto-char point )))
+;; (defun reorg--goto-next-parent ()
+;;   "Goto the next parent."
+;;   (interactive)
+;;   (when-let ((point (reorg--get-next-prop 'reorg-level
+;; 					  (reorg--get-view-prop 'reorg-level)
+;; 					  nil
+;; 					  (lambda (a b) (> a b)))))
+;;     (reorg--goto-char point )))
 
-(defun reorg--goto-parent ()
-  "Goto the next parent."
-  (interactive)
-  (when-let ((point (reorg--get-previous-prop 'reorg-level
-					      (1- (reorg--get-view-prop 'reorg-level)))))
-    (reorg--goto-char point)))
+;; (defun reorg--goto-parent ()
+;;   "Goto the next parent."
+;;   (interactive)
+;;   (when-let ((point (reorg--get-previous-prop 'reorg-level
+;; 					      (1- (reorg--get-view-prop 'reorg-level)))))
+;;     (reorg--goto-char point)))
 
 (defun reorg--goto-root ()
   "goto root"
