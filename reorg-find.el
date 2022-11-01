@@ -206,7 +206,6 @@ DOES NOT RUN 'reorg--navigation-hooks'."
   (when-let ((point (reorg--get-next-prop nil nil nil (lambda (a b) t))))
     (reorg--goto-char point)))
 
-
 (defun reorg--goto-previous-heading ()
   "goto next heading"
   (interactive)
