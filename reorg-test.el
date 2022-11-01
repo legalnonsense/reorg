@@ -56,7 +56,7 @@
    :sources '((org . "~/Desktop/tmp.org"))
    :template
    '( :group "MEETING VIEW"
-      :format-string (concat " " .headline)
+      :format-string (" " .headline)
       :children
       (
        ( :group "CASE LIST"
@@ -73,7 +73,7 @@
 				 (not (string= .todo "OPP_DUE"))
 				 (not (string= .todo "DEADLINE")))
 			"TASKS" )
-	       :format-string (concat " " (s-pad-right 10 " " .todo) .headline)
+	       :format-string (" " (s-pad-right 10 " " .todo) .headline)
 	       :sort-results ((.todo . string<)
 			      ((downcase .headline) . string<)))
 	     ( :group (when (and
@@ -84,8 +84,7 @@
 				 .deadline
 				 .scheduled))
 			"CALENDAR")
-	       :format-string (concat
-			       " "
+	       :format-string (" "
 			       .ts-type
 			       " "
 			       (s-pad-right 50
@@ -95,7 +94,7 @@
 	       :sort-results ((.ts . string<)))
 	     ( :group (when (string= .headline "_NOTES_")
 			"Progress Notes")
-	       :format-string (concat " Notes"))))))
+	       :format-string (" Notes"))))))
        ( :group "Date tree"
 	 :children
 	 (( :group (when-let ((time (or .timestamp
