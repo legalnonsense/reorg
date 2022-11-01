@@ -208,38 +208,20 @@ FUNC is a function that accepts one argument, which is the
 current element of TREE."
   (let ((tree (copy-tree form)))
     (cl-labels ((doloop (tree func)
-			(setf (car tree) (funcall func (car tree)))
+			(setf (car tree) (funcall func (car tree) data))
 			(cl-loop for n below (length (cdr tree))
 				 if (listp (nth n (cdr tree))) do
 				 (doloop (nth n (cdr tree)) func)
 				 else do
 				 (setf (nth n (cdr tree))
-				       (funcall func (nth n (cdr tree)))))))
+				       (funcall func (nth n (cdr tree)) data)))))
       (if (listp tree)
 	  (progn 
 	    (doloop tree func)
 	    tree)
 	(funcall func tree)))))
 
-;; old 
-;; (defun reorg--depth-first-apply (form func &optional data)
-;;   "Run FUNC at each node of TREE using a depth-first traversal
-;; and destructively modify TREE. 
-;; FUNC is a function that accepts one argument, which is the
-;; current element of TREE."
-;;   (let ((tree (copy-tree form)))
-;;     (cl-labels ((doloop (tree func)
-;; 			(setf (car tree) (funcall func (car tree) data))
-;; 			(cl-loop for n below (length (cdr tree))
-;; 				 if (listp (nth n (cdr tree))) do
-;; 				 (doloop (nth n (cdr tree)) func)
-;; 				 else do
-;; 				 (setf (nth n (cdr tree))
-;; 				       (funcall func (nth n (cdr tree)) data)))))
-;;       (if (listp tree)
-;; 	  (doloop tree func)
-;; 	(funcall func tree)))))
-
+;; TODO ensure a call to display function instead of relying on the data alist 
 (defun reorg--create-headline-string (data format-string &optional level)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  Add text properties
@@ -259,10 +241,18 @@ template.  Use LEVEL number of leading stars.  Add text properties
 		     (let ((format-copy (copy-tree format-string)))
 		       (concat
 			(when level (propertize (create-stars level) reorg--field-property-name 'stars))
-			(funcall `(lambda (data)
-				    (let-alist data 
-				      ,format-string))
-				 data))))
+			(let ((xxx (reorg--depth-first-apply format-string
+							     #'reorg--turn-dot-to-display-string
+							     data)))
+			  (funcall `(lambda (data) ,xxx) data)))))
+		   
+		   ;; (apply (car xxx)
+		   ;; 	 (cdr xxx)))
+		   
+		   ;; `(lambda (data)
+		   ;;    (let-alist data 
+		   ;;      ,format-string))
+		   ;; data))))
 		   "\n")
 	   'reorg-data
 	   (append data
