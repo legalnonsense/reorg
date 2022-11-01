@@ -32,9 +32,9 @@ get nested properties."
 
 (defun reorg--goto-next-prop (property &optional value limit
 				       predicate)
-  "Initially supposed to act like 'text-property-search-forward'
-but inclde a LIMIT parameter. Now, assume we are getting 'reorg-data
-and PROPERTY refers to the key of that alist.  The code is sloppy.
+  "Initially based on 'text-property-search-forward'
+but inclde a LIMIT parameter.  Now, assume we are getting 'reorg-data
+and PROPERTY is the key of that alist.
 DOES NOT RUN 'reorg--navigation-hooks'." 
   (cond
    ((eobp)
@@ -48,11 +48,6 @@ DOES NOT RUN 'reorg--navigation-hooks'."
           (ended nil)
 	  (limit (or limit (point-max)))
           pos)
-      ;; skip the current property if NOT-CURRENT is non-nil 
-      ;; (when (text-property--match-p value (get-text-property (point) property)
-      ;; 				    predicate)
-      ;; 	(text-property--find-end-forward (point) property value predicate))
-      ;; Find the next candidate.
       (cl-loop with found = nil
 	       while (not ended)
 	       do (setq pos (next-single-property-change (point) 'reorg-data nil limit))
@@ -86,7 +81,7 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 
 (defun reorg--goto-previous-prop (property &optional value limit
 					   predicate)
-  "See 'reorg--get-next-prop'"
+  "See 'reorg--goto-next-prop'"
   (cond
    ((bobp)
     nil)
@@ -129,86 +124,56 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 				  nil
 				(point)))))))
 
-(defun reorg--get-previous-prop (&rest args)
+(defun reorg--get-previous-prop (property &optional value limit
+					  predicate)
   "Return the point instead of moving it."
-  (save-excursion (apply #'reorg--goto-previous-prop args)))
+  (save-excursion (funcall #'reorg--goto-previous-prop property value limit predicate)))
 
-(defun reorg--get-next-prop (&rest args)
+(defun reorg--get-next-prop (property &optional value limit
+				      predicate)
   "get next instead of moving it."
-  (save-excursion (apply #'reorg--goto-next-prop args)))
-
-
-;; (defun reorg--find-prop (prop &optional val from to test transform first-only)
-;;   "TEST is a function that accepts two arguments: VAL and
-;; the text property at the beginning of the region.  If TEST is nil, use 'equal'.
-;; PROP is a property that is contained within the reorg-data
-;; text property data.  VAL is a target value.  TRANSFORM is a function
-;; that accepts to arguments (PROP and the current BEG) and returns
-;; a value to be compared against VAL used TEST.  FIRST-ONLY means to return
-;; the first match location; otherwise return all matching locations."
-;;   (save-excursion 
-;;     (cl-loop
-;;      with test = (if val
-;; 		     (or test #'equal)
-;; 		   (lambda (&rest args) t))
-;;      with from = (or from (point-min))
-;;      with to = (or to (point-max))
-;;      for (beg . end) being the intervals
-;;      property 'reorg-data
-;;      from from
-;;      to to
-;;      when (funcall
-;; 	   test
-;; 	   (cond (transform
-;; 		  (funcall transform (reorg--get-view-prop)))
-;; 		 (t
-;; 		  (alist-get prop
-;; 			     (get-text-property beg 'reorg-data))))
-;; 	   ;;		  (reorg--get-view-prop prop beg)))
-;; 	   val)
-;;      if (and first-only
-;; 	     (or
-;; 	      (> beg (point))
-;; 	      (< end (point))))
-;;      return (cons beg end)
-;;      else if first-only
-;;      do (+ 1 1) ;; isn't there a PASS command? 
-;;      else
-;;      collect (cons beg end))))
-
-;; (defun reorg--get-next-prop (prop &optional val test transform limit)
-;;   "Find the next text prop PROP that matches VAL.
-;; Returns (beg . end) points of the matching property."
-;;   (reorg--find-prop prop val (point) limit test transform t))
-
-;; (defun reorg--get-previous-prop (prop &optional val test transform limit)
-;;   "Find the previous text prop PROP that matches VAL.
-;; Returns (beg . end) points of the matching property."
-;;   (when-let ((previous (reorg--find-prop prop val limit (point) test transform)))
-;;     (cl-loop for (beg . end) in (reverse previous)
-;; 	     unless (and (>= (point) beg)
-;; 			 (<= (point) end))
-;; 	     return (cons beg end))))
-
-
+  (save-excursion (funcall #'reorg--goto-next-prop property value limit predicate)))
 
 (defun reorg--goto-char (point)
   "Goto POINT and run hook funcs."
   (goto-char point)
-  (run-hooks 'reorg--navigation-hook))
+  (run-hooks 'reorg--navigation-hook)
+  (point))
 
 ;;; Navigation commands 
 
 (defmacro reorg--create-navigation-commands (alist)
+  "Create navigation commands. ALIST is a list in the form of (NAME . FORM)
+where NAME is the name of what you are moving to, e.g., \"next-heading\"
+and FORM is evaluated to see if that target exists.  NAME should be hyphenated.
+
+FORM must return the point of the target if it exists, or nil if it doesn't.
+
+If the target exists, the function will move to that point and run
+`reorg--navigation-hook'.
+
+If the target does not exist, the function will return nil.
+
+Also create functions to get the point of the target, but not move to it."
   `(progn 
      ,@(cl-loop for (name . form) in alist
-		collect `(defun ,(reorg--create-symbol 'reorg--goto- name) nil
-			   ,(concat "Move point to "
-				    (s-replace "-" " " (symbol-name name))
-				    " and run navigation hook.")
-			   (interactive)
-			   (when-let ((point ,form))
-			     (reorg--goto-char point))))))
+		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) nil
+				,(concat "Move point to "
+					 (s-replace "-" " " (symbol-name name))
+					 " and run navigation hook.")
+				(interactive)
+				(when-let ((point ,form))
+				  (reorg--goto-char point)))
+			     `(defun ,(reorg--create-symbol 'reorg--get- name) nil
+				,(concat "Get the point of "
+					 (s-replace "-" " " (symbol-name name))
+					 ".")
+				(prog1 
+				    (save-excursion
+				      (when (funcall
+					     ',(reorg--create-symbol 'reorg--goto- name))
+					(point)))
+				  (run-hooks 'reorg--navigation-hook)))))))
 
 (reorg--create-navigation-commands
  ((next-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t)))
@@ -216,21 +181,19 @@ DOES NOT RUN 'reorg--navigation-hooks'."
   (next-sibling . (reorg--get-next-prop
 		   'reorg-level
 		   (reorg--get-view-prop 'reorg-level)
-		   (save-excursion
-		     (reorg--get-next-prop 'reorg-level
-					   (reorg--get-view-prop 'reorg-level)
-					   nil
-					   (lambda (a b)
-					     (< b a))))))
+		   (reorg--get-next-prop 'reorg-level
+					 (reorg--get-view-prop 'reorg-level)
+					 nil
+					 (lambda (a b)
+					   (< b a)))))
   (previous-sibling . (reorg--get-previous-prop
 		       'reorg-level
 		       (reorg--get-view-prop 'reorg-level)
-		       (save-excursion
-			 (reorg--goto-char (reorg--get-previous-prop
-					    'reorg-level
-					    (reorg--get-view-prop 'reorg-level)
-					    nil
-					    (lambda (a b) (< b a)))))))
+		       (reorg--get-previous-prop
+			'reorg-level
+			(reorg--get-view-prop 'reorg-level)
+			nil
+			(lambda (a b) (< b a)))))
   (next-clone . (reorg--get-next-prop 'id
 				      (reorg--get-view-prop 'id)))
   (previous-clone . (reorg--get-previous-prop 'id
@@ -242,93 +205,19 @@ DOES NOT RUN 'reorg--navigation-hooks'."
   (parent . (reorg--get-previous-prop 'reorg-level
 				      (1- (reorg--get-view-prop 'reorg-level))))
   (root . (and (/= 1 (reorg--get-view-prop 'reorg-level))
-	       (reorg--get-previous-prop 'reorg-level 1)))))
-  
+	       (reorg--get-previous-prop 'reorg-level 1)))
+  (next-child . (and
+		 (reorg--get-view-prop 'reorg-branch)
+		 (reorg--get-next-prop 'reorg-level
+				       (1+ (reorg--get-view-prop 'reorg-level))
+				       (reorg--get-next-prop 'reorg-level
+							     (reorg--get-view-prop 'reorg-level)
+							     nil
+							     (lambda (a b)
+							       (>= a b))))))))
 
-;;;; headings
 
-;; (defun reorg--goto-next-heading ()
-;;   "goto next heading"
-;;   (interactive)
-;;   (when-let ((point (reorg--get-next-prop nil nil nil (lambda (a b) t))))
-;;     (reorg--goto-char point)))
 
-;; (defun reorg--goto-previous-heading ()
-;;   "goto next heading"
-;;   (interactive)
-;;   (when-let ((point (reorg--get-previous-prop nil nil nil (lambda (a b) t))))
-;;     (reorg--goto-char point)))
-
-;; ;;;; siblings
-
-;; (defun reorg--goto-next-sibling ()
-;;   "goto next sibling in same subtree"
-;;   (interactive)
-;;   (when-let ((point (reorg--get-next-prop
-;; 		     'reorg-level
-;; 		     (reorg--get-view-prop 'reorg-level)
-;; 		     (save-excursion
-;; 		       (reorg--get-next-prop 'reorg-level
-;; 					     (reorg--get-view-prop 'reorg-level)
-;; 					     nil
-;; 					     (lambda (a b)
-;; 					       (< b a)))))))
-;;     (reorg--goto-char point)))
-
-;; (defun reorg--goto-previous-sibling ()
-;;   "goto previous sibling"
-;;   (interactive)
-;;   (when-let ((point (reorg--get-previous-prop
-;; 		     'reorg-level
-;; 		     (reorg--get-view-prop 'reorg-level)
-;; 		     (save-excursion
-;; 		       (reorg--goto-char (reorg--get-previous-prop
-;; 					  'reorg-level
-;; 					  (reorg--get-view-prop 'reorg-level)
-;; 					  nil
-;; 					  (lambda (a b) (< b a))))))))
-;;     (reorg--goto-char point)))
-
-;;;; clones
-
-;; (defun reorg--goto-next-clone ()
-;;   "goto next clone"
-;;   (interactive)
-;;   (when-let ((point (reorg--get-next-prop 'id
-;; 					  (reorg--get-view-prop 'id))))
-;;     (reorg--goto-char point)))
-
-;; (defun reorg--goto-previous-clone ()
-;;   "goto next clone"
-;;   (interactive)
-;;   (when-let ((point (reorg--get-previous-prop 'id
-;; 					      (reorg--get-view-prop 'id))))    
-;;     (reorg--goto-char point )))
-
-;;;; parents
-
-;; (defun reorg--goto-next-parent ()
-;;   "Goto the next parent."
-;;   (interactive)
-;;   (when-let ((point (reorg--get-next-prop 'reorg-level
-;; 					  (reorg--get-view-prop 'reorg-level)
-;; 					  nil
-;; 					  (lambda (a b) (> a b)))))
-;;     (reorg--goto-char point )))
-
-;; (defun reorg--goto-parent ()
-;;   "Goto the next parent."
-;;   (interactive)
-;;   (when-let ((point (reorg--get-previous-prop 'reorg-level
-;; 					      (1- (reorg--get-view-prop 'reorg-level)))))
-;;     (reorg--goto-char point)))
-
-(defun reorg--goto-root ()
-  "goto root"
-  (when (not (= 1 (reorg--get-view-prop 'reorg-level)))
-    (when-let ((point (reorg--get-previous-prop 'reorg-level
-						1)))
-      (reorg--goto-char point))))
 
 ;;;; getting data
 
@@ -337,15 +226,15 @@ DOES NOT RUN 'reorg--navigation-hooks'."
   (reorg--get-view-prop 'reorg-level))
 
 ;;;; predicates
-
 (defun reorg--last-branch-p ()
-  "Does the current branch have any present children?"
-  (reorg--goto-char (reorg--get-next-prop 'reorg-branch
-					  t
-					  (save-excursion
-					    (prog1 
-						(reorg--goto-next-sibling)
-					      (run-hooks 'reorg--navigation-hook)))
-					  (lambda (a b) t))))
+  "is this the last branch in the subtree?"
+  (and (reorg--get-view-prop 'reorg-branch)
+       (not (reorg--get-view-prop
+	     'reorg-branch
+	     (reorg--get-next-child)))))
+  
 
-(provide 'reorg-find)
+
+
+
+  (provide 'reorg-find)
