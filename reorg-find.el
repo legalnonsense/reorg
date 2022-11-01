@@ -232,9 +232,18 @@ Also create functions to get the point of the target, but not move to it."
        (not (reorg--get-view-prop
 	     'reorg-branch
 	     (reorg--get-next-child)))))
-  
 
 
+(defun reorg-edits--get-field-bounds ()
+  "Get the bounds of the field at point."
+  (let ((match (save-excursion (text-property--find-end-forward
+				(point)
+				'reorg-data
+				(reorg--get-view-prop)
+				#'equal))))
+    (cons
+     (prop-match-beginning match)
+     (prop-match-end match))))
 
 
-  (provide 'reorg-find)
+(provide 'reorg-find)
