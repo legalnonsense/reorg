@@ -62,6 +62,18 @@ function created by the type creation macro."
       (intern (concat "." (substring (symbol-name elem) 2)))
     elem))
 
+(defun reorg--turn-dot-to-display-string (elem data)
+  "turn .symbol to a string using a display function."
+  (if (and (symbolp elem)
+	   (string-match "\\`\\." (symbol-name elem)))
+      (or (let ((fu (reorg--get-display-func-name
+		     'org
+		     (substring (symbol-name elem) 1))))
+	    (when (fboundp fu)
+	      (funcall fu data)))
+	  (let-alist data elem))
+    elem))
+
 (cl-defun reorg--group-and-sort (list template &optional (n 0 np))
   "Group RESULTS according to TEMPLATE."
   (let ((copy (copy-tree list)))
