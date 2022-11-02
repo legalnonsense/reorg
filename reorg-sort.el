@@ -150,8 +150,8 @@ function created by the type creation macro."
 		    (setq xxx grouper)
 		    (->> it			      
 			 (reorg--seq-group-by
-			  (reorg--depth-first-apply grouper
-						    #'reorg--turn-at-dot-to-dot))
+			  (reorg--walk-tree grouper
+					    #'reorg--turn-at-dot-to-dot))
 			 (seq-map (lambda (x) (list (car x) (cdr x)))))))
 		  (seq-filter (lambda (x) (and (not (null (car x)))
 					       (not (null (cdr x)))
