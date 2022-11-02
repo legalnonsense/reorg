@@ -53,7 +53,7 @@ symbol, and each cdr is the same symbol without the `.'."
    (t (append (reorg--dot-at-search (car data))
               (reorg--dot-at-search (cdr data))))))
 
-(defun reorg--turn-at-dot-to-dot (elem &optional _ignore)
+(defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
   "turn a .@symbol into .symbol
 the value from the parsed data or calling the display
 function created by the type creation macro."
