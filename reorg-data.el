@@ -201,33 +201,43 @@ parser for that type."
 
 ;;; creating headline strings from parsed data 
 ;;; TODO START HERE
-(defun reorg--depth-first-apply (form func &optional data)
-  "Run FUNC at each node of TREE using a depth-first traversal
-and destructively modify TREE. 
-FUNC is a function that accepts one argument, which is the
-current element of TREE."
-  (let ((tree (copy-tree form)))
-    (cl-labels ((doloop (tree func)
-			(setf (car tree) (funcall func (car tree) data))
-			(cl-loop for n below (length (cdr tree))
-				 if (listp (nth n (cdr tree))) do
-				 (doloop (nth n (cdr tree)) func)
-				 else do
-				 (setf (nth n (cdr tree))
-				       (funcall func (nth n (cdr tree)) data)))))
-      (if (listp tree)
-	  (progn 
-	    (doloop tree func)
-	    tree)
-	(funcall func tree)))))
 
-;; (reorg--depth-first-apply
+(defun reorg--walk-tree (form func &optional data)
+  (cl-labels ((walk (form)
+		    (cl-loop for each in form
+			     if (listp each)
+			     collect (walk each)
+			     else
+			     collect (funcall func each data))))
+    (walk form)))
+
+;; (defun reorg--walk-tree (form func &optional data)
+;;   "Run FUNC at each node of TREE using a depth-first traversal
+;; and destructively modify TREE. 
+;; FUNC is a function that accepts one argument, which is the
+;; current element of TREE."
+;;   (let ((tree (copy-tree form)))
+;;     (cl-labels ((doloop (tree func)
+;; 			(setf (car tree) (funcall func (car tree) data))
+;; 			(cl-loop for n below (length (cdr tree))
+;; 				 if (listp (nth n (cdr tree))) do
+;; 				 (doloop (nth n (cdr tree)) func)
+;; 				 else do
+;; 				 (setf (nth n (cdr tree))
+;; 				       (funcall func (nth n (cdr tree)) data)))))
+;;       (if (listp tree)
+;; 	  (progn 
+;; 	    (doloop tree func)
+;; 	    tree)
+;; 	(funcall func tree)))))
+
+;; (reorg--walk-tree
 ;;  '(.todo " " .headline)
 ;;  #'reorg--turn-dot-to-display-string
 ;;  '((todo . "xxx")
 ;;    (headline . "yyy")))
 
-;; (reorg--depth-first-apply
+;; (reorg--walk-tree
 ;;  '((s-pad-right 10 " " .todo) " " .headline)
 ;;  #'reorg--turn-dot-to-display-string
 ;;  '((todo . "xxx")
@@ -256,7 +266,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	(let ((format-copy (copy-tree format-string)))
 	  (concat
 	   ;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
-	   (let ((xxx (reorg--depth-first-apply format-string
+	   (let ((xxx (reorg--walk-tree format-string
 						#'reorg--turn-dot-to-display-string
 						data)))
 	     (funcall `(lambda (data)
