@@ -202,6 +202,7 @@ parser for that type."
 ;;; creating headline strings from parsed data 
 ;;; TODO START HERE
 
+
 (defun reorg--walk-tree (form func &optional data)
   (cl-labels ((walk (form)
 		    (cl-loop for each in form
