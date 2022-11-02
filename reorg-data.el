@@ -209,8 +209,14 @@ parser for that type."
 			     if (listp each)
 			     collect (walk each)
 			     else
-			     collect (funcall func each data))))
-    (walk form)))
+			     collect (if data
+					 (funcall func each data)
+				       (funcall func each)))))
+    (if (listp form)
+	(walk form)
+      (if data 
+	  (funcall func form data)
+	(funcall func form)))))
 
 ;; (defun reorg--walk-tree (form func &optional data)
 ;;   "Run FUNC at each node of TREE using a depth-first traversal
@@ -268,8 +274,8 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	  (concat
 	   ;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
 	   (let ((xxx (reorg--walk-tree format-string
-						#'reorg--turn-dot-to-display-string
-						data)))
+					#'reorg--turn-dot-to-display-string
+					data)))
 	     (funcall `(lambda (data)
 			 (concat ,@xxx))
 		      data)))))
