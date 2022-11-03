@@ -106,13 +106,13 @@ to be refreshed. Two options are:
 	(reorg-dynamic-bullets--add-all-hooks-and-advice)
 	;;(cl-pushnew 'display font-lock-extra-managed-props)
 	;;(font-lock-add-keywords nil reorg-dynamic-bullets--font-lock-keyword)
-	(reorg-dynamic-bullets--fontify-buffer)
-	(setq reorg-dynamic-bullets--idle-timer
-	      (run-with-idle-timer 1 'repeat #'reorg-dynamic-bullets--fontify-heading)))
+	(reorg-dynamic-bullets--fontify-buffer))
+    ;; (setq reorg-dynamic-bullets--idle-timer
+    ;;       (run-with-idle-timer 1 'repeat #'reorg-dynamic-bullets--fontify-heading)))
     ;; (font-lock-remove-keywords nil reorg-dynamic-bullets--font-lock-keyword)
     (reorg-dynamic-bullets--add-all-hooks-and-advice 'remove)
     (reorg-dynamic-bullets--fontify (point-min) (point-max) 'remove)
-    (cancel-timer reorg-dynamic-bullets--idle-timer)
+    ;; (cancel-timer reorg-dynamic-bullets--idle-timer)
     ;; (font-lock-flush (point-min) (point-max))
     ;; (font-lock-ensure (point-min) (point-max))
     ))
@@ -184,18 +184,18 @@ This function searches the region for the headline regexp and calls
     (save-match-data
       (save-excursion
 	(goto-char beg)
-	(while (reorg--goto-next-visible-branch)
-	  (funcall reorg-dynamic-bullets-refresh-func
-		   (point)
-		   (progn
-		     ;; TODO get rid of the regexp
-		     ;; requires adding field text property to
-		     ;; leading stars 
-		     (re-search-forward
-		      reorg-dynamic-bullets--heading-re
-		      (point-at-eol)
-		      t)
-		     (match-end 1))))))))
+	(while (and (when-let ((b (point))
+			       (e (when (re-search-forward
+					 reorg-dynamic-bullets--heading-re
+					 (point-at-eol)
+					 t)
+				    (match-end 1))))
+		      (funcall reorg-dynamic-bullets-refresh-func
+			       b e))
+		    (reorg--goto-next-visible-heading)
+		    (< (point) end)))))
+    (run-hooks 'reorg--navigation-hook)))
+
 
 (defun reorg-dynamic-bullets--fontify-buffer (&rest _)
   "Fontify the entire buffer."
@@ -204,10 +204,12 @@ This function searches the region for the headline regexp and calls
 (defun reorg-dynamic-bullets--fontify-tree (&rest _)
   "Fontify the entire tree from root to last leaf."
   (when-let* ((level (reorg--get-view-prop 'reorg-level))
-	      (beg (if (= 1 level)
-		       (progn (beginning-of-line)
-			      (point))
-		     (reorg--get-root)))
+	      (beg (point))
+	      ;; (if (= 1 level)
+	      ;;     (progn (beginning-of-line)
+	      ;; 	      (point))
+	      ;;   (reorg--get-root))
+
 	      (end (or (reorg--get-next-sibling)
 		       (reorg--get-next-parent)
 		       (point-max))))
