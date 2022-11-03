@@ -142,7 +142,7 @@ to be refreshed. Two options are:
 
 (defun reorg-dynamic-bullets--body-p ()
   "Use org-element to get all elements after the property drawers."
-  (not (string= "" (reorg--get-view-prop :body))))
+  (not (string= "" (reorg--get-view-prop 'body))))
 ;; (when (reorg--get-view-prop)
 ;;   (reorg--with-source-buffer
 ;;     (org-element--parse-elements (save-excursion (org-back-to-heading)
@@ -171,7 +171,7 @@ to be refreshed. Two options are:
     (let ((children (reorg-dynamic-bullets--has-children-p))
 	  (folded (reorg-dynamic-bullets--heading-folded-p))
 	  (body (reorg-dynamic-bullets--body-p))
-	  (clone (reorg--get-view-prop :clone)))
+	  (clone (reorg--get-view-prop 'clone)))
       (propertize 
        (cond ((and children folded body)
 	      reorg-dynamic-bullets-folded-body-text-bullet)
