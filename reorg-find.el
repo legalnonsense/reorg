@@ -189,7 +189,7 @@ If the target does not exist, the function will return nil.
 Also create functions to get the point of the target, but not move to it."
   `(progn 
      ,@(cl-loop for (name . form) in alist
-		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) (visible-only)
+		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) nil
 				,(concat "Move point to "
 					 (s-replace "-" " " (symbol-name name))
 					 " and run navigation hook.")
@@ -211,6 +211,8 @@ Also create functions to get the point of the target, but not move to it."
  ((next-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t)))
   (next-visible-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t) t))
   (previous-heading . (reorg--get-previous-prop nil nil nil (lambda (a b) t)))
+  (next-branch . (reorg--get-next-prop 'reorg-branch t nil nil nil))
+  (next-visible-branch . (reorg--get-next-prop 'reorg-branch t nil nil t))
   (previous-visible-heading . (reorg--get-previous-prop nil nil nil (lambda (a b) t) t))
   (next-sibling . (reorg--get-next-prop
 		   'reorg-level
@@ -248,7 +250,20 @@ Also create functions to get the point of the target, but not move to it."
 							     (reorg--get-view-prop 'reorg-level)
 							     nil
 							     (lambda (a b)
-							       (>= a b))))))))
+							       (>= a b))))))
+  (next-visible-child
+   .
+   (and
+    (reorg--get-view-prop 'reorg-branch)
+    (reorg--get-next-prop 'reorg-level
+			  (1+ (reorg--get-view-prop 'reorg-level))
+			  (reorg--get-next-prop 'reorg-level
+						(reorg--get-view-prop 'reorg-level)
+						nil
+						(lambda (a b)
+						  (>= a b)))
+			  nil
+			  t)))))
 
 
 
