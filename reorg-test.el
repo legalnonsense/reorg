@@ -62,7 +62,7 @@
        ( :group "CASE LIST"
 	 :children
 	 (
-	  ( :group .root
+	  ( :group .category-inherited
 	    :sort string< 
 	    :sort-getter (lambda (x) (downcase x))
 	    :children
@@ -84,9 +84,7 @@
 				 .deadline
 				 .scheduled))
 			"CALENDAR")
-	       :format-string (.stars
-			       " "
-			       .ts-type
+	       :format-string (.ts-type
 			       " "
 			       (s-pad-right 50
 					    "."
