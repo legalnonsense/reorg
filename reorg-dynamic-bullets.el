@@ -134,12 +134,6 @@ to be refreshed. Two options are:
   (let ((branch (reorg--get-view-prop 'reorg-branch))
 	(folded (reorg-dynamic-bullets--heading-folded-p))
 	(body (reorg--get-view-prop 'body)))
-    ;; (pcase (list children folded body)
-    ;; 	(`(t t t) reorg-dynamic-bullets-folded-body-text-bullet)
-    ;; 	(`(t t nil) reorg-dynamic-bullets-folded-no-body-text-bullet)
-    ;; 	(`(t nil t) reorg-dynamic-bullets-unfolded-body-text-bullet)
-    ;; 	(`(t nil nil) reorg-dynamic-bullets-unfolded-no-body-text-bullet)
-    ;; 	(`(nil nil nil) reorg-dynamic-bullets-leaf-no-body-text-bullet))
     (propertize 
      (cond ((and branch folded body)
 	    reorg-dynamic-bullets-folded-body-text-bullet)
@@ -193,17 +187,15 @@ This function searches the region for the headline regexp and calls
 	(while (reorg--goto-next-visible-branch)
 	  (funcall reorg-dynamic-bullets-refresh-func
 		   (point)
-		   (progn 
+		   (progn
+		     ;; TODO get rid of the regexp
+		     ;; requires adding field text property to
+		     ;; leading stars 
 		     (re-search-forward
 		      reorg-dynamic-bullets--heading-re
 		      (point-at-eol)
 		      t)
 		     (match-end 1))))))))
-	
-	;; (while (re-search-forward reorg-dynamic-bullets--heading-re end t)
-	;;   (funcall reorg-dynamic-bullets-refresh-func
-	;; 	   (match-beginning 1)
-	;; 	   (match-end 1)))))))
 
 (defun reorg-dynamic-bullets--fontify-buffer (&rest _)
   "Fontify the entire buffer."
