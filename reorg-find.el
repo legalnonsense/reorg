@@ -73,7 +73,6 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 			  (progn 
 			    (setq ended t)
 			    (setq found t))
-			;; (setq pos (next-single-property-change (point) 'reorg-data nil limit))
 			(when (or (not pos)
 				  (>= pos limit))
 			  (goto-char origin)
