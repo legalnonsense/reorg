@@ -31,7 +31,7 @@ get nested properties."
 	(reorg--get-view-prop nil (or point (point)))))))
 
 (defun reorg--goto-next-prop (property &optional value limit
-				       predicate)
+				       predicate visible-only)
   "Initially based on 'text-property-search-forward'
 but inclde a LIMIT parameter.  Now, assume we are getting 'reorg-data
 and PROPERTY is the key of that alist.
@@ -61,6 +61,9 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 	       else do
 	       (progn (goto-char pos)
 		      (if (and (< (point) limit)
+			       (if visible-only
+				   (not (org-invisible-p (point) t))
+				 t)
 			       (funcall (or predicate #'equal)
 					value
 					(if property 
@@ -80,7 +83,7 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 				(point)))))))
 
 (defun reorg--goto-previous-prop (property &optional value limit
-					   predicate)
+					   predicate visible-only)
   "See 'reorg--goto-next-prop'"
   (cond
    ((bobp)
@@ -95,7 +98,12 @@ DOES NOT RUN 'reorg--navigation-hooks'."
       (cl-loop with found = nil
 	       with pos = nil 
 	       while (not ended)
-	       do (setq pos (previous-single-property-change (point) 'reorg-data nil limit))
+	       do (setq pos
+			(previous-single-property-change
+			 (point)
+			 'reorg-data
+			 nil
+			 limit))
 	       if (or (not pos)		
 		      (< pos limit))
 	       return
@@ -105,13 +113,21 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 	       else do
 	       (progn (goto-char pos)
 		      (if (and (>= (point) limit)
-			       (funcall (or predicate #'equal)
-					value
-					(if property 
-					    (alist-get property
-						       (get-text-property (point) 'reorg-data))
-					  (get-text-property (point) 'reorg-data))))
-
+			       (funcall
+				(or predicate #'equal)
+				value
+				(if property 
+				    (alist-get
+				     property
+				     (get-text-property
+				      (point)
+				      'reorg-data))
+				  (get-text-property
+				   (point)
+				   'reorg-data)))
+			       (if visible-only
+				   (not (org-invisible-p (point) t))
+				 t))
 			  (progn 
 			    (setq ended t)
 			    (setq found t))
@@ -124,15 +140,31 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 				  nil
 				(point)))))))
 
-(defun reorg--get-previous-prop (property &optional value limit
-					  predicate)
+(defun reorg--get-previous-prop (property &optional
+					  value
+					  limit
+					  predicate
+					  visible-only)
   "Return the point instead of moving it."
-  (save-excursion (funcall #'reorg--goto-previous-prop property value limit predicate)))
+  (save-excursion (funcall #'reorg--goto-previous-prop
+			   property
+			   value
+			   limit
+			   predicate
+			   visible-only)))
 
-(defun reorg--get-next-prop (property &optional value limit
-				      predicate)
+(defun reorg--get-next-prop (property &optional
+				      value
+				      limit
+				      predicate
+				      visible-only)
   "get next instead of moving it."
-  (save-excursion (funcall #'reorg--goto-next-prop property value limit predicate)))
+  (save-excursion (funcall #'reorg--goto-next-prop
+			   property
+			   value
+			   limit
+			   predicate
+			   visible-only)))
 
 (defun reorg--goto-char (point)
   "Goto POINT and run hook funcs."
@@ -157,7 +189,7 @@ If the target does not exist, the function will return nil.
 Also create functions to get the point of the target, but not move to it."
   `(progn 
      ,@(cl-loop for (name . form) in alist
-		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) nil
+		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) (visible-only)
 				,(concat "Move point to "
 					 (s-replace "-" " " (symbol-name name))
 					 " and run navigation hook.")
@@ -177,7 +209,9 @@ Also create functions to get the point of the target, but not move to it."
 
 (reorg--create-navigation-commands
  ((next-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t)))
+  (next-visible-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t) t))
   (previous-heading . (reorg--get-previous-prop nil nil nil (lambda (a b) t)))
+  (previous-visible-heading . (reorg--get-previous-prop nil nil nil (lambda (a b) t) t))
   (next-sibling . (reorg--get-next-prop
 		   'reorg-level
 		   (reorg--get-view-prop 'reorg-level)
