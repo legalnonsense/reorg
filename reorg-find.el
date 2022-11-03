@@ -146,12 +146,12 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 					  predicate
 					  visible-only)
   "Return the point instead of moving it."
-  (save-excursion (funcall #'reorg--goto-previous-prop
-			   property
-			   value
-			   limit
-			   predicate
-			   visible-only)))
+  (save-excursion (reorg--goto-previous-prop
+		   property
+		   value
+		   limit
+		   predicate
+		   visible-only)))
 
 (defun reorg--get-next-prop (property &optional
 				      value
@@ -159,12 +159,12 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 				      predicate
 				      visible-only)
   "get next instead of moving it."
-  (save-excursion (funcall #'reorg--goto-next-prop
-			   property
-			   value
-			   limit
-			   predicate
-			   visible-only)))
+  (save-excursion (reorg--goto-next-prop
+		   property
+		   value
+		   limit
+		   predicate
+		   visible-only)))
 
 (defun reorg--goto-char (point)
   "Goto POINT and run hook funcs."
