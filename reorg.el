@@ -1,7 +1,10 @@
 ;; -*- lexical-binding: t; -*-
 
 ;;; requires
-
+(eval-when-compile
+  (require 'cl-lib))
+(require 'org)
+(require 'outline)
 (require 'let-alist)
 (require 'seq)
 (require 'org-visual-indent)
