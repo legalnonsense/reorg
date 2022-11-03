@@ -200,8 +200,6 @@ parser for that type."
 	     collect (cons type (funcall func data)))))
 
 ;;; creating headline strings from parsed data 
-;;; TODO START HERE
-
 
 (defun reorg--walk-tree (form func &optional data)
   (cl-labels ((walk (form)
