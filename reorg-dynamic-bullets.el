@@ -121,89 +121,47 @@ to be refreshed. Two options are:
 
 ;;;;; Outline position predicates
 
-(defun reorg-dynamic-bullets--has-children-p (&optional invisible)
-  "Does the current node have any children?"
-  (save-excursion
-    (let ((level (funcall outline-level)))
-      (outline-next-heading)
-      (and (outline-on-heading-p t)
-	   (> (funcall outline-level) level)
-	   (or (not invisible)
-	       (outline-invisible-p))))))
-
 (defun reorg-dynamic-bullets--heading-folded-p ()
   "Is the current heading folded?"
-  (and (save-excursion
-	 (org-goto-first-child)
-	 (outline-invisible-p))
-       (save-excursion 
-	 (org-end-of-meta-data t)
-	 (outline-invisible-p))))
-
-(defun reorg-dynamic-bullets--body-p ()
-  "Use org-element to get all elements after the property drawers."
-  (not (string= "" (reorg--get-view-prop 'body))))
-;; (when (reorg--get-view-prop)
-;;   (reorg--with-source-buffer
-;;     (org-element--parse-elements (save-excursion (org-back-to-heading)
-;; 						   (org-end-of-meta-data t)
-;; 						   (point))
-;; 				   (or (save-excursion (outline-next-heading))
-;; 				       (point-max))
-;; 				   'first-section nil nil nil nil))))
-
-;; (defun reorg-dynamic-bullets--body-p ()
-;;   "Does the current heading have text in its body? \"Body\" is
-;; defined as any text, including property drawers, following
-;; the heading and before the next heading."
-;;   (cddr (car (org-element--parse-elements
-;; 	      (point)
-;; 	      (save-excursion (or (outline-next-heading)
-;; 				  (point-max)))
-;; 	      nil nil nil nil nil))))
+  (and (reorg--get-view-prop 'reorg-branch)
+       (not
+	(reorg--get-next-visible-child))))
 
 ;;;;; Creating prefix strings
 
 (defun reorg-dynamic-bullets--create-heading-bullet ()
   "Create a string to be displayed in lieu of the headings' leading stars."
-  (save-excursion 
-    (outline-back-to-heading)
-    (let ((children (reorg-dynamic-bullets--has-children-p))
-	  (folded (reorg-dynamic-bullets--heading-folded-p))
-	  (body (reorg-dynamic-bullets--body-p)))
-      ;; (pcase (list children folded body)
-      ;; 	(`(t t t) reorg-dynamic-bullets-folded-body-text-bullet)
-      ;; 	(`(t t nil) reorg-dynamic-bullets-folded-no-body-text-bullet)
-      ;; 	(`(t nil t) reorg-dynamic-bullets-unfolded-body-text-bullet)
-      ;; 	(`(t nil nil) reorg-dynamic-bullets-unfolded-no-body-text-bullet)
-      ;; 	(`(nil nil nil) reorg-dynamic-bullets-leaf-no-body-text-bullet))
-      (propertize 
-       (cond ((and children folded body)
-	      reorg-dynamic-bullets-folded-body-text-bullet)
-	     ((and children folded)
-	      reorg-dynamic-bullets-folded-no-body-text-bullet)
-	     ((and children body)
-	      reorg-dynamic-bullets-unfolded-body-text-bullet)
-	     (children
-	      reorg-dynamic-bullets-unfolded-no-body-text-bullet)
-	     (body
-	      reorg-dynamic-bullets-leaf-body-text-bullet)
-	     (t
-	      reorg-dynamic-bullets-leaf-no-body-text-bullet))
-       'face
-       (if clone 'reorg-dynamic-bullets-clone-face
-	 'reorg-dynamic-bullets-face)))))
-
-
-
-
+  (let ((branch (reorg--get-view-prop 'reorg-branch))
+	(folded (reorg-dynamic-bullets--heading-folded-p))
+	(body (reorg--get-view-prop 'body)))
+    ;; (pcase (list children folded body)
+    ;; 	(`(t t t) reorg-dynamic-bullets-folded-body-text-bullet)
+    ;; 	(`(t t nil) reorg-dynamic-bullets-folded-no-body-text-bullet)
+    ;; 	(`(t nil t) reorg-dynamic-bullets-unfolded-body-text-bullet)
+    ;; 	(`(t nil nil) reorg-dynamic-bullets-unfolded-no-body-text-bullet)
+    ;; 	(`(nil nil nil) reorg-dynamic-bullets-leaf-no-body-text-bullet))
+    (propertize 
+     (cond ((and branch folded body)
+	    reorg-dynamic-bullets-folded-body-text-bullet)
+	   ((and branch folded)
+	    reorg-dynamic-bullets-folded-no-body-text-bullet)
+	   ((and branch body)
+	    reorg-dynamic-bullets-unfolded-body-text-bullet)
+	   (branch
+	    reorg-dynamic-bullets-unfolded-no-body-text-bullet)
+	   (body
+	    reorg-dynamic-bullets-leaf-body-text-bullet)
+	   (t
+	    reorg-dynamic-bullets-leaf-no-body-text-bullet))
+     'face
+     'reorg-dynamic-bullets-face)))
 
 ;;;;; Refreshing display
 
 (defun reorg-dynamic-bullets--refresh-with-compose-region (beg end &optional remove)
-  (if remove
-      (decompose-region beg end)
-    (compose-region beg end (reorg-dynamic-bullets--create-heading-bullet))))
+  "refresh with compose region"
+  (decompose-region beg end)
+  (compose-region beg end (reorg-dynamic-bullets--create-heading-bullet)))
 
 (defun reorg-dynamic-bullets--refresh-with-text-props (beg end &optional remove)
   "Refresh all bullets from BEG to END."
@@ -228,16 +186,24 @@ to be refreshed. Two options are:
 All fontifying functions use this function as their base.  
 This function searches the region for the headline regexp and calls 
 `reorg-dynamic-bullets-refresh-func' to act on the matches."
-  (when reorg-dynamic-bullets-mode 
-    (save-excursion
-      (save-match-data 
+  (let ((search-invisible nil))
+    (save-match-data
+      (save-excursion
 	(goto-char beg)
-	(while
-	    (re-search-forward reorg-dynamic-bullets--heading-re end t)
-	  (save-excursion
-	    (funcall reorg-dynamic-bullets-refresh-func
-		     (match-beginning 1)
+	(while (reorg--goto-next-visible-branch)
+	  (funcall reorg-dynamic-bullets-refresh-func
+		   (point)
+		   (progn 
+		     (re-search-forward
+		      reorg-dynamic-bullets--heading-re
+		      (point-at-eol)
+		      t)
 		     (match-end 1))))))))
+	
+	;; (while (re-search-forward reorg-dynamic-bullets--heading-re end t)
+	;;   (funcall reorg-dynamic-bullets-refresh-func
+	;; 	   (match-beginning 1)
+	;; 	   (match-end 1)))))))
 
 (defun reorg-dynamic-bullets--fontify-buffer (&rest _)
   "Fontify the entire buffer."
@@ -245,52 +211,50 @@ This function searches the region for the headline regexp and calls
 
 (defun reorg-dynamic-bullets--fontify-tree (&rest _)
   "Fontify the entire tree from root to last leaf."
-  (when-let* ((level (outline-level))
-	      (beg (save-excursion (if (= 1 level)
-				       (progn (beginning-of-line)
-					      (point))
-				     (while (outline-up-heading nil))
-				     (point))))
-	      (end (save-excursion (outline-end-of-subtree)
-				   (point))))
+  (when-let* ((level (reorg--get-view-prop 'reorg-level))
+	      (beg (if (= 1 level)
+		       (progn (beginning-of-line)
+			      (point))
+		     (reorg--get-root)))
+	      (end (or (reorg--get-next-sibling)
+		       (reorg--get-next-parent)
+		       (point-max))))
     (reorg-dynamic-bullets--fontify beg end)))
 
 (defun reorg-dynamic-bullets--fontify-heading (&rest _)
-  "Fontify the current heading only."
-  (save-excursion
-    (let ((inhibit-field-text-motion t))
-      (reorg-dynamic-bullets--fontify (point-at-bol)
-				      (point-at-eol)))))
+"Fontify the current heading only."
+(save-excursion
+  (reorg-dynamic-bullets--fontify (point-at-bol)
+				  (point-at-eol))))
 
-(defun reorg-dynamic-bullets--fontify-heading-and-previous-sibling (&rest _)
-  "Fontify the current heading and previous sibling."
-  (let ((beg (save-excursion (or (outline-get-last-sibling)
-				 (outline-previous-heading))
-			     (point)))
-	(end (line-beginning-position 2)))
-    (reorg-dynamic-bullets--fontify beg end)))
+
+;; (defun reorg-dynamic-bullets--fontify-heading-and-previous-sibling (&rest _)
+;;   "Fontify the current heading and previous sibling."
+;;   (let ((beg (save-excursion (or (outline-get-last-sibling)
+;; 				   (outline-previous-heading))
+;; 			       (point)))
+;; 	  (end (line-beginning-position 2)))
+;;     (reorg-dynamic-bullets--fontify beg end)))
 
 (defun reorg-dynamic-bullets--fontify-heading-and-parent (&rest _)
   "Fontify the current heading only."
-  (let ((beg (save-excursion (outline-up-heading nil)
-			     (point)))
-	(end (save-excursion (outline-next-visible-heading 1)
-			     (point))))
+  (let ((beg (reorg--get-parent))
+	(end (reorg--get-next-visibile-heading)))
     (reorg-dynamic-bullets--fontify beg end)))
 
-(defun reorg-dynamic-bullets--fontify-children (&rest _)
-  "Fontify current heading to last child."
-  (save-excursion
-    (when (outline-back-to-heading)
-      (let ((beg (point-at-bol))
-	    (end (save-excursion
-		   (outline-end-of-subtree)
-		   (point))))
-	(reorg-dynamic-bullets--fontify beg end)))))
+;; (defun reorg-dynamic-bullets--fontify-children (&rest _)
+;;   "Fontify current heading to last child."
+;;   (save-excursion
+;;     (when (outline-back-to-heading)
+;; 	(let ((beg (point-at-bol))
+;; 	      (end (save-excursion
+;; 		     (outline-end-of-subtree)
+;; 		     (point))))
+;; 	  (reorg-dynamic-bullets--fontify beg end)))))
 
 (defun reorg-dynamic-bullets--org-cycle-hook-func ()
   "Called after `org-cyle'."
-  (reorg-dynamic-bullets--fontify-buffer))
+  (reorg-dynamic-bullets--fontify-tree))
 
 ;;;; Hooks and advice
 
