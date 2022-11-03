@@ -264,15 +264,6 @@ Also create functions to get the point of the target, but not move to it."
 			  nil
 			  t)))))
 
-
-
-
-;;;; getting data
-
-(defun reorg--get-outline-level ()
-  "Get the outline level of the heading at point."
-  (reorg--get-view-prop 'reorg-level))
-
 ;;;; predicates
 (defun reorg--last-branch-p ()
   "is this the last branch in the subtree?"

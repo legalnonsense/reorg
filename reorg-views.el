@@ -186,7 +186,7 @@ current view entry."
     (reorg--create-headline-string
      new
      reorg-headline-format
-     (reorg--get-outline-level))))
+     (reorg--get-view-prop 'reorg-level))))
 
 (defun reorg--shift-up (arg)
   "Shift priority or timestamp."
@@ -250,7 +250,7 @@ current view entry."
 
 (defun reorg-views--replace-heading (data)
   "Replace the heading at point with NEW."
-  (let ((level (reorg--get-outline-level)))
+  (let ((level (reorg--get-view-prop 'reorg-level)))
     (outline-back-to-heading)
     (delete-region (point)
 		   (save-excursion (outline-next-heading) (point)))
