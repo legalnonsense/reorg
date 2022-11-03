@@ -240,9 +240,9 @@ RANGE is non-nil, only look for timestamp ranges."
 	    ("C" "﹍")
 	    (_ " ")))
 
-;; (reorg-create-data-type :name body
-;; 			:class org
-;; 			:parse (reorg--get-body))
+(reorg-create-data-type :name body
+			:class org
+			:parse (reorg--get-body))
 
 (reorg-create-data-type
  :name deadline
