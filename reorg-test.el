@@ -139,7 +139,6 @@
 		  :sort string<
 		  :sort-getter identity)))))))))))
 
-      
 (defun xxx-reorg-test-17 ()
   (interactive)
   (reorg-open-sidebar
@@ -168,106 +167,106 @@
    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
    :template
    '( :group .@tag-list
-      :format-string (concat " " .headline)
+      :format-string (.stars " " .headline)
       :children (( :group .@at-name )))))
 
-;; group by cited file
-(defun xxx-reorg-test-15 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((files . "find ~/legal/Dropbox/hannah -type f")
-	      (org . "~/org/Hannah.org"))
-   :template
-   '( :group "Olivia Hannah"
-      :children (( :group 
-		   :format-string (concat " " .headline))))))
+  ;; group by cited file
+  (defun xxx-reorg-test-15 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '(;;(files . "find ~/legal/Dropbox/hannah -type f")
+		(org . "~/org/Hannah.org"))
+     :template
+     '( :group "Olivia Hannah"
+	:children (( :group 
+		     :format-string (" " .headline))))))
 
-;; sort by inactive timestamp in any ancestor node 
-(defun xxx-reorg-test-15 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((files . "find ~/legal/Dropbox/hannah -type f")
-	      (org . "~/org/Hannah.org"))
-   :template
-   '( :group "Olivia Hannah"
-      :children (( :group (or .root-ts-inactive .timestamp-ia)
-		   :format-string (concat " " .headline))))))
+  ;; sort by inactive timestamp in any ancestor node 
+  (defun xxx-reorg-test-15 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((files . "find ~/legal/Dropbox/hannah -type f")
+		(org . "~/org/Hannah.org"))
+     :template
+     '( :group "Olivia Hannah"
+	:children (( :group (or .root-ts-inactive .timestamp-ia)
+		     :format-string (.headline))))))
 
-(defun xxx-reorg-test-14 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((files . "find ~/Desktop -type f")
-	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-   :template
-   '( :group "TEST"
-      :children (( :group .todo
-		   :sort string<
-		   :sort-getter (lambda (x) (downcase x))
-		   :format-string (concat " "
-					  (if (eq .class 'org)
-					      .headline
-					    .filename)
-					  .todo)
-		   :sort-results ((.headline . string<))
-		   :children (( :group (substring .headline 0 1)
-				:sort string<
-				:sort-getter (lambda (x) (downcase x)))
-			      ( :group (substring .headline -1)
-				:sort string<
-				:sort-getter (lambda (x) (downcase x))
-				:format-string (concat " "
-						       .ts
-						       .headline))))
-		 ( :group (when (eq .class 'files)
-			    .extension)
-		   :format-string (concat " " .filename))))))
+  (defun xxx-reorg-test-14 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((files . "find ~/Desktop -type f")
+		(org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+     :template
+     '( :group "TEST"
+	:children (( :group .todo
+		     :sort string<
+		     :sort-getter (lambda (x) (downcase x))
+		     :format-string (concat " "
+					    (if (eq .class 'org)
+						.headline
+					      .filename)
+					    .todo)
+		     :sort-results ((.headline . string<))
+		     :children (( :group (substring .headline 0 1)
+				  :sort string<
+				  :sort-getter (lambda (x) (downcase x)))
+				( :group (substring .headline -1)
+				  :sort string<
+				  :sort-getter (lambda (x) (downcase x))
+				  :format-string (concat " "
+							 .ts
+							 .headline))))
+		   ( :group (when (eq .class 'files)
+			      .extension)
+		     :format-string (concat " " .filename))))))
 
-(defun xxx-reorg-test-13 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((files . "find ~/Desktop -type f")
-	      (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-   :template
-   '( :group "TEST"
-      :children (( :group (progn
-			    (cond  ((eq .class 'org)
-				    "Orgmode")
-				   ((eq .class 'files)
-				    "Files")))
-		   ;; :sort string<
-		   :format-string (concat " "
-					  (if (eq .class 'org)
-					      .headline
-					    .filename)))))))
-;; (cond ((eq .class 'org)
-;; 	 (concat " " .headline))
-;; 	((eq .class 'files)
-;; 	 (concat " " .filename)))
-;; :sort-getter (lambda (x) (downcase x)))))))
+  (defun xxx-reorg-test-13 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((files . "find ~/Desktop -type f")
+		(org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+     :template
+     '( :group "TEST"
+	:children (( :group (progn
+			      (cond  ((eq .class 'org)
+				      "Orgmode")
+				     ((eq .class 'files)
+				      "Files")))
+		     ;; :sort string<
+		     :format-string (concat " "
+					    (if (eq .class 'org)
+						.headline
+					      .filename)))))))
+  ;; (cond ((eq .class 'org)
+  ;; 	 (concat " " .headline))
+  ;; 	((eq .class 'files)
+  ;; 	 (concat " " .filename)))
+  ;; :sort-getter (lambda (x) (downcase x)))))))
 
-(defun xxx-reorg-test-12 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((files . "find ~/Desktop -type f"))
-   :template
-   '( :group "MEETING VIEW"
-      :children (( :group .extension
-		   :sort string<
-		   :format-string (concat " " .filename)
-		   :sort-getter (lambda (x) (downcase x)))))))
+  (defun xxx-reorg-test-12 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((files . "find ~/Desktop -type f"))
+     :template
+     '( :group "MEETING VIEW"
+	:children (( :group .extension
+		     :sort string<
+		     :format-string (concat " " .filename)
+		     :sort-getter (lambda (x) (downcase x)))))))
 
-(defun xxx-reorg-test-11 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-   :template
-   '( :group "MEETING VIEW"
-      :children (( :group .root
-		   :sort string<
-		   :format-string (concat " " .headline)
-		   :sort-getter (lambda (x) (downcase x)))))))
+  (defun xxx-reorg-test-11 ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+     :template
+     '( :group "MEETING VIEW"
+	:children (( :group .root
+		     :sort string<
+		     :format-string (concat " " .headline)
+		     :sort-getter (lambda (x) (downcase x)))))))
 
-)
+  )
 
 (defun xxx-reorg-test-control-panel-9 ()
   "test new headline creator"
