@@ -1,5 +1,13 @@
 ;; -*- lexical-binding: t; -*-
 
+;;; variables
+
+(defvar-local reorg--extra-prop-list nil "")
+;;(defvar reorg--parser-func-list nil "")
+(defvar-local reorg--getter-list nil "")
+(defvar-local reorg--parser-list nil "")
+
+
 ;;; name constructors
 
 (defun reorg--get-display-buffer-func-name (class)
@@ -152,7 +160,7 @@ call from the template macro.
 ;;
 
 
-(defvar reorg--extra-prop-list nil "")
+
 
 ;;; data macro
 
@@ -162,6 +170,7 @@ call from the template macro.
 				     name
 				     parse
 				     set
+				     disable
 				     display)
   ;; TODO add disabled key to remove data type
   ;; from the parser list 
@@ -183,17 +192,22 @@ text properties of any field displaying the data type.
 "
   (let* ((parsing-func (reorg--get-parser-func-name class name))
 	 (display-func (reorg--get-display-func-name class name)))
-    `(progn 
-       (defun ,parsing-func (&optional data)
-	 ,parse)
-       (cl-pushnew (cons ',name #',parsing-func)
-		   (alist-get ',class reorg--parser-list))
-       (if ',display 
-	   (defun ,display-func (alist)
-	     ,display)
-	 (when (fboundp ',display-func)
-	   (fmakunbound ',display-func))))))
-
+    `(progn
+       (if (not disable)
+	   (progn 
+	     (defun ,parsing-func (&optional data)
+	       ,parse)       
+	     (cl-pushnew (cons ',name #',parsing-func)
+			 (alist-get ',class reorg--parser-list))
+	     (if ',display 
+		 (defun ,display-func (alist)
+		   ,display)
+	       (when (fboundp ',display-func)
+		 (fmakunbound ',display-func))))
+	 (progn
+	   (fmakunbound ',display-func)
+	   (setf (alist-get ',class reorg--parser-list) nil)
+	   (fmakunbound ',parsing-func))))))
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
