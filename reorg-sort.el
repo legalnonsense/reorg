@@ -32,7 +32,7 @@ keys.  Keys are compared using `equal'."
    nil))
 
 (defun reorg--dot-at-search (data)
-  "Return alist of symbols inside DATA that start with a `.'.
+  "Return alist of symbols inside DATA that start with a `.@'.
 Perform a deep search and return an alist where each car is the
 symbol, and each cdr is the same symbol without the `.'."
   (cond
