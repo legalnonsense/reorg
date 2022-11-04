@@ -132,8 +132,76 @@ RANGE is non-nil, only look for timestamp ranges."
 
 ;;; org custom data type
 
+
+(defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
+  "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
+  (interactive)
+  (when  (and (or buffer (reorg--get-view-prop 'buffer))
+	      (or id (reorg--get-view-prop 'id)))
+    (if reorg-parser-use-id-p 
+	(reorg-view--goto-source-id
+	 (or buffer (reorg--get-view-prop 'buffer))
+	 (or id (reorg--get-view-prop 'id))
+	 (not no-narrow))
+      (reorg-view--goto-source-marker 
+       (or buffer (reorg--get-view-prop 'buffer))
+       (or id (reorg--get-view-prop 'marker))
+       (not no-narrow)))))
+
+(defun reorg-view--source--goto-end-of-meta-data ()
+  "Go to the end of the meta data and insert a blank line
+if there is not one."
+  (let ((next-heading (reorg--with-restore-state
+		       (outline-next-heading)
+		       (point)))
+	(end-of-meta-data (save-excursion
+			    (org-end-of-meta-data t)
+			    (re-search-backward (rx (not whitespace)))
+			    (match-end 0))))
+
+    (if (= (- next-heading end-of-meta-data) 1)
+	(progn (goto-char end-of-meta-data)
+	       (insert "\n"))
+      (goto-char (1+ end-of-meta-data)))))
+
+(defun reorg-view--source--narrow-to-heading ()
+  "Narrow to the current heading only, i.e., no subtree."
+  (org-back-to-heading)
+  (org-narrow-to-element))
+
+(defun reorg-view--goto-source-id (buffer id &optional narrow)
+  "Move to buffer and find heading with ID.  If NARROW is non-nil,
+then narrow to that heading and return t.  If no heading is found, don't move
+the point and return nil."
+  (with-current-buffer buffer 
+    (let ((old-point (point))
+	  (search-invisible t))
+      (widen)
+      (goto-char (point-min))
+      (if (re-search-forward id nil t)
+	  (when narrow
+	    (reorg-view--source--narrow-to-heading))
+	t)
+      (goto-char old-point)))
+  (reorg--select-main-window)
+  (set-window-buffer (selected-window) buffer))
+
+(defun reorg-view--goto-source-marker (buffer marker &optional narrow)
+  "Move to buffer and find heading with ID.  If NARROW is non-nil,
+then narrow to that heading and return t.  If no heading is found, don't move
+the point and return nil."
+  (reorg--select-main-window)
+  (set-window-buffer (selected-window) buffer)
+  (widen)
+  (goto-char (marker-position marker))
+  (when narrow
+    (reorg-view--source--narrow-to-heading)
+    t)
+  nil)
+
 (reorg-create-class-type
  :name org
+ :render-func reorg-view--tree-to-source--goto-heading
  :keymap (("h" . (lambda (&optional arg)					   
 		   (interactive)
 		   (reorg--with-source-and-sync 
