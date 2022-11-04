@@ -126,11 +126,14 @@ call from the template macro.
 				   collect (define-key map (kbd key) func))
 			  map)))))
      (when ',render-func
-       (setf (alist-get ',name reorg--extra-prop-list)
-	     (append (alist-get ',name reorg--extra-prop-list)
-		     (list 
-	     	      'render-func
-		      ',render-func))))))
+       (setf (alist-get ',name reorg--render-func-list)
+	     ',render-func))))
+;; (when ',render-func
+;;   (setf (alist-get ',name reorg--extra-prop-list)
+;; 	     (append (alist-get ',name reorg--extra-prop-list)
+;; 		     (list 
+;; 	     	      'render-func
+;; 		      ',render-func))))))
 
 ;; all that is needed for a type is:
 ;; class
