@@ -46,7 +46,8 @@
 					   getter
 					   follow
 					   keymap
-					   extra-props 
+					   extra-props
+					   render-func
 					   display-buffer)
   "Create a new class type. NAME is the name of the class.
 GETTER is a form that does two things:
@@ -123,7 +124,13 @@ call from the template macro.
 		      ',(let ((map (make-sparse-keymap)))
 			  (cl-loop for (key . func) in keymap
 				   collect (define-key map (kbd key) func))
-			  map)))))))
+			  map)))))
+     (when ',render-func
+       (setf (alist-get ',name reorg--extra-prop-list)
+	     (append (alist-get ',name reorg--extra-prop-list)
+		     (list 
+	     	      'render-func
+		      ',render-func))))))
 
 ;; all that is needed for a type is:
 ;; class
