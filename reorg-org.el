@@ -130,22 +130,21 @@ RANGE is non-nil, only look for timestamp ranges."
        (let ((inhibit-field-text-motion t))
 	 ,@body))))
 
-;;; org custom data type
-
+;;; moving from outline to orgmode 
 
 (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
   (interactive)
-  (when  (and (or buffer (reorg--get-view-prop 'buffer))
-	      (or id (reorg--get-view-prop 'id)))
+  (when-let ((buffer (or buffer (reorg--get-view-prop 'buffer)))
+	     (id ((or (reorg--get-view-prop 'id)))))
     (if reorg-parser-use-id-p 
 	(reorg-view--goto-source-id
-	 (or buffer (reorg--get-view-prop 'buffer))
-	 (or id (reorg--get-view-prop 'id))
+	 buffer
+	 id
 	 (not no-narrow))
       (reorg-view--goto-source-marker 
-       (or buffer (reorg--get-view-prop 'buffer))
-       (or id (reorg--get-view-prop 'marker))
+       buffer
+       id
        (not no-narrow)))))
 
 (defun reorg-view--source--goto-end-of-meta-data ()
