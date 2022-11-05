@@ -206,8 +206,8 @@ text properties of any field displaying the data type.
 		 (fmakunbound ',display-func))))
 	 (progn
 	   (fmakunbound ',display-func)
-	   (setf (alist-get ',class reorg--parser-list) nil)
-	   (fmakunbound ',parsing-func))))))
+	   (fmakunbound ',parsing-func)
+	   (setf (alist-get ',name (alist-get ',class reorg--parser-list)) nil))))))
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
