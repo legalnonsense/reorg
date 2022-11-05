@@ -176,16 +176,9 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 (defmacro reorg--create-navigation-commands (alist)
   "Create navigation commands. ALIST is a list in the form of (NAME . FORM)
 where NAME is the name of what you are moving to, e.g., \"next-heading\"
-and FORM is evaluated to see if that target exists.  NAME should be hyphenated.
+and FORM is evaluated to see if that target exists.
 
-FORM must return the point of the target if it exists, or nil if it doesn't.
-
-If the target exists, the function will move to that point and run
-`reorg--navigation-hook'.
-
-If the target does not exist, the function will return nil.
-
-Also create functions to get the point of the target, but not move to it."
+This creates two functions: reorg--get-NAME and reorg--goto-NAME."
   `(progn 
      ,@(cl-loop for (name . form) in alist
 		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) nil
