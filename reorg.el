@@ -256,7 +256,7 @@ switch to that buffer in the window."
 
 ;;;; view buffer functions
 
-;; (defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
+;; (defun reorg--org--goto-source (&optional id buffer no-narrow no-select)
 ;;   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
 ;;   (interactive)
 ;;   (when  (and (or buffer (reorg--get-view-prop 'buffer))
@@ -275,7 +275,7 @@ switch to that buffer in the window."
   "move to next entry"
   (interactive)
   (reorg--goto-next-visible-heading)
-  (reorg-view--tree-to-source--goto-heading)
+  (reorg--org--goto-source)
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
@@ -283,7 +283,7 @@ switch to that buffer in the window."
   "move to previous entry"
   (interactive)
   (reorg--goto-previous-visible-heading)
-  (reorg-view--tree-to-source--goto-heading)
+  (reorg--org--goto-source)
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
@@ -291,7 +291,7 @@ switch to that buffer in the window."
   "next entry"
   (interactive)
   (reorg--goto-next-visible-heading)
-  (reorg-view--tree-to-source--goto-heading)
+  (reorg--org--goto-source)
   (org-back-to-heading)
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
@@ -300,7 +300,7 @@ switch to that buffer in the window."
   "previous entry"
   (interactive)
   (reorg--goto-previous-visible-heading)
-  (reorg-view--tree-to-source--goto-heading)
+  (reorg--org--goto-source)
   (org-back-to-heading)
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
@@ -377,7 +377,7 @@ switch to that buffer in the window."
 (defvar reorg-view-mode-map 
   (let ((map (make-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "RET") #'reorg-view--tree-to-source--goto-heading)
+    (define-key map (kbd "RET") #'reorg--org--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "c") #'reorg--goto-next-clone)
     (define-key map (kbd "f") #'reorg--goto-next-sibling)
@@ -409,7 +409,7 @@ switch to that buffer in the window."
 ;;   (declare (indent defun))
 ;;   `(progn
 ;;      (let ((val (field-string-no-properties)))
-;;        (reorg-view--tree-to-source--goto-heading)
+;;        (reorg--org--goto-source)
 ;;        (save-restriction
 ;; 	 (save-excursion 
 ;; 	   ,@body)))))
