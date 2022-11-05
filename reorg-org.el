@@ -8,7 +8,7 @@ update the heading at point."
   (declare (indent defun))
   `(progn
      (let (data)
-       (reorg-view--tree-to-source--goto-heading)
+       (reorg--org--goto-source)
        (org-with-wide-buffer
 	(org-back-to-heading)
 	,@body
@@ -131,8 +131,10 @@ RANGE is non-nil, only look for timestamp ranges."
 	 ,@body))))
 
 ;;; moving from outline to orgmode 
+;; TODO fix tree to source orgmode functions; figure out how to generalize
+;; TODO delete unused files
 
-(defun reorg-view--tree-to-source--goto-heading (&optional id buffer no-narrow no-select)
+(defun reorg--org--goto-source (&optional id buffer no-narrow no-select) 
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
   (interactive)
   (when-let ((buffer (or buffer (reorg--get-view-prop 'buffer)))
@@ -147,7 +149,9 @@ RANGE is non-nil, only look for timestamp ranges."
        id
        (not no-narrow)))))
 
-(defun reorg-view--source--goto-end-of-meta-data ()
+;; TODO figure out where to use this after navigation
+;; ie, what hook should call this? 
+(defun reorg-org--goto-end-of-meta-data ()
   "Go to the end of the meta data and insert a blank line
 if there is not one."
   (let ((next-heading (reorg--with-restore-state
@@ -200,7 +204,7 @@ the point and return nil."
 
 (reorg-create-class-type
  :name org
- :render-func reorg-view--tree-to-source--goto-heading
+ :render-func reorg--org--goto-source
  :keymap (("h" . (lambda (&optional arg)					   
 		   (interactive)
 		   (reorg--with-source-and-sync 
