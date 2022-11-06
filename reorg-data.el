@@ -1,11 +1,13 @@
+
 ;; -*- lexical-binding: t; -*-
 
 ;;; variables
 
-(defvar-local reorg--extra-prop-list nil "")
+(defvar reorg--extra-prop-list nil "")
 ;;(defvar reorg--parser-func-list nil "")
-(defvar-local reorg--getter-list nil "")
-(defvar-local reorg--parser-list nil "")
+(defvar reorg--getter-list nil "")
+(defvar reorg--parser-list nil "")
+(defvar reorg--render-func-list nil "")
 
 
 ;;; name constructors
@@ -110,17 +112,17 @@ call from the template macro.
      (if (boundp 'reorg--getter-list)
 	 (setf (alist-get ',name reorg--getter-list) nil)
        (defvar reorg--getter-list nil "Getter list for all classes"))
-     (cl-pushnew #',(reorg--create-symbol 'reorg--
-					  name
-					  '--get-from-source)
-		 (alist-get ',name reorg--getter-list))
+     (cl-pushnew  #',(reorg--create-symbol 'reorg--
+					   name
+					   '--get-from-source)
+		  (alist-get ',name reorg--getter-list))
      (if (boundp 'reorg--parser-list)
 	 (setf (alist-get ',name reorg--parser-list) nil)
        (defvar reorg--parser-list nil "Parser list for all classes."))     
      (cl-pushnew (cons 'class (lambda (&optional _) ',name))
 		 (alist-get ',name reorg--parser-list))
      ;; (setf (alist-get ',name reorg--parser-list)
-     ;; 	   (cons 'class (lambda () ',name)))
+     ;; 	   (cons 'class (lambda () ',(name)))
      (when ',extra-props
        (setf (alist-get ',name reorg--extra-prop-list)
 	     ',extra-props))
@@ -193,7 +195,7 @@ text properties of any field displaying the data type.
   (let* ((parsing-func (reorg--get-parser-func-name class name))
 	 (display-func (reorg--get-display-func-name class name)))
     `(progn
-       (if (not disable)
+       (if (not ,disable)
 	   (progn 
 	     (defun ,parsing-func (&optional data)
 	       ,parse)       
@@ -202,26 +204,29 @@ text properties of any field displaying the data type.
 	     (if ',display 
 		 (defun ,display-func (alist)
 		   ,display)
-	       (when (fboundp ',display-func)
-		 (fmakunbound ',display-func))))
+	       (fmakunbound ',display-func)))
 	 (progn
 	   (fmakunbound ',display-func)
 	   (fmakunbound ',parsing-func)
 	   (setf (alist-get ',name (alist-get ',class reorg--parser-list)) nil))))))
 
-(defun reorg--parser (data class &optional type)
-  "Call each parser in CLASS on DATA and return
+(defun reorg--render-source ()
+  "Render the heading at point."
+  nil)
+
+  (defun reorg--parser (data class &optional type)
+    "Call each parser in CLASS on DATA and return
 the result.  If TYPE is provided, only run the
 parser for that type."
-  (if type
-      (cons type 
-	    (funcall (alist-get
-		      type
-		      (alist-get class
-				 reorg--parser-list))
-		     data))
-    (cl-loop for (type . func) in (alist-get class reorg--parser-list)
-	     collect (cons type (funcall func data)))))
+    (if type
+	(cons type 
+	      (funcall (alist-get
+			type
+			(alist-get class
+				   reorg--parser-list))
+		       data))
+      (cl-loop for (type . func) in (alist-get class reorg--parser-list)
+	       collect (cons type (funcall func data)))))
 
 ;;; creating headline strings from parsed data 
 
