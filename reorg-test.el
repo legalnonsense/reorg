@@ -1,54 +1,10 @@
+
 ;;; -*- lexical-binding: t; -*-
 
-(defun reorg-user--create-date-tree (&optional file)
-  (interactive)
-  (reorg-open-sidebar
-   :sources `((org . ,(or file "~/Desktop/tmp.org")))
-   :template 
-   '( :group "Date tree"
-      :children
-      (( :group (when-let ((time (or .timestamp
-				     .deadline
-				     .scheduled
-				     .timestamp-ia)))
-		  (number-to-string
-		   (ts-year
-		    (ts-parse time))))
-	 :sort string< 
-	 :sort-getter identity
-	 :children
-	 (( :group
-	    (when-let ((time (or .timestamp
-				 .deadline
-				 .scheduled
-				 .timestamp-ia)))
-	      (concat
-	       " "
-	       (ts-month-name (ts-parse time))
-	       " "
-	       (number-to-string (ts-year (ts-parse time)))))
-	    :sort string<
-	    :sort-getter identity
-	    :children
-	    (( :group
-	       (when-let ((time (or .timestamp
-				    .deadline
-				    .scheduled
-				    .timestamp-ia)))
-		 (concat 
-		  (ts-day-name (ts-parse time))
-		  " "
-		  (s-pad-left 2
-			      "0"
-			      (number-to-string
-			       (ts-day (ts-parse time))))
-		  " "
-		  (ts-month-name (ts-parse time))
-		  ", "
-		  (number-to-string 
-		   (ts-year (ts-parse time)))))
-	       :sort string<
-	       :sort-getter identity)))))))))
+(alist-get 'org reorg--parser-list)
+reorg--extra-prop-list
+reorg--render-func-list
+
 
 (defun reorg-user--create-meeting-view ()
   (interactive)
@@ -73,7 +29,7 @@
 				 (not (string= .todo "OPP_DUE"))
 				 (not (string= .todo "DEADLINE")))
 			"TASKS" )
-	       :format-string ((s-pad-right 10 " " .todo) " " .headline)
+	       :format-string (.stars " " (s-pad-right 10 " " .todo) " " .headline)
 	       :sort-results ((.todo . string<)
 			      ((downcase .headline) . string<)))
 	     ( :group (when (and
@@ -139,134 +95,184 @@
 		  :sort string<
 		  :sort-getter identity)))))))))))
 
-(defun xxx-reorg-test-17 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((org . "~/Desktop/tmp.org"))
-   :template
-   '( :group "MEETING VIEW"
-      :children (( :group (when .timestamp-all
-			    .root)
-		   :sort string<
-		   :sort-getter (lambda (x) (downcase x))
-		   :sort-results ((.timestamp-all . string<))
-		   :format-string (concat " "
-					  (or .deadline
-					      .timestamp
-					      (when .timestamp-range
-						(car .timestamp-range))
-					      .scheduled)
-					  "\t"
-					  .todo
-					  "\t"
-					  .headline))))))
+ (defun reorg-user--create-date-tree (&optional file)
+   (interactive)
+   (reorg-open-sidebar
+    :sources `((org . ,(or file "~/Desktop/tmp.org")))
+    :template 
+    '( :group "Date tree"
+       :children
+       (( :group (when-let ((time (or .timestamp
+				      .deadline
+				      .scheduled
+				      .timestamp-ia)))
+		   (number-to-string
+		    (ts-year
+		     (ts-parse time))))
+	  :sort string< 
+	  :sort-getter identity
+	  :children
+	  (( :group
+	     (when-let ((time (or .timestamp
+				  .deadline
+				  .scheduled
+				  .timestamp-ia)))
+	       (concat
+		" "
+		(ts-month-name (ts-parse time))
+		" "
+		(number-to-string (ts-year (ts-parse time)))))
+	     :sort string<
+	     :sort-getter identity
+	     :children
+	     (( :group
+		(when-let ((time (or .timestamp
+				     .deadline
+				     .scheduled
+				     .timestamp-ia)))
+		  (concat 
+		   (ts-day-name (ts-parse time))
+		   " "
+		   (s-pad-left 2
+			       "0"
+			       (number-to-string
+				(ts-day (ts-parse time))))
+		   " "
+		   (ts-month-name (ts-parse time))
+		   ", "
+		   (number-to-string 
+		    (ts-year (ts-parse time)))))
+		:sort string<
+		:sort-getter identity)))))))))
 
-(defun xxx-reorg-test-16 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
-   :template
-   '( :group .@tag-list
-      :format-string (.stars " " .headline)
-      :children (( :group .@at-name )))))
+ (defun xxx-reorg-test-17 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '((org . "~/Desktop/tmp.org"))
+    :template
+    '( :group "MEETING VIEW"
+       :children (( :group (when .timestamp-all
+			     .root)
+		    :sort string<
+		    :sort-getter (lambda (x) (downcase x))
+		    :sort-results ((.timestamp-all . string<))
+		    :format-string (concat " "
+					   (or .deadline
+					       .timestamp
+					       (when .timestamp-range
+						 (car .timestamp-range))
+					       .scheduled)
+					   "\t"
+					   .todo
+					   "\t"
+					   .headline))))))
 
-  ;; group by cited file
-  (defun xxx-reorg-test-15 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '(;;(files . "find ~/legal/Dropbox/hannah -type f")
-		(org . "~/org/Hannah.org"))
-     :template
-     '( :group "Olivia Hannah"
-	:children (( :group 
-		     :format-string (" " .headline))))))
+ (defun xxx-reorg-test-16 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
+    :template
+    '( :group .@tag-list
+       :format-string (.stars " " .headline)
+       :children (( :group .@at-name )))))
 
-  ;; sort by inactive timestamp in any ancestor node 
-  (defun xxx-reorg-test-15 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((files . "find ~/legal/Dropbox/hannah -type f")
-		(org . "~/org/Hannah.org"))
-     :template
-     '( :group "Olivia Hannah"
-	:children (( :group (or .root-ts-inactive .timestamp-ia)
-		     :format-string (.headline))))))
+ ;; group by cited file
+ (defun xxx-reorg-test-15 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '(;;(files . "find ~/legal/Dropbox/hannah -type f")
+	       (org . "~/org/Hannah.org"))
+    :template
+    '( :group "Olivia Hannah"
+       :children (( :group 
+		    :format-string (" " .headline))))))
 
-  (defun xxx-reorg-test-14 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((files . "find ~/Desktop -type f")
-		(org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-     :template
-     '( :group "TEST"
-	:children (( :group .todo
-		     :sort string<
-		     :sort-getter (lambda (x) (downcase x))
-		     :format-string (concat " "
-					    (if (eq .class 'org)
-						.headline
-					      .filename)
-					    .todo)
-		     :sort-results ((.headline . string<))
-		     :children (( :group (substring .headline 0 1)
-				  :sort string<
-				  :sort-getter (lambda (x) (downcase x)))
-				( :group (substring .headline -1)
-				  :sort string<
-				  :sort-getter (lambda (x) (downcase x))
-				  :format-string (concat " "
-							 .ts
-							 .headline))))
-		   ( :group (when (eq .class 'files)
-			      .extension)
-		     :format-string (concat " " .filename))))))
+ ;; sort by inactive timestamp in any ancestor node 
+ (defun xxx-reorg-test-15 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '((files . "find ~/legal/Dropbox/hannah -type f")
+	       (org . "~/org/Hannah.org"))
+    :template
+    '( :group "Olivia Hannah"
+       :children (( :group (or .root-ts-inactive .timestamp-ia)
+		    :format-string (.headline))))))
 
-  (defun xxx-reorg-test-13 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((files . "find ~/Desktop -type f")
-		(org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-     :template
-     '( :group "TEST"
-	:children (( :group (progn
-			      (cond  ((eq .class 'org)
-				      "Orgmode")
-				     ((eq .class 'files)
-				      "Files")))
-		     ;; :sort string<
-		     :format-string (concat " "
-					    (if (eq .class 'org)
-						.headline
-					      .filename)))))))
-  ;; (cond ((eq .class 'org)
-  ;; 	 (concat " " .headline))
-  ;; 	((eq .class 'files)
-  ;; 	 (concat " " .filename)))
-  ;; :sort-getter (lambda (x) (downcase x)))))))
+ (defun xxx-reorg-test-14 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '((files . "find ~/Desktop -type f")
+	       (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+    :template
+    '( :group "TEST"
+       :children (( :group .todo
+		    :sort string<
+		    :sort-getter (lambda (x) (downcase x))
+		    :format-string (concat " "
+					   (if (eq .class 'org)
+					       .headline
+					     .filename)
+					   .todo)
+		    :sort-results ((.headline . string<))
+		    :children (( :group (substring .headline 0 1)
+				 :sort string<
+				 :sort-getter (lambda (x) (downcase x)))
+			       ( :group (substring .headline -1)
+				 :sort string<
+				 :sort-getter (lambda (x) (downcase x))
+				 :format-string (concat " "
+							.ts
+							.headline))))
+		  ( :group (when (eq .class 'files)
+			     .extension)
+		    :format-string (concat " " .filename))))))
 
-  (defun xxx-reorg-test-12 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((files . "find ~/Desktop -type f"))
-     :template
-     '( :group "MEETING VIEW"
-	:children (( :group .extension
-		     :sort string<
-		     :format-string (concat " " .filename)
-		     :sort-getter (lambda (x) (downcase x)))))))
+ (defun xxx-reorg-test-13 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '((files . "find ~/Desktop -type f")
+	       (org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+    :template
+    '( :group "TEST"
+       :children (( :group (progn
+			     (cond  ((eq .class 'org)
+				     "Orgmode")
+				    ((eq .class 'files)
+				     "Files")))
+		    ;; :sort string<
+		    :format-string (concat " "
+					   (if (eq .class 'org)
+					       .headline
+					     .filename)))))))
+ ;; (cond ((eq .class 'org)
+ ;; 	 (concat " " .headline))
+ ;; 	((eq .class 'files)
+ ;; 	 (concat " " .filename)))
+ ;; :sort-getter (lambda (x) (downcase x)))))))
 
-  (defun xxx-reorg-test-11 ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
-     :template
-     '( :group "MEETING VIEW"
-	:children (( :group .root
-		     :sort string<
-		     :format-string (concat " " .headline)
-		     :sort-getter (lambda (x) (downcase x)))))))
+ (defun xxx-reorg-test-12 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '((files . "find ~/Desktop -type f"))
+    :template
+    '( :group "MEETING VIEW"
+       :children (( :group .extension
+		    :sort string<
+		    :format-string (concat " " .filename)
+		    :sort-getter (lambda (x) (downcase x)))))))
 
-  )
+ (defun xxx-reorg-test-11 ()
+   (interactive)
+   (reorg-open-sidebar
+    :sources '((org . "~/legal/Dropbox/DropsyncFiles/taskmaster.org"))
+    :template
+    '( :group "MEETING VIEW"
+       :children (( :group .root
+		    :sort string<
+		    :format-string (concat " " .headline)
+		    :sort-getter (lambda (x) (downcase x)))))))
+
+ )
 
 (defun xxx-reorg-test-control-panel-9 ()
   "test new headline creator"
