@@ -46,9 +46,6 @@
 (defvar-local reorg--current-template nil
   "the current template in this buffer")
 
-(defvar-local reorg--render-func-list nil
-  "function to render class in the render buffer.")
-
 (defvar reorg--navigation-hook nil
   "Post-navigation hook.")
 
