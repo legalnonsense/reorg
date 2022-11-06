@@ -12,9 +12,9 @@
 (require 's)
 
 ;;; reorg requires 
+(require 'reorg-data)
 (require 'reorg-sort)
 (require 'reorg-utils)
-(require 'reorg-data)
 (require 'reorg-find)
 (require 'reorg-dynamic-bullets)
 
