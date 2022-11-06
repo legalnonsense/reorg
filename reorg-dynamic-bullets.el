@@ -184,15 +184,16 @@ This function searches the region for the headline regexp and calls
     (save-match-data
       (save-excursion
 	(goto-char beg)
-	(while (and (when-let ((b (point))
-			       (e (when (re-search-forward
-					 reorg-dynamic-bullets--heading-re
-					 (point-at-eol)
-					 t)
-				    (match-end 1))))
-		      (funcall reorg-dynamic-bullets-refresh-func
-			       b e))
-		    (reorg--goto-next-visible-heading)
+	(while (and (let ((b (point))
+			  (e (when (re-search-forward
+				    reorg-dynamic-bullets--heading-re
+				    (point-at-eol)
+				    t)
+			       (match-end 1))))
+		      (when (and b e)
+			(funcall reorg-dynamic-bullets-refresh-func
+				 b e))
+		      (reorg--goto-next-visible-heading))
 		    (< (point) end)))))
     (run-hooks 'reorg--navigation-hook)))
 
@@ -203,13 +204,11 @@ This function searches the region for the headline regexp and calls
 
 (defun reorg-dynamic-bullets--fontify-tree (&rest _)
   "Fontify the entire tree from root to last leaf."
-  (when-let* ((level (reorg--get-view-prop 'reorg-level))
-	      (beg (point))
+  (when-let* ((beg (point))
 	      ;; (if (= 1 level)
 	      ;;     (progn (beginning-of-line)
 	      ;; 	      (point))
 	      ;;   (reorg--get-root))
-
 	      (end (or (reorg--get-next-sibling)
 		       (reorg--get-next-parent)
 		       (point-max))))
