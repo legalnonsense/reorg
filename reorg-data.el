@@ -214,13 +214,8 @@ text properties of any field displaying the data type.
 ;; TODO generalize render function 
 (defun reorg--render-source ()
   "Render the heading at point."
-  (when-let* ((class (reorg--get-view-prop 'class))
-	      (window (window-main-window))
-	      (buffer (reorg--get-view-prop 'buffer))
-	      (func (alist-get class reorg--render-func-list)))
-    (with-current-buffer buffer 
-      (funcall func)))
-  (reorg--select-main-window buffer))
+  (when-let ((func (alist-get (reorg--get-view-prop 'class) reorg--render-func-list)))
+    (funcall func)))
 
 
 (defun reorg--parser (data class &optional type)

@@ -178,15 +178,17 @@ if there is not one."
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (with-current-buffer (or buffer (reorg--get-view-prop 'buffer))
-    (let ((old-point (point))
-	  (search-invisible t))
-      (widen)
-      (goto-char (point-min))
-      (if (re-search-forward id nil t)
-	  (when narrow
-	    (reorg-view--source--narrow-to-heading))
-	(goto-char old-point)))))
+  (let ((id (or id (reorg--get-view-prop 'id))))
+    (with-current-buffer (or buffer (reorg--get-view-prop 'buffer))
+      (let ((old-point (point))
+	    (search-invisible t))
+	(widen)
+	(goto-char (point-min))
+	(if (re-search-forward id nil t)
+	    (progn (goto-char (match-beginning 0))
+		   (when narrow
+		     (reorg-view--source--narrow-to-heading)))
+	  (goto-char old-point))))))
     ;; (reorg--select-main-window)
     ;; (set-window-buffer (selected-window) buffer)))
 
