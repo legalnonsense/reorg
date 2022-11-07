@@ -210,23 +210,32 @@ text properties of any field displaying the data type.
 	   (fmakunbound ',parsing-func)
 	   (setf (alist-get ',name (alist-get ',class reorg--parser-list)) nil))))))
 
+
+;; TODO generalize render function 
 (defun reorg--render-source ()
   "Render the heading at point."
-  nil)
+  (when-let* ((class (reorg--get-view-prop 'class))
+	      (window (window-main-window))
+	      (buffer (reorg--get-view-prop 'buffer))
+	      (func (alist-get class reorg--render-func-list)))
+    (with-current-buffer buffer 
+      (funcall func)))
+  (reorg--select-main-window buffer))
 
-  (defun reorg--parser (data class &optional type)
-    "Call each parser in CLASS on DATA and return
+
+(defun reorg--parser (data class &optional type)
+  "Call each parser in CLASS on DATA and return
 the result.  If TYPE is provided, only run the
 parser for that type."
-    (if type
-	(cons type 
-	      (funcall (alist-get
-			type
-			(alist-get class
-				   reorg--parser-list))
-		       data))
-      (cl-loop for (type . func) in (alist-get class reorg--parser-list)
-	       collect (cons type (funcall func data)))))
+  (if type
+      (cons type 
+	    (funcall (alist-get
+		      type
+		      (alist-get class
+				 reorg--parser-list))
+		     data))
+    (cl-loop for (type . func) in (alist-get class reorg--parser-list)
+	     collect (cons type (funcall func data)))))
 
 ;;; creating headline strings from parsed data 
 

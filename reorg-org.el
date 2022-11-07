@@ -138,7 +138,9 @@ RANGE is non-nil, only look for timestamp ranges."
   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
   (interactive)
   (when-let ((buffer (or buffer (reorg--get-view-prop 'buffer)))
-	     (id ((or (reorg--get-view-prop 'id)))))
+	     (id (or id (reorg--get-view-prop 'id))))
+    (with-current-buffer buffer
+      (widen))
     (if reorg-parser-use-id-p 
 	(reorg-view--goto-source-id
 	 buffer
@@ -172,11 +174,11 @@ if there is not one."
   (org-back-to-heading)
   (org-narrow-to-element))
 
-(defun reorg-view--goto-source-id (buffer id &optional narrow)
+(defun reorg--org--goto-source (&optional buffer id narrow)
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (with-current-buffer buffer 
+  (with-current-buffer (or buffer (reorg--get-view-prop 'buffer))
     (let ((old-point (point))
 	  (search-invisible t))
       (widen)
@@ -184,10 +186,9 @@ the point and return nil."
       (if (re-search-forward id nil t)
 	  (when narrow
 	    (reorg-view--source--narrow-to-heading))
-	t)
-      (goto-char old-point)))
-  (reorg--select-main-window)
-  (set-window-buffer (selected-window) buffer))
+	(goto-char old-point)))))
+    ;; (reorg--select-main-window)
+    ;; (set-window-buffer (selected-window) buffer)))
 
 (defun reorg-view--goto-source-marker (buffer marker &optional narrow)
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
