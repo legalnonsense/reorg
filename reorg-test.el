@@ -8,7 +8,7 @@
 (defun reorg-user--create-meeting-view ()
   (interactive)
   (reorg-open-sidebar
-   :sources '((org . "~/Desktop/tmp.org"))
+   :sources '((org . "~/tmp/tmp.org"))
    :template
    '( :group "MEETING VIEW"
       :format-string (.stars " " .headline)
@@ -271,7 +271,7 @@
 		   :format-string (concat " " .headline)
 		   :sort-getter (lambda (x) (downcase x)))))))
 
-)
+
 
 (defun xxx-reorg-test-control-panel-9 ()
   "test new headline creator"
