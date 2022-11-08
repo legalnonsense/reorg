@@ -5,6 +5,14 @@
 (alist-get 'org reorg--extra-prop-list)
 (alist-get 'org reorg--render-func-list)
 
+(defun reorg-user--test-files ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((files . "find ~/legal/Dropbox/hannah -type f"))
+   :template '( :group "Files"
+		:format-string (.stars "\t\t" .extension "\t\t" .filename)
+		:children (( :group .extension)))))
+
 (defun reorg-user--create-meeting-view ()
   (interactive)
   (reorg-open-sidebar
