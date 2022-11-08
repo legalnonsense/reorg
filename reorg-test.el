@@ -1,21 +1,20 @@
 
 ;;; -*- lexical-binding: t; -*-
 
-(alist-get 'org reorg--parser-list)
-(alist-get 'org reorg--extra-prop-list)
-(alist-get 'org reorg--render-func-list)
+;; (alist-get 'org reorg--parser-list)
+;; (alist-get 'org reorg--extra-prop-list)
+;; (alist-get 'org reorg--render-func-list)
 
 (defun reorg-user--clone-file-2 ()
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/tmp/tmp.org"))
-   :template '( :group "tmp.org"
-		:format-string ((make-string (1+ (or .org-level 1)) ?*) " " .headline)
+   :template '( :group ""
+		:format-string ((make-string (or .org-level 1) ?*) " " .headline)
 		:format-string-overrides ((reorg-branch . t)
-					  (reorg-level . (1+ .org-level)))
+					  (reorg-level . .org-level))
 		:sort <
-		:sort-getter .order 1)))
-
+		:sort-getter .order)))
 
 (defun reorg-user--clone-file ()
   (interactive)
@@ -25,7 +24,6 @@
 		:format-string (.stars " " .headline)
 		:sort <
 		:sort-getter .order)))
-
 
 (defun reorg-user--test-files ()
   (interactive)
