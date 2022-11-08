@@ -111,23 +111,6 @@ switch to that buffer in the window."
 ;; 		finally return (point))))))
 ;;; main
 
-;; (defun reorg-open-sidebar-clone (&optional file)
-;;   "Open this shit in the sidebar."
-;;   (interactive)
-;;   (let ((results (--> (reorg--map-entries file)
-;; 		      (reorg--clone-outline-results it '((stars) (" ") (headline))))))
-;;     (when (get-buffer reorg-buffer-name)
-;;       (kill-buffer reorg-buffer-name))
-;;     (reorg--open-side-window)
-;;     (reorg--select-tree-window)
-;;     (let ((inhibit-read-only t))
-;;       (erase-buffer))
-;;     (reorg--insert-org-headlines results)
-;;     (reorg-view-mode)
-;;     (reorg-dynamic-bullets-mode)
-;;     (org-visual-indent-mode)    
-;;     (goto-char (point-min))))
-
 (cl-defun reorg-open-sidebar (&key sources template)
   "Open this shit in the sidebar."
   (interactive)
@@ -148,125 +131,7 @@ switch to that buffer in the window."
     (setq-local cursor-type nil)
     (goto-char (point-min))))
 
-;; (defun reorg-tree--get-all-clone-start-points (&optional backward)
-;;   "Get the point of each clone of the node at point."
-;;   (let ((func (if backward
-;; 		  #'text-property-search-backward
-;; 		#'text-property-search-forward )))
-;;     (cl-loop with point = (point)
-;; 	     with id = (reorg--get-view-prop 'id)
-;; 	     with result = nil
-;; 	     do (setq result (funcall func 'reorg-data
-;; 				      id
-;; 				      (lambda (val alist)
-;; 					(string= 
-;; 					 (alist-get 'id alist)
-;; 					 val))
-;; 				      'not-current))
-;; 	     while result 
-;; 	     collect result
-;; 	     finally (goto-char point))))
-
-;; (defun reorg-tree--jump-to-next-clone (&optional backward)
-;;   "Get the point of each clone of the node at point."
-;;   (interactive)
-;;   (when-let ((func (if backward
-;; 		       #'text-property-search-backward
-;; 		     #'text-property-search-forward))
-;; 	     (id (reorg--get-view-prop 'id))
-;; 	     (result (funcall func
-;; 			      'reorg-data
-;; 			      id
-;; 			      (lambda (val alist)
-;; 				(string=
-;; 				 (alist-get 'id alist)
-;; 				 val))
-;; 			      t)))
-;;     (goto-char (prop-match-beginning result))))
-
-;; (defun reorg-tree--jump-to-previous-clone () 
-;;   "Get the point of each clone of the node at point."
-;;   (interactive)
-;;   (reorg-tree--jump-to-next-clone t))
-
-;; TODO re-write all navigation functions
-
-;; (defun reorg-open-sidebar-fundamental (template &optional format-string file)
-;;   "Open this shit in the sidebar."
-;;   (interactive)
-;;   (let ((results (--> (reorg--map-entries file)
-;; 		      (reorg--group-and-sort it template)
-;; 		      (reorg--process-results it format-string))))
-;;     (when (get-buffer reorg-buffer-name)
-;;       (kill-buffer reorg-buffer-name))
-;;     (reorg--open-side-window)
-;;     (reorg--select-tree-window)
-;;     (let ((inhibit-read-only t))
-;;       (erase-buffer))
-;;     (reorg--insert-org-headlines results)
-;;     (fundamental-mode)))
-
-;;; reorg-views
-;;;; clone functions
-
-;; (defun reorg--jump-to-next-clone (&optional previous)
-;;   "Move to the next clone of the current node."
-;;   (interactive)
-;;   (when-let* ((func (if previous
-;; 			#'text-property-search-backward
-;; 		      #'text-property-search-forward))
-;; 	      (id (reorg--get-view-prop 'id))
-;; 	      (match (funcall func reorg--data-property-name
-;; 			      id
-;; 			      (lambda (val alist)
-;; 				(string=
-;; 				 (alist-get 'id alist)
-;; 				 val))
-;; 			      'not-current))
-;; 	      (point (point)))
-;;     (goto-char (prop-match-beginning match))
-;;     (save-excursion 
-;;       (reorg--unfold-at-point point)
-;;       (reorg-edits--update-box-overlay)
-;;       point)
-;;     (run-hooks 'reorg--navigation-hook)))
-
-;; (defun reorg--jump-to-previous-clone ()
-;;   "Jump to previous clone based on matching id."
-;;   (interactive)
-;;   (cl-loop with id = (reorg--get-view-prop 'id)
-;; 	   with point = (point)
-;; 	   while (text-property-search-backward
-;; 		  'reorg-data
-;; 		  id
-;; 		  (lambda (a b)
-;; 		    t)
-;; 		  t)
-;; 	   when (progn (backward-char 1)
-;; 		       (string= (reorg--get-view-prop 'id)
-;; 				id))
-;; 	   return (progn (beginning-of-line)
-;; 			 (reorg--unfold-at-point (point))
-;; 			 (reorg-edits--update-box-overlay)
-;; 			 (point))
-;; 	   finally (progn (goto-char point) nil)))
-
 ;;;; view buffer functions
-
-;; (defun reorg--org--goto-source (&optional id buffer no-narrow no-select)
-;;   "Goto ID in the source buffer. If NARROW is non-nil, narrow to the heading."
-;;   (interactive)
-;;   (when  (and (or buffer (reorg--get-view-prop 'buffer))
-;; 	      (or id (reorg--get-view-prop 'id)))
-;;     (if reorg-parser-use-id-p 
-;; 	(reorg-view--goto-source-id
-;; 	 (or buffer (reorg--get-view-prop 'buffer))
-;; 	 (or id (reorg--get-view-prop 'id))
-;; 	 (not no-narrow))
-;;       (reorg-view--goto-source-marker 
-;;        (or buffer (reorg--get-view-prop 'buffer))
-;;        (or id (reorg--get-view-prop 'marker))
-;;        (not no-narrow)))))
 
 (defun reorg--move-to-next-entry-follow ()
   "move to next entry"
@@ -300,20 +165,6 @@ switch to that buffer in the window."
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
-;; (defun reorg--goto-next-parent ()
-;;   "Goto the next parent."
-;;   (interactive)
-;;   (when (re-search-forward
-;; 	 (concat "^*\\{" (number-to-string (1- (outline-level))) "\\} ") nil t)
-;;     (beginning-of-line)
-;;     (run-hooks 'reorg--navigation-hook)))
-
-;; (defun reorg--goto-parent ()
-;;   "Goto the next parent."
-;;   (interactive)
-;;   (org-up-heading-safe)
-;;   (run-hooks 'reorg--navigation-hook))
-
 ;;;; updating the tree
 
 (defun reorg--update-this-heading-all ()
@@ -329,45 +180,6 @@ switch to that buffer in the window."
 	(reorg--map-id id
 		       (reorg-view--update-view-headline)
 		       (reorg-dynamic-bullets--fontify-heading))))))
-
-;; (defun reorg--update-this-heading (data template)
-;;   "Delete the heading and all clones, re-insert them into the outline,
-;; move to the first new entry."
-;;   (let ((disable-point-adjustment t)
-;; 	(search-invisible t)
-;; 	(id (reorg--get-view-prop 'id)))
-;;     (reorg--select-tree-window)
-;;     (reorg--map-id (plist-get data :id)
-;; 		   (reorg-views--delete-leaf)
-;; 		   (reorg-views--delete-headers-maybe))
-;;     (reorg--branch-insert--drop-into-outline data
-;; 					     template)))
-
-;;;; view mode
-
-;; (defun reorg--shift-up (arg)
-;;   "Shift priority or timestamp."
-;;   (interactive "P")
-;;   (pcase (reorg-edits--get-field-type)
-;;     ((or 'deadline
-;; 	 'scheduled
-;; 	 'timestamp
-;; 	 'timestamp-ia)
-;;      (org-timestamp-up arg))
-;;     (`priority
-;;      (org-priority-up))))
-
-;; (defun reorg--shift-down (arg)
-;;   "Shift priority or timestamp."
-;;   (interactive "P")
-;;   (pcase (reorg-edits--get-field-type)
-;;     ((or 'deadline
-;; 	 'scheduled
-;; 	 'timestamp
-;; 	 'timestamp-ia)
-;;      (org-timestamp-down arg))
-;;     (`priority
-;;      (org-priority-down))))
 
 (defvar reorg-view-mode-map 
   (let ((map (make-keymap)))
@@ -388,26 +200,15 @@ switch to that buffer in the window."
     map)
   "keymap")
 
-  (defun reorg--close-tree-buffer ()
-    "Close the tree buffer."
-    (interactive)
-    (let* ((window (select-window
-		    (car 
-		     (window-at-side-list nil reorg-buffer-side))))
-	   (buffer (window-buffer window)))
-      (delete-window window)
-      (kill-buffer buffer)))
-
-;; (defmacro reorg--with-source-buffer (&rest body)
-;;   "Execute BODY in the source buffer and
-;; update the heading at point."
-;;   (declare (indent defun))
-;;   `(progn
-;;      (let ((val (field-string-no-properties)))
-;;        (reorg--org--goto-source)
-;;        (save-restriction
-;; 	 (save-excursion 
-;; 	   ,@body)))))
+(defun reorg--close-tree-buffer ()
+  "Close the tree buffer."
+  (interactive)
+  (let* ((window (select-window
+		  (car 
+		   (window-at-side-list nil reorg-buffer-side))))
+	 (buffer (window-buffer window)))
+    (delete-window window)
+    (kill-buffer buffer)))
 
 (define-derived-mode reorg-view-mode
   fundamental-mode
@@ -421,80 +222,6 @@ switch to that buffer in the window."
   (add-hook 'reorg--navigation-hook #'org-show-context nil t)
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
-;;; reorg-edit-mode
-;;;; transclusion hook
-
-;; (defun reorg--modification-hook-func (overlay postp beg end &optional length)
-;;   "overlay post change hook."
-;;   (when postp
-;;     (save-match-data
-;;       (let* ((overlay-beg (overlay-start overlay))
-;; 	     (headline-beg (reorg--get-headline-start))
-;; 	     (beg (if (<= (- beg headline-beg) 0)
-;; 			       0
-;; 			     (- beg headline-beg)))
-;; 	     (adjustment (if (< beg overlay-beg)
-;; 			     (- beg overlay-beg)
-;; 			   0)))
-;; 	(cond
-;; 	 ((and (= beg end) (> length 0))
-;; 	  (reorg--with-point-at-orig-entry nil nil
-;; 					   (reorg--goto-headline-start)
-;; 					   (forward-char relative-beg)
-;; 					   (delete-region (point) (+ (point) length))))	 
-;; 	 ((and (/= beg end) (> length 0))
-;; 	  (let ((s (buffer-substring-no-properties (+ overlay-beg
-;; 						      relative-beg) end)))
-;; 	    (message s)
-;; 	    (reorg--with-point-at-orig-entry nil nil
-;; 					     (reorg--goto-headline-start)
-;; 					     (forward-char relative-beg)
-;; 					     (delete-region (point) (+ (point)
-;; 								       (+ length adjustment)))
-;; 					     (insert s))))	 
-;; 	 ((or (= length 0) (/= beg end))
-;; 	  (let ((s (buffer-substring-no-properties beg end)))
-;; 	    (reorg--with-point-at-orig-entry nil nil
-;; 					     (reorg--goto-headline-start)
-;; 					     (forward-char relative-beg)
-;; 					     (insert s)))))))))
-
-
-;;;; customs
-
-;; (defcustom reorg-edits-commit-edit-shortcut "C-c C-c"
-;;   "Shortcut to commit edits when in `reorg-edits-mode'
-;; Accepts any string acceptable to `kbd'."
-;;   :type 'string)
-
-;; (defcustom reorg-edits-abort-edit-shortcut "C-c C-k"
-;;   "Shortcut to abort edits when in `reorg-edits-mode'
-;; Accepts any string acceptable to `kbd'."
-;;   :type 'string)
-
-;; (defcustom reorg-edits-start-edit-shortcut "C-c C-c"
-;;   "Shortcut to initiate `reorg-edits-mode'
-;; Accepts any string acceptable to `kbd'."
-;;   :type 'string)
-
-;;;; variables
-
-;; (defvar reorg-edits--restore-state nil
-;;   "When editing a clone, save the current headline and body
-;; to restore if the edit is abandoned.")
-
-;; (defvar reorg-edits--previous-header-line nil
-;;   "previous header line")
-
-;; (defvar reorg-edits--header-line
-;;   '(:eval
-;;     (format 
-;;      "Editing headline. '%s' to finish and update. '%s' to abandon."
-;;      reorg-edits-commit-edit-shortcut
-;;      reorg-edits-abort-edit-shortcut))
-;;   "The value of header-line-format when `reorg-edits-mode' is 
-;; invoked.")
-
 (defvar reorg-edits--current-field-overlay
   (let ((overlay (make-overlay 1 2)))
     (overlay-put overlay 'face '( :box (:line-width -1)
@@ -503,29 +230,7 @@ switch to that buffer in the window."
     overlay)
   "Overlay for field at point.")
 
-;; (defvar reorg-edits-field-mode-map
-;;   (let ((map (make-sparse-keymap)))
-;;     (define-key map (kbd reorg-edits-commit-edit-shortcut)
-;;       #'reorg-edits--commit-edit)
-;;     (define-key map (kbd reorg-edits-abort-edit-shortcut)
-;;       #'reorg-edits--discard-edit)
-;;     (define-key map (kbd "TAB") #'reorg-edits-move-to-next-field)
-;;     (define-key map (kbd "BACKTAB") #'reorg-edits-move-to-previous-field)
-;;     (define-key map [remap kill-line] #'reorg--kill-field)
-;;     map)
-;;   "keymap.")
-
-;;;; macros
-
-
-
 ;;;; field navigation 
-
-;; (defun reorg-edits--post-field-navigation-hook ()
-;;   "Tell the user what field they are on."
-;;   (reorg-edits--update-box-overlay)
-;;   (setf (point) (car 
-;; 		 (reorg-edits--get-field-bounds))))
 
 (defun reorg--unfold-at-point (&optional point)
   "Unfold so the heading at point is visible."
@@ -552,227 +257,9 @@ switch to that buffer in the window."
       ;; 	 (reorg-edits--get-field-type)))
       (setq point (point)))))
 
-
-
-;; (defun reorg-edits--move-selection-overlay ()
-;;   (if-let ((bounds (reorg-edits--get-field-bounds)))
-;;       (move-overlay reorg-edits--current-field-overlay
-;; 		    (car bounds)
-;; 		    (cdr bounds))
-;;     (delete-overlay reorg-edits--current-field-overlay)))
-
-;; (defun reorg-edits-move-to-next-field (&optional previous)
-;;   "Move to the next field at the current heading."
-;;   (interactive)
-;;   (let ((current-field (reorg-edits--get-field-at-point)))
-;;     (unless (if previous (= (point) (org-entry-beginning-position))
-;; 	      (= (point) (org-entry-end-position)))
-;;       (cl-loop with point = (point)
-;; 	       do (if previous (cl-decf point) (cl-incf point))
-;; 	       when (and (reorg-edits--get-field-at-point point)
-;; 			 (not (equal (reorg-edits--get-field-at-point point)
-;; 				     current-field)))
-;; 	       return (prog1 (setf (point) point)
-;; 			(reorg-edits--post-field-navigation-hook))
-;; 	       when (if previous (= point (org-entry-beginning-position))
-;; 		      (= point (org-entry-end-position)))
-;; 	       return nil)
-;;       (reorg-edits--post-field-navigation-hook))))
-
-;; (defun reorg-edits-move-to-previous-field ()
-;;   "Move to the next field at the current heading."
-;;   (interactive)  
-;;   (reorg-edits-move-to-next-field 'previous))
-
-;;;; field editing
-
-;; (defun reorg--kill-field ()
-;;   "Temporary replacement for kill-line when editing a field."
-;;   (interactive)
-;;   (delete-region (point) (field-end)))
-
-;; (defun reorg--kill-field ()
-;;   "Temporary replacement for kill-line when editing a field."
-;;   (interactive)
-;;   (goto-char (field-beginning))
-;;   (funcall-interactively #'self-insert-command 1 ? )
-;;   (delete-region (point) (field-end))
-;;   (backward-char 1))
-
-;; (defun reorg-edits--get-field-type ()
-;;   "Get the field type at point, if any."
-;;   (get-text-property (point) reorg--field-property-name))
-
-;; (defun reorg-edit-field--replace-field-at-point (val field)
-;;   "Replace FIELD with VAL."
-;;   (let ((beg (field-beginning))
-;; 	(end (field-end)))
-;;     (delete-region beg end)
-;;     (goto-char beg)
-;;     (insert (propertize val `(reorg--field-property-name
-;; 			      ,field
-;; 			      field
-;; 			      ,field)))))
-
-;; (defun reorg-edits--get-field-value ()
-;;   "Get the value of the field at point.  Return 
-;; nil if there is no value."
-;;   (field-string-no-properties))
-;; (pcase-let ((`(,start . ,end) (reorg-edits--get-field-bounds)))
-;;   (when (and start end)
-;;     (buffer-substring-no-properties start end))))
-
-;; (defun reorg-edits--commit-edit ()
-;;   "Discard the current edit and restore the node
-;; to its previous state, and turn off the minor mode."
-;;   (interactive)
-;;   (let ((type (reorg-edits--get-field-type))
-;; 	(val (reorg-edits--get-field-value)))
-;;     (funcall (alist-get type reorg-setter-alist) val)
-;;     (reorg--update-this-heading)
-;;     (reorg-edits-mode -1)))
-
-;; (cl-defun reorg-get-set-props (prop &key
-;; 				    (val nil valp)
-;; 				    keep
-;; 				    multi-value
-;; 				    inherit
-;; 				    literal-nil
-;; 				    no-duplicates
-;; 				    no-text-properties
-;; 				    &allow-other-keys)
-;;   "Change the org heading at point by set PROP to VAL.
-;; It accepts the following properties, as well as any others that are set 
-;; in the headings property drawer. Any such properties can be accessed as string
-;;  or a symbol, e.g., \"CATEGORY\" or 'category.  See the return value of 
-;; `reorg-parser--headline-parser' for more information.
-;; There are flags for dealing with multivalued properties, inheritence, 
-;; etc.:
-;; If VAL is a list, assume a multi-valued property.
-;; If KEEP is non-nil and VAL is a list or MULTI is non-nil, keep the old value.
-;; If NO-DUPLICATES is non-nil and dealing with multi-valued, delete duplicates.
-;; If MULTI is non-nil, use a multivalued property even if VAL is not a list.
-;; Return a cons cell with the old value as the `car' and new value as the `cdr'."
-;;   (cl-macrolet ((get-or-set (&key get set)
-;; 			    `(if (not valp)
-;; 				 ,get
-;; 			       (let ((old-val ,get))
-;; 				 (save-excursion 
-;; 				   (org-back-to-heading)		 
-;; 				   ,set
-;; 				   (cons old-val ,get))))))
-;;     (pcase prop
-;;       ;;(org-insert-time-stamp (org-read-date t t "2021-01-01"))
-;;       (`deadline
-;;        (get-or-set :get (org-entry-get (point) "DEADLINE" inherit literal-nil)
-;; 		   :set (if (null val)
-;; 			    (org-deadline '(4))
-;; 			  (org-deadline nil val))))
-;;       (`scheduled
-;;        (get-or-set :get (org-entry-get (point) "SCHEDULED" inherit literal-nil)
-;; 		   :set (if (null val)
-;; 			    (org-schedule '(4))
-;; 			  (org-schedule nil val))))
-;;       (`comment
-;;        (get-or-set :get (org-in-commented-heading-p)
-;; 		   :set (when (not (xor (not val)
-;; 					(org-in-commented-heading-p)))
-;; 			  (org-toggle-comment))))
-;;       (`tags
-;;        (get-or-set :get (org-get-tags (point) (not inherit))
-;; 		   :set (if keep
-;; 			    (org-set-tags (if no-duplicates
-;; 					      (delete-duplicates (append old-val
-;; 									 (-list val))
-;; 								 :test #'string=)
-;; 					    (append old-val (-list val))))
-;; 			  (org-set-tags val))))
-;;       (`headline
-;;        (get-or-set :get (org-entry-get (point) "ITEM")
-;; 		   ;; keep the comment if it is there
-;; 		   :set (let ((commentedp (org-in-commented-heading-p)))
-;; 			  (org-edit-headline val)
-;; 			  (when commentedp
-;; 			    (reorg-get-set-props 'comment :val t)))))
-;;       (`todo
-;;        (get-or-set :get (org-entry-get (point) "TODO")
-;; 		   :set (org-todo val)))
-;;       ((or `timestamp
-;; 	   `timestamp-ia)
-;;        (get-or-set :get (org-entry-get (point) (if (eq 'timestamp prop)
-;; 						   "TIMESTAMP"
-;; 						 "TIMESTAMP_IA"))
-;; 		   :set (if (and old-val
-;; 				 (search-forward old-val (org-entry-end-position) t))
-;; 			    (progn (replace-match (concat val))
-;; 				   (delete-blank-lines))
-;; 			  (org-end-of-meta-data t)
-;; 			  (delete-blank-lines)
-;; 			  (when val 
-;; 			    (insert (concat val "\n"))))))
-;;       (`body
-;;        (get-or-set :get (reorg-edits--get-body-string no-text-properties)
-;; 		   :set (error "You can't set body text (yet).")))
-;;       ((or (pred stringp)
-;; 	   (pred symbolp))
-;;        (when (symbolp prop) (setq prop (symbol-name prop)))
-;;        (get-or-set :get (if (or multi-value (and val (listp val)) keep)
-;; 			    (org-entry-get-multivalued-property (point) prop)
-;; 			  (org-entry-get (point) prop inherit literal-nil))
-;; 		   :set (cond ((or multi-value (listp val) keep)
-;; 			       (apply #'org-entry-put-multivalued-property (point) prop
-;; 				      (if no-duplicates
-;; 					  (delete-duplicates (append old-val (-list val)) :test #'string=)
-;; 					(append old-val (-list val)))))
-;; 			      (t (org-entry-put (point) prop val))))))))
-
-;; (defun reorg-edits--sync-field-with-source ()
-;;   "Set SOURCE to the value of the current field."
-;;   (let ((field (reorg-edits--get-field-at-point))
-;; 	(val (reorg-edits--get-field-value)))
-;;     (reorg--with-point-at-orig-entry nil
-;; 				     (reorg-get-set-props field
-;; 							  :val val ))))
-
-;; (defun reorg-edits--discard-edit ()
-;;   "Discard the current edit and restore the node
-;; to its previous state, and turn off the minor mode."
-;;   (interactive)
-;;   (reorg-edits-mode -1)
-;;   (when reorg-edits--restore-state
-;;     (reorg-views--replace-heading
-;;      reorg-edits--restore-state))
-;;   (setq reorg-edits--restore-state nil)
-;;   (message "Discarded edit."))
-
-;; (defun reorg-edits--start-edit ()
-;;   "Start editing the headline at point."
-;;   (interactive)
-;;   (reorg-edits-mode 1))
-
-;; (defun reorg-edits--move-into-field ()
-;;   "If the point is at the border of a field, then 
-;; move it into the field.  This ensures that `reorg-edits--get-field-bounds'
-;; returns the correct positions."
-;;   (cond ((and (get-text-property (point) reorg--field-property-name)
-;; 	      (not (get-text-property (1- (point)) reorg--field-property-name))
-;; 	      (get-text-property (+ 1 (point)) reorg--field-property-name))
-;; 	 (forward-char 1))
-;; 	((and (get-text-property (point) reorg--field-property-name)
-;; 	      (not (get-text-property (1+ (point)) reorg--field-property-name)))
-;; 	 (forward-char -1))))
-
 (defun reorg-edits--get-field-at-point (&optional point)
   "Get the `reorg--field-property-name' at point."
   (get-text-property (or point (point)) 'reorg-data))
-
-;; (defun reorg-edits--kill-line ()
-;;   "Kill up to the end of the end point."
-;;   (interactive)
-;;   (pcase-let ((`(,start . ,end) (reorg-edits--get-field-bounds)))
-;;     (delete-region start end)))
-
-
 
 (defun reorg-views--insert-before-point (data &optional level format-string)
   "insert a hearing before the heading at point."
@@ -815,7 +302,6 @@ switch to that buffer in the window."
 			(not (reorg--get-next-level-branches))
 			(not (reorg-tree--branch-has-leaves-p)))
 	     do (reorg-views--delete-leaf))))
-;; do (reorg-views--delete-heading))))
 
 (defun reorg-views--replace-heading (data) 
   "Replace the heading at point with DATA. SUSPECT"
@@ -841,167 +327,6 @@ switch to that buffer in the window."
     (reorg-views--delete-leaf)
     (reorg--insert-heading props level format)))
 
-;;;; edit mode
-;;;;; minor mode
-
-;; (define-minor-mode reorg-edits-mode
-;;   "Minor mode to edit headlines."
-;;   nil
-;;   " EDITING HEADLINE"
-;;   reorg-edits-field-mode-map
-;;   (when-let* ((prop (get-text-property (point) reorg--field-property-name))
-;; 	      (start (previous-single-property-change (point) reorg--field-property-name))
-;; 	      (end (next-single-property-change (point) reorg--field-property-name))
-;; 	      (val (buffer-substring start end)))
-;;     ;; on
-;;     (if reorg-edits-mode
-;; 	(progn		
-;; 	  ;; (reorg--add-command-hooks)
-;; 	  ;;(reorg--lock-buffer)
-;; 	  (setq cursor-type 'bar
-;; 		reorg--last-point nil
-;; 		reorg-edits--previous-header-line header-line-format
-;; 		header-line-format reorg-edits--header-line
-;; 		reorg-edits--restore-state (get-text-property (point-at-bol) 'reorg-data)
-;; 		reorg-edit-field--start-marker (set-marker (make-marker) start)
-;; 		reorg-edit-field--end-marker (set-marker (make-marker) end)
-;; 		overriding-local-map reorg-edits-field-mode-map))
-;;       ;; off
-;;       ;;(reorg--unlock-buffer)
-;;       ;; (reorg--add-command-hooks 'remove)
-;;       (delete-overlay reorg-edits--current-field-overlay)
-;;       (setq header-line-format reorg-edits--previous-header-line
-;; 	    reorg-edits--previous-header-line nil
-;; 	    reorg-edit-field--start-marker nil
-;; 	    reorg-edit-field--end-marker nil
-;; 	    reorg-edits--restore-state nil
-;; 	    overriding-local-map nil
-;; 	    cursor-type nil))))
-
-;;;;; keep point in field
-
-;; (defun reorg--pre-command-hook ()
-;;   "asdf"
-;;   (interactive)
-;;   (if (eq 'reorg (car (field-at-pos (point))))
-;;       (setq reorg--last-point (point))))
-
-;; (defun reorg--post-command-hook ()
-;;   "zxcv"
-;;   (when reorg--last-point
-;;     (constrain-to-field nil reorg--last-point)
-;;     (setq reorg--last-point nil)))
-
-;; (defun reorg--add-command-hooks (&optional remove)
-;;   "asdf"
-;;   (setq reorg--last-point nil)
-;;   (if remove
-;;       (progn 
-;; 	(remove-hook 'pre-command-hook #'reorg--pre-command-hook t)
-;; 	(remove-hook 'post-command-hook #'reorg--post-command-hook t))
-;;     (add-hook 'pre-command-hook #'reorg--pre-command-hook nil t)
-;;     (add-hook 'post-command-hook #'reorg--post-command-hook nil t)))
-
-;;;; get or set props 
-
-;; (cl-defun reorg-get-set-props (prop &key
-;; 				    (val nil valp)
-;; 				    keep
-;; 				    multi-value
-;; 				    inherit
-;; 				    literal-nil
-;; 				    no-duplicates
-;; 				    no-text-properties
-;; 				    &allow-other-keys)
-;;   "Change the org heading at point by set PROP to VAL.
-
-;; It accepts the following properties, as well as any others that are set 
-;; in the headings property drawer. Any such properties can be accessed as string
-;;  or a symbol, e.g., \"CATEGORY\" or 'category.  See the return value of 
-;; `reorg-parser--headline-parser' for more information.
-
-;; There are flags for dealing with multivalued properties, inheritence, 
-;; etc.:
-
-;; If VAL is a list, assume a multi-valued property.
-;; If KEEP is non-nil and VAL is a list or MULTI is non-nil, keep the old value.
-;; If NO-DUPLICATES is non-nil and dealing with multi-valued, delete duplicates.
-;; If MULTI is non-nil, use a multivalued property even if VAL is not a list.
-
-;; Return a cons cell with the old value as the `car' and new value as the `cdr'."
-;;   (cl-macrolet ((get-or-set (&key get set)
-;; 			    `(if (not valp)
-;; 				 ,get
-;; 			       (let ((old-val ,get))
-;; 				 (save-excursion 
-;; 				   (org-back-to-heading)		 
-;; 				   ,set
-;; 				   (cons old-val ,get))))))
-;;     (pcase prop
-;;       ;;(org-insert-time-stamp (org-read-date t t "2021-01-01"))
-;;       (`deadline
-;;        (get-or-set :get (org-entry-get (point) "DEADLINE" inherit literal-nil)
-;; 		   :set (if (null val)
-;; 			    (org-deadline '(4))
-;; 			  (org-deadline nil val))))
-;;       (`scheduled
-;;        (get-or-set :get (org-entry-get (point) "SCHEDULED" inherit literal-nil)
-;; 		   :set (if (null val)
-;; 			    (org-schedule '(4))
-;; 			  (org-schedule nil val))))
-;;       (`comment
-;;        (get-or-set :get (org-in-commented-heading-p)
-;; 		   :set (when (not (xor (not val)
-;; 					(org-in-commented-heading-p)))
-;; 			  (org-toggle-comment))))
-;;       (`tags
-;;        (get-or-set :get (org-get-tags (point) (not inherit))
-;; 		   :set (if keep
-;; 			    (org-set-tags (if no-duplicates
-;; 					      (delete-duplicates (append old-val
-;; 									 (-list val))
-;; 								 :test #'string=)
-;; 					    (append old-val (-list val))))
-;; 			  (org-set-tags val))))
-;;       (`headline
-;;        (get-or-set :get (org-entry-get (point) "ITEM")
-;; 		   ;; keep the comment if it is there
-;; 		   :set (let ((commentedp (org-in-commented-heading-p)))
-;; 			  (org-edit-headline val)
-;; 			  (when commentedp
-;; 			    (reorg-get-set-props 'comment :val t)))))
-;;       (`todo
-;;        (get-or-set :get (org-entry-get (point) "TODO")
-;; 		   :set (org-todo val)))
-;;       ((or `timestamp
-;; 	   `timestamp-ia)
-;;        (get-or-set :get (org-entry-get (point) (if (eq 'timestamp prop)
-;; 						   "TIMESTAMP"
-;; 						 "TIMESTAMP_IA"))
-;; 		   :set (if (and old-val
-;; 				 (search-forward old-val (org-entry-end-position) t))
-;; 			    (progn (replace-match (concat val))
-;; 				   (delete-blank-lines))
-;; 			  (org-end-of-meta-data t)
-;; 			  (delete-blank-lines)
-;; 			  (when val 
-;; 			    (insert (concat val "\n"))))))
-;;       (`body
-;;        (get-or-set :get (reorg-edits--get-body-string no-text-properties)
-;; 		   :set (error "You can't set body text (yet).")))
-;;       ((or (pred stringp)
-;; 	   (pred symbolp))
-;;        (when (symbolp prop) (setq prop (symbol-name prop)))
-;;        (get-or-set :get (if (or multi-value (and val (listp val)) keep)
-;; 			    (org-entry-get-multivalued-property (point) prop)
-;; 			  (org-entry-get (point) prop inherit literal-nil))
-;; 		   :set (cond ((or multi-value (listp val) keep)
-;; 			       (apply #'org-entry-put-multivalued-property (point) prop
-;; 				      (if no-duplicates
-;; 					  (delete-duplicates (append old-val (-list val)) :test #'string=)
-;; 					(append old-val (-list val)))))
-;; 			      (t (org-entry-put (point) prop val))))))))
-
 ;;;; inserting headers into the appropriate location
 
 ;;;;; reorg-map-branches
@@ -1017,96 +342,6 @@ switch to that buffer in the window."
 					  nil
 					  'not-current)
 	 ,@body))))
-
-
-;;;;; insert-into-branch 
-
-;; (defun reorg-tree--branch-has-leaves-p ()
-;;   (save-excursion 
-;;     (let ((disable-point-adjustment t)
-;; 	  (inhibit-field-text-motion t))
-;;       (forward-line)
-;;       (not (eq 'branch
-;; 	       (reorg--get-view-props nil 'reorg-field-type))))))
-
-;; (defun reorg--insert-into-leaves (data sorters &optional level format-string)
-;;   (let ((disable-point-adjustment t)
-;; 	(format-string (or format-string (reorg--get-view-props nil 'reorg-data 'format-string))))
-;;     (when (and (null (reorg--children-p))
-;; 	       (eq (reorg--get-view-props nil 'reorg-field-type) 'branch))
-;;       (if (reorg-tree--branch-has-leaves-p)
-;; 	  (progn 
-;; 	    (forward-line 1) ;; this should be a text-property forward, not a line forward
-;; 	    (cl-loop while (not (eq (reorg--get-view-props nil 'reorg-field-type)
-;; 				    'branch))
-;; 		     with level = (or level (reorg--get-view-prop 'reorg-level))
-;; 		     if (cl-loop for (func . pred) in sorters
-;; 				 if (funcall pred
-;; 					     (funcall func data)
-;; 					     (funcall func (reorg--get-view-props)))
-;; 				 return t
-;; 				 finally return nil)
-;; 		     return (reorg-views--insert-before-point data level format-string)
-;; 		     else do (forward-line)
-;; 		     finally return (reorg-views--insert-before-point data level format-string)))
-;; 	(reorg-views--insert-after-point data (1+ level) format-string ))))
-;;   (reorg-dynamic-bullets--fontify-heading))
-
-;; (defun reorg--set-text-property (plist val &rest props)
-;;   "Set the text property at point to a new value.
-;; Set the text property (car PROPS) to the value of
-;; the PROPS drilling nested plist whatever.
-
-;; If PROPS is only one element then start with 'reorg-data
-;; otherwise start with the car of PROPS.
-
-;; If PLIST is nil, then get the text properties at point."
-;;   (let* ((inhibit-field-text-motion t)
-;; 	 (results (or plist (text-properties-at (point)))))
-;;     (cl-loop for prop in (or (butlast props) `(,reorg--data-property-name))
-;; 	     with new-results = nil
-;; 	     do (setf new-results (if prop
-;; 				      (plist-get results prop)
-;; 				    results))
-;; 	     finally return (progn (plist-put new-results (car (last props)) val)
-;; 				   (put-text-property (point-at-bol)
-;; 						      (point-at-eol)
-;; 						      reorg--data-property-name
-;; 						      new-results)
-;; 				   results))))
-
-;; (defun reorg--insert-heading (&optional data level format)
-;;   (let ((inhibit-field-text-motion t))
-;;     (beginning-of-line)
-;;     (insert 
-;;      (reorg--create-headline-string (or data (reorg--get-view-props nil))
-;; 				    (or format reorg-headline-format)
-;; 				    (or level (reorg--get-view-prop 'reorg-level)))
-;;      "\n")
-;;     (forward-line -1)
-;;     (reorg-dynamic-bullets--fontify-heading)))
-
-
-;; (defun reorg--goto-previous-property-field (prop val &optional pred transformer)
-;;   "Move to the beginning of the buffer position that
-;; text property PROP that matches VAL.  Check for matching VAL
-;; using `eq', unless PRED is suppied."
-;;   (reorg-tree--goto-next-property-field nil prop val 'backward pred transformer))
-
-;; (defun reorg--get-next-level-branches ()
-;;   "Get the headlines of the next level sub-branches."
-;;   (save-excursion 
-;;     (let (results)
-;;       (reorg--map-next-level (push (reorg--get-view-props nil 'reorg-data 'headline)
-;; 				   results))
-;;       results)))
-
-;; (defun reorg--goto-previous-branch (&optional relative-level)
-;;   "Wrapper for `reorg--goto-next-branch' which moves to the
-;; previous branch."
-;;   (reorg--goto-next-branch relative-level 'previous))
-
-;;;; tree navigation re-write
 
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
@@ -1143,69 +378,6 @@ Return nil if there is no such branch."
 	      return nil)
      (goto-char point)))
 
-;;;; reorg new tree
-
-;; (defun reorg--children-p ()
-;;   "Does the current node have sub-branches?"
-;;   (and (eq (reorg--get-view-props nil 'reorg-field-type) 'branch)
-;;        (reorg--get-view-props nil 'reorg-data 'children)))
-
-;;; inserting into branch
-
-;; (defun reorg--insert-into-branch-or-make-new-branch (data &optional point)
-;;   (let* ((children (reorg-into--get-list-of-child-branches-at-point)))
-;;     (cl-loop with x = nil
-;; 	     with point = (or point (point))
-;; 	     do (setf (point) point)
-;; 	     for (func . results) in children
-;; 	     do (setq x (funcall func data)
-;; 		      point (point))
-;; 	     when x
-;; 	     do (if (member x results)
-;; 		    (progn 
-;; 		      (reorg-tree--goto-next-property-field nil 'reorg-data
-;; 							    x
-;; 							    nil
-;; 							    #'string=
-;; 							    (lambda (y) (alist-get 'headline y)))
-;; 		      (if (reorg--children-p)
-;; 			  (reorg--insert-into-branch-or-make-new-branch data)
-;; 			(reorg--insert-into-leaves data
-;; 						   (reorg--get-view-props nil 'reorg-data 'result-sorters))))
-;; 		  (reorg--insert-new-branch (list (cons 'branch-name x)
-;; 						  (cons 'headline x)
-;; 						  (cons 'reorg-branch t)
-;; 						  (cons 'result-sorters ,result-sorters)
-;; 						  (cons 'grouper-list ,func)
-;; 						  (cons 'grouper-list-results x)
-;; 						  (cons 'format-string 'xxx)
-;; 						  (cons 'result-sorters 'xxx)
-;; 						  (cons 'children 'xxx)
-;; 						  (cons 'branch-value 'xxx)
-;; 						  (cons 'reorg-level (reorg-current-level)))))
-;; 	     (reorg--insert-into-branch-or-make-new-branch data))))
-
-;; (defun reorg-tree--at-branch-p ()
-;;   "Is the point in the tree view at a branch?"
-;;   (eq (reorg--get-view-props nil 'reorg-field-type)
-;;       'branch))
-
-;; (defun reorg-into--descend-into-branch-at-point (data)
-;;   "IDK what to do."
-;;   (when (reorg-into--at-branch-p)   
-;;     (pcase `(,(reorg--children-p) ,(reorg-into--member-of-this-header? data))
-;;       (`(nil t) (reorg--insert-into-leaves data (reorg--get-view-props nil 'reorg-data 'results-sorters)))
-;;       (`(t t) (reorg--goto-next-relative-level 1) (reorg--into--descend-into-branch-at-point))
-;;       (`(t nil) (reorg--goto-next-relative-level 0) (reorg--into--descend-into-branch-at-point))
-;;       (`(nil nil) (reorg--goto-next-relative-level)))))
-
-;; (defun reorg-into--member-of-this-header? (data)
-;;   "Is DATA a member of the header?" 
-;;   (equal
-;;    (funcall
-;;     (car (last (reorg--get-view-props nil 'reorg-data 'grouper-list))) data)
-;;    (car (last (reorg--get-view-props nil 'reorg-data 'grouper-list-results)))))
-
 ;;; actions 
 
 (defmacro reorg-tree--with-wide-buffer (&rest body)
@@ -1220,25 +392,6 @@ Return nil if there is no such branch."
 
 (defun reorg-tree--expand-node ()
   (outline-show-subtree))
-
-;; (defun reorg-tree--is-cloned-p ()
-;;   (when-let ((id (reorg--get-view-prop 'id)))
-;;     (setf (point) (point-min))
-;;     (text-property-search-forward 'reorg-data
-;; 				  id
-;; 				  (lambda (val alist)
-;; 				    (string= 
-;; 				     (alist-get 'id alist)
-;; 				     val))
-;; 				  'not-current)))
-
-;; (defun reorg-tree--is-folded-p ()
-;;   "Is the current heading folded?"
-;;   (let ((inhibit-field-text-motion t))
-;;     (invisible-p (point-at-eol))))
-
-;; (defun reorg-tree--is-root-p ()
-;;   (= (reorg--get-view-prop 'reorg-level 1)))
 
 (defun reorg--org-shortcut-deadline (arg)
   "Execute org-deadline in the source buffer and update the heading at point."
@@ -1471,43 +624,6 @@ will extract the single value prior to comparing to VAL."
 
 	     else do (forward-char (- point (point))))))
 
-;; (defun reorg-tree--get-by-branch-predicate (prop val func)
-;;   "Execute FUNC at each branch that has PROP equal to VAL and
-;; make a list of the results."
-;;   (let (results)
-;;     (save-excursion
-;;       (cl-loop with level = (reorg--get-view-prop 'reorg-level)
-;; 	       while (and (reorg-tree--goto-next-property-field nil
-;; 								'reorg-data val nil #'equal
-;; 								(lambda (x) (alist-get prop x)))
-;; 			  (> (reorg--get-view-prop 'reorg-level) level))
-;; 	       do (cl-pushnew (funcall func) results :test #'equal)))
-;;     (reverse results)))
-
-
-;; (defun reorg-tree--branch-insert--find-location (data)
-;; "insert into the branch at point."
-;; (save-excursion
-;;   (reorg-tree--goto-first-sibling-in-current-group)
-;;   (let* ((branch-predicate (reorg--get-view-props nil 'reorg-data 'branch-predicate))
-;; 	 (name (funcall branch-predicate data))
-;; 	 (level (reorg--get-view-prop 'reorg-level))
-;; 	 (format-string (reorg--get-view-props nil 'reorg-data 'format-string))
-;; 	 (branch-sorter (reorg--get-view-props nil 'reorg-data 'branch-sorter))
-;; 	 (branch-sort-getter (reorg--get-view-props nil 'reorg-data 'branch-sort-getter))
-;; 	 (existing-data (copy-tree (reorg--get-view-props)))
-;; 	 (new-data (plist-put existing-data 'branch-name name)))
-
-;;     (if (and branch-sort-getter branch-sorter)
-;; 	(cl-loop when (funcall branch-sorter
-;; 			       (funcall branch-sort-getter name)
-;; 			       (funcall branch-sort-getter (reorg--get-view-props nil 'reorg-data 'branch-name)))
-;; 		 return (reorg-tree--branch-insert--insert-heading new-data)
-;; 		 while (reorg--goto-next-relative-level 0)
-;; 		 finally return (reorg-tree--branch-insert--insert-heading new-data 'after))
-;;       (reorg-tree--branch-insert--insert-heading new-data)))))
-
-;; ;;
 (defun reorg-tree--branch-insert--insert-heading (data &optional after)
   "Insert a new branch using DATA at POINT or (point)."
   (let ((disable-point-adjustment t))
