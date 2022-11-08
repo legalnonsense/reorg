@@ -372,7 +372,7 @@ switch to that buffer in the window."
 (defvar reorg-view-mode-map 
   (let ((map (make-keymap)))
     (suppress-keymap map)
-    (define-key map (kbd "RET") #'reorg--render-source)
+    (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "c") #'reorg--goto-next-clone)
     (define-key map (kbd "f") #'reorg--goto-next-sibling)
