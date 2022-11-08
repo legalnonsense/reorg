@@ -210,13 +210,17 @@ text properties of any field displaying the data type.
 	   (fmakunbound ',parsing-func)
 	   (setf (alist-get ',name (alist-get ',class reorg--parser-list)) nil))))))
 
-
-;; TODO generalize render function 
 (defun reorg--render-source ()
   "Render the heading at point."
   (when-let ((func (alist-get (reorg--get-view-prop 'class) reorg--render-func-list)))
-    (funcall func)))
+    (funcall func))
+  (reorg--select-tree-window))
 
+(defun reorg--goto-source ()
+  "Goto rendered source buffer."
+  (interactive)
+  (reorg--render-source)
+  (reorg--select-main-window))
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
