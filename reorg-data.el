@@ -286,7 +286,7 @@ parser for that type."
 ;;    (headline . "yyy")))
 
 ;; TODO ensure a call to display function instead of relying on the data alist 
-(defun reorg--create-headline-string (data format-string &optional level)
+(defun reorg--create-headline-string (data format-string &optional level overrides)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  Add text properties
 `reorg--field-property-name' and  `reorg--data-property-name'."
@@ -306,6 +306,11 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	   'branch)
 	;; TODO:get rid of this copy-tree
 	(let ((format-copy (copy-tree format-string)))
+	  (cl-loop for (prop . val) in overrides
+		   do (setf (alist-get prop data)
+			    (funcall `(lambda ()
+					(let-alist data 
+					  ,val)))))
 	  (concat
 	   ;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
 	   (let ((xxx (reorg--walk-tree format-string
@@ -322,7 +327,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
       ;;      ,format-string))
       ;; data))))
       "\n")
-     'reorg-data
+     'reorg-data     
      (append data
 	     (list 			;
 	      (cons 'reorg-class (alist-get 'class data))

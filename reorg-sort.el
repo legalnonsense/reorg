@@ -108,7 +108,9 @@ function created by the type creation macro."
 		     format-string
 		     reorg-headline-format))
 		(result-sort
-		 (plist-get template :sort-results)))
+		 (plist-get template :sort-results))
+		(overrides
+		 (plist-get template :format-string-overrides)))
 	    (when result-sort
 	      (setq result-sorters
 		    (append result-sorters					  
@@ -198,7 +200,8 @@ function created by the type creation macro."
 			   do (setf (car x)
 				    (reorg--create-headline-string (car x)
 								   (copy-tree format-string)
-								   level))
+								   level
+								   overrides))
 			   finally return it)
 		  (if heading-sorter
 		      (seq-sort-by (lambda (y)
@@ -252,7 +255,10 @@ function created by the type creation macro."
 						       (insert (pp grouper))
 						       (buffer-string))))
 				each)
-			  (reorg--create-headline-string each format-string (1+ level)))))))))))
+			  (reorg--create-headline-string each
+							 format-string
+							 (1+ level)
+							 overrides))))))))))
       (doloop copy template)
       (cadr copy))))
 

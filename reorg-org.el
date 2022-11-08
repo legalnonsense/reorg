@@ -592,8 +592,8 @@ the point and return nil."
 
 (reorg-create-data-type :name org-level
 			:class org
-			:parse (org-current-level)
-			:display (number-to-string (alist-get 'level alist)))
+			:parse (org-current-level))
+
 
 (reorg-create-data-type :name root
 			:class org
