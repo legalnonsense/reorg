@@ -129,9 +129,35 @@ to be refreshed. Two options are:
 
 ;;;;; Creating prefix strings
 
+(defun reorg-dynamic-bullets--children-p ()
+  "Does the current heading have children?"
+  (reorg--get-next-child))
+
+;; (defun reorg-dynamic-bullets--create-heading-bullet ()
+;;   "Create a string to be displayed in lieu of the headings' leading stars."
+;;   (let ((folded (reorg-dynamic-bullets--heading-folded-p))
+;; 	(children (reorg--get-next-child))
+;; 	(body (reorg--get-view-prop 'body)))
+;;     (propertize 
+;;      (cond ((and children folded body)
+;; 	    reorg-dynamic-bullets-folded-body-text-bullet)
+;; 	   ((and children folded)
+;; 	    reorg-dynamic-bullets-folded-no-body-text-bullet)
+;; 	   ((and children body)
+;; 	    reorg-dynamic-bullets-unfolded-body-text-bullet)
+;; 	   (children
+;; 	    reorg-dynamic-bullets-unfolded-no-body-text-bullet)
+;; 	   (body
+;; 	    reorg-dynamic-bullets-leaf-body-text-bullet)
+;; 	   (t
+;; 	    reorg-dynamic-bullets-leaf-no-body-text-bullet))
+;;      'face
+;;      'reorg-dynamic-bullets-face)))
+
 (defun reorg-dynamic-bullets--create-heading-bullet ()
   "Create a string to be displayed in lieu of the headings' leading stars."
-  (let ((branch (reorg--get-view-prop 'reorg-branch))
+  (let (;;(branch (reorg--get-view-prop 'reorg-branch))
+	(branch (reorg--get-next-child))
 	(folded (reorg-dynamic-bullets--heading-folded-p))
 	(body (reorg--get-view-prop 'body)))
     (propertize 

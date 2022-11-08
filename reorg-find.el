@@ -192,12 +192,8 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 				,(concat "Get the point of "
 					 (s-replace "-" " " (symbol-name name))
 					 ".")
-				(prog1 
-				    (save-excursion
-				      (when (funcall
-					     ',(reorg--create-symbol 'reorg--goto- name))
-					(point)))
-				  (run-hooks 'reorg--navigation-hook)))))))
+				(save-excursion
+				  ,form))))))
 
 (reorg--create-navigation-commands
  ((next-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t)))
