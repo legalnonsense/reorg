@@ -14,7 +14,7 @@
 		    #'string<)))
     (if (equal arg "..")
 	all-dots
-      (let ((target (and (string-match "\\(^\.\.?\\)\\(.+\\)" arg)
+      (let ((target (and (string-match "\\(^\\.\\.?\\)\\(.+\\)" arg)
 			 (match-string 2 arg))))
 	(if-let ((class (alist-get (intern target) reorg--parser-list)))
 	    (sort (cl-loop for (type . func) in class
