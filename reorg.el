@@ -214,11 +214,8 @@ switch to that buffer in the window."
   fundamental-mode
   "Org tree view"
   "Tree view of an Orgmode file. \{keymap}"
-  ;; (reorg--initialize-overlay)
   (setq cursor-type nil)
-  ;;(setq-local disable-point-adjustment t)
   (use-local-map reorg-view-mode-map)
-  ;;  (add-hook 'reorg--navigation-hook #'reorg--unfold-at-point nil t)
   (add-hook 'reorg--navigation-hook #'org-show-context nil t)
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
@@ -253,8 +250,6 @@ switch to that buffer in the window."
 			(if (= (point) (point-at-bol))
 			    (point-at-eol)
 			  (cdr (reorg-edits--get-field-bounds))))))
-      ;; (message "You are on the field for the heading's %s"
-      ;; 	 (reorg-edits--get-field-type)))
       (setq point (point)))))
 
 (defun reorg-edits--get-field-at-point (&optional point)
@@ -280,8 +275,6 @@ switch to that buffer in the window."
   (reorg--with-restore-state
    (end-of-line)
    (insert "\n")
-   ;; (previous-line 1)
-   ;; (end-of-line)
    (let ((string (reorg--create-headline-string data
 						(or format-string reorg-headline-format)
 						(or level (reorg--get-view-prop 'reorg-level)))))
@@ -309,7 +302,6 @@ switch to that buffer in the window."
 	(inhibiit-field-text-motion t)
 	(search-invisible t))
     (save-excursion
-      ;; (reorg-views--delete-leaf)
       (reorg-views--delete-headers-maybe)
       (reorg-views--insert-before-point data level))))
 

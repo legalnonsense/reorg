@@ -5,7 +5,7 @@
   (let ((id (or id (reorg--get-view-prop 'id)))
 	(buffer (or buffer (reorg--get-view-prop 'buffer))))
     (reorg--select-main-window buffer)
-    (switch-to-buffer buffer) 
+    ;; (switch-to-buffer buffer) 
     (widen)
     (goto-char (point-min))
     (re-search-forward (concat "<t tx=\""
@@ -51,6 +51,13 @@
 		(zzz vnodes level 0))))
 	  collect (PARSER each))
  :render-func reorg-leo--render-func)
+
+(reorg-create-data-type
+ :class leo
+ :name at-node
+ :parse (and (s-starts-with-p "@" (alist-get 'headline data))
+	     (string-match "^@\\([^[:space:]]+\\)" (alist-get 'headline data))
+	     (match-string 1 (alist-get 'headline data))))
 
 (reorg-create-data-type
  :class leo
