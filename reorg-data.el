@@ -123,9 +123,8 @@ call from the template macro.
 		 (alist-get ',name reorg--parser-list))
      ;; (setf (alist-get ',name reorg--parser-list)
      ;; 	   (cons 'class (lambda () ',(name)))
-     (when ',extra-props
-       (setf (alist-get ',name reorg--extra-prop-list)
-	     ',extra-props))
+     (setf (alist-get ',name reorg--extra-prop-list)
+	   ',extra-props)
      (when ',keymap
        (setf (alist-get ',name reorg--extra-prop-list)
 	     (append (alist-get ',name reorg--extra-prop-list)

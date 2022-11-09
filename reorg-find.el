@@ -192,8 +192,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 				,(concat "Get the point of "
 					 (s-replace "-" " " (symbol-name name))
 					 ".")
-				(save-excursion
-				  ,form))))))
+				,form)))))
 
 (reorg--create-navigation-commands
  ((next-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t)))

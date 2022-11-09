@@ -13,8 +13,8 @@
 	  ("y" . (lambda () (interactive) (message "yyyy")))
 	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
 	  ("o" . (lambda () (interactive)
-		   (xdg-open (reorg--get-view-prop 'path)))))
- :extra-props (face '(:underline t)))
+		   (xdg-open (reorg--get-view-prop 'path))))))
+
 
 (reorg-create-data-type
  :name depth 

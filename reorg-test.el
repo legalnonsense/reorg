@@ -5,12 +5,30 @@
 ;; (alist-get 'org reorg--extra-prop-list)
 ;; (alist-get 'org reorg--render-func-list)
 
+(defun reorg-user--leo-2 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((leo . "~/.leo/workbook.leo"))
+   :template '( :group "workbook.leo"
+		:format-string ((make-string (1+ (or .leo-level 1)) ?*) " " .headline)
+		:format-string-overrides ((reorg-branch . t)
+					  (reorg-level . .leo-level))
+		:sort <
+		:sort-getter .order)))
+
+  (defun reorg-user--leo ()
+    (interactive)
+    (reorg-open-sidebar
+     :sources '((leo . "~/.leo/workbook.leo"))
+     :template '( :group "workbook.leo"
+		  :format-string (.stars " " .headline))))
+
 (defun reorg-user--clone-file-2 ()
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/tmp/tmp.org"))
-   :template '( :group ""
-		:format-string ((make-string (or .org-level 1) ?*) " " .headline)
+   :template '( :group "tmp.org"
+		:format-string ((make-string (1+ (or .org-level 1)) ?*) " " .headline)
 		:format-string-overrides ((reorg-branch . t)
 					  (reorg-level . .org-level))
 		:sort <
@@ -30,7 +48,7 @@
   (reorg-open-sidebar
    :sources '((files . "find ~/legal/Dropbox/hannah -type f"))
    :template '( :group "Files"
-		:format-string (.stars "\t\t" .extension "\t\t" .filename)
+		:format-string (.stars " " .extension "\t\t" .filename)
 		:children (( :group .extension)))))
 
 (defun reorg-user--create-meeting-view ()
