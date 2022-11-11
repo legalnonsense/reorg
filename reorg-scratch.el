@@ -21,6 +21,10 @@
 				    (string>
 				     (car a)
 				     (car b)))
+		      ;; :sort-results (lambda (a b)
+		      ;; 		      (<
+		      ;; 		       (alist-get 'a a)
+		      ;; 		       (alist-get 'a b)))
 		      :children (( :group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
 							  "B is even"
 							"B is odd"))))))))
@@ -49,21 +53,26 @@
 
 (defun xxx-thread-as-rewrite (data template &optional sorters)
   (cl-loop with results = nil
+	   with sorters = (append sorters (plist-get template :sort-results))
 	   for groups in (plist-get template :children)
-	   append (reorg--thread-as
-		   data
-		   (reorg--seq-group-by* (plist-get groups :group)
-					 data)
-		   (if (plist-get groups :sort-group)
-		       (seq-sort (plist-get groups :sort-group)
-				 data)
-		     data)
-		   (cond ((plist-get groups :children)
-			  (cl-loop for e in data
-				   collect (cons (car e) (xxx (cdr e) groups))))
-			 (sorters
-			  (reorg--multi-sort sorters data))
-			 (t data)))))
+	   append (reorg--thread-as data
+		    (reorg--seq-group-by* (plist-get groups :group)
+					  data)
+		    (if (plist-get groups :sort-group)
+			(seq-sort (plist-get groups :sort-group)
+				  data)
+		      data)
+		    (cond ((plist-get groups :children)
+			   (cl-loop for e in data
+				    collect
+				    (cons (car e)
+					  (xxx-thread-as-rewrite
+					   (cdr e)
+					   groups
+					   sorters))))
+			  (sorters
+			   (reorg--multi-sort sorters data))
+			  (t data)))))
 
 
 ;; (defmacro reorg--thread-as (name &rest form)
@@ -78,6 +87,7 @@
 
 (defmacro reorg--thread-as (name &rest form)
   "kind of like `-->' but better!?"
+  (declare (indent defun))
   (if (listp name)
       (append 
        `(let* ,(append `((,(car name) ,(cadr name)))
@@ -120,6 +130,6 @@ that return nil."
    (seq-reverse sequence)
    nil))
 
-(equal (xxx xxx-data xxx-template) ;;;test
-       (xxx-thread-as-rewrite xxx-data xxx-template))
+(equal (xxx xxx-data xxx-template) 
+       (xxx-thread-as-rewrite xxx-data xxx-template)) ;;;test
 
