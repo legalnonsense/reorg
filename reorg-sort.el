@@ -185,7 +185,7 @@ function created by the type creation macro."
 				   (cons 'reorg-level level))))
 			 (append ddd
 				 `((group-id . ,(md5 (with-temp-buffer
-						       (insert (pp grouper))
+						       (insert (pp template))
 						       (buffer-string))))
 				   (id . ,(md5 (with-temp-buffer
 						 (insert (pp ddd))
@@ -198,14 +198,25 @@ function created by the type creation macro."
 			      it)
 		  (cl-loop for x in it
 			   do (setf (car x)
-				    (reorg--create-headline-string (car x)
-								   (copy-tree format-string)
-								   level
-								   overrides))
+				    (propertize 
+				     (reorg--create-headline-string (car x)
+								    (copy-tree format-string)
+								    level
+								    overrides)
+				     'reorg-headline-string
+				     (reorg--create-headline-string (car x)
+								    (copy-tree format-string)
+								    level
+								    overrides)))
+			   
 			   finally return it)
 		  (if heading-sorter
 		      (seq-sort-by (lambda (y)
-				     (funcall heading-sort-getter (car y)))
+				     (funcall heading-sort-getter
+					      (reorg--get-string-match
+					       "^*+[[:space:]]+\\(.+\\)"
+					       (car y)
+					       1)))
 				   heading-sorter
 				   it)
 		    it)))

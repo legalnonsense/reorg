@@ -5,6 +5,15 @@
 ;; (alist-get 'org reorg--extra-prop-list)
 ;; (alist-get 'org reorg--render-func-list)
 
+(defun reorg-user--test-new-heading-sort ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/tmp/tmp.org"))
+   :template '( :group .todo
+		:sort string>
+		:sort-getter (lambda (x) (downcase x)))))
+
+
 (defun reorg-user--leo-2 ()
   (interactive)
   (reorg-open-sidebar
@@ -12,16 +21,15 @@
    :template '( :group "workbook.leo"
 		:format-string ((make-string (1+ (or .leo-level 1)) ?*) " " .headline)
 		:format-string-overrides ((reorg-branch . t)
-					  (reorg-level . .leo-level))
-		:sort <
-		:sort-getter .order)))
+					  (reorg-level . .leo-level)))))
 
-  (defun reorg-user--leo ()
-    (interactive)
-    (reorg-open-sidebar
-     :sources '((leo . "~/.leo/workbook.leo"))
-     :template '( :group "workbook.leo"
-		  :format-string (.stars " " .headline))))
+
+(defun reorg-user--leo ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((leo . "~/.leo/workbook.leo"))
+   :template '( :group "workbook.leo"
+		:format-string (.stars " " .headline))))
 
 (defun reorg-user--clone-file-2 ()
   (interactive)
@@ -42,6 +50,9 @@
 		:format-string (.stars " " .headline)
 		:sort <
 		:sort-getter .order)))
+
+
+
 
 (defun reorg-user--test-files ()
   (interactive)

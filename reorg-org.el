@@ -96,13 +96,14 @@ RANGE is non-nil, only look for timestamp ranges."
 
 (defun reorg--get-body ()
   "get headings body text"
-  (org-element-interpret-data
-   (org-element--parse-elements (save-excursion (org-back-to-heading)
-						(org-end-of-meta-data t)
-						(point))
-				(or (save-excursion (outline-next-heading))
-				    (point-max))
-				'first-section nil nil nil nil)))
+  (org-no-properties
+   (org-element-interpret-data
+    (org-element--parse-elements (save-excursion (org-back-to-heading)
+						 (org-end-of-meta-data t)
+						 (point))
+				 (or (save-excursion (outline-next-heading))
+				     (point-max))
+				 'first-section nil nil nil nil))))
 
 (defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
   "Execute BODY with point at the heading with ID at point."

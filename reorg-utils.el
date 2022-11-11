@@ -1,19 +1,24 @@
 ;; -*- lexical-binding: t; -*-
 
+(defun reorg--get-string-match (regexp string &optional group start)
+  "Get match from string."
+  (save-match-data
+    (when (string-match regexp string (or start 0))
+      (match-string (or group 0) string))))
 
-(cl-defmacro reorg--let-plist (plist &rest body)
-  (declare (indent defun))
-  `(cl-labels ((plist-p
-		(lst)
-		(and (listp lst) (keywordp (car lst))))
-	       (decolon
-		(lst)
-		(if (plist-p lst)
-		    (cl-loop for (key value) on lst by #'cddr
-			     for tail = (intern (cl-subseq (symbol-name key) 1))
-			     collect (cons tail (decolon value)))
-		  lst)))
-     (let-alist (decolon ,plist) ,@body)))
+;; (cl-defmacro reorg--let-plist (plist &rest body)
+;;   (declare (indent defun))
+;;   `(cl-labels ((plist-p
+;; 		(lst)
+;; 		(and (listp lst) (keywordp (car lst))))
+;; 	       (decolon
+;; 		(lst)
+;; 		(if (plist-p lst)
+;; 		    (cl-loop for (key value) on lst by #'cddr
+;; 			     for tail = (intern (cl-subseq (symbol-name key) 1))
+;; 			     collect (cons tail (decolon value)))
+;; 		  lst)))
+;;      (let-alist (decolon ,plist) ,@body)))
 
 (defun reorg--add-number-suffix (num)
   "create the suffix for a number"
