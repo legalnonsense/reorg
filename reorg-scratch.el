@@ -8,6 +8,7 @@
 			    collect (cons b (random 10)))))
 
 (setq xxx-data (xxx-create-test-data))
+
 (setq xxx-template
       '( :children (( :group (lambda (x) (when (oddp (alist-get 'a x))
 				 	   (concat "A: "
@@ -27,19 +28,30 @@
 		      :sort-results (
 				     ((lambda (x) (alist-get 'b x)) . >))))))
 
+(defcustom reorg-default-result-sort nil "")
+
 (defun xxx-thread-as-rewrite (data
 			      template
 			      &optional
 			      sorters
 			      format-string
 			      level)
+  (setq format-string
+	(or format-string
+	    (plist-get template :format-string)
+	    reorg-headline-format)
+	sorters
+	(or sorters
+	    (plist-get template :sort-results)
+	    reorg-default-result-sort))
+  
   (cl-loop 
    for groups in (plist-get template :children)
    do (setq format-string (or format-string
 			      (plist-get template :format-string)
-			      reorg-headline-format))
-   and do (setq sorters (append sorters (plist-get groups :sort-results)))
-   and do (setq level (or level 1))
+			      reorg-headline-format)
+	    sorters (append sorters (plist-get groups :sort-results))
+	    level (or level 1))
    append (reorg--thread-as data
 	    (reorg--seq-group-by* (plist-get groups :group)
 				  data)
@@ -65,8 +77,6 @@
 		  (t ;; no more headers; no sort
 		   (cl-loop for (header . rest) in data
 			    collect (cons header rest)))))))
-
-
 
 (defmacro reorg--thread-as (name &rest form)
   "like `-as->' but better!?"
@@ -100,8 +110,5 @@ that return nil."
        acc))
    (seq-reverse sequence)
    nil))
-
-
-
 
 (xxx-thread-as-rewrite xxx-data xxx-template) ;;;test 
