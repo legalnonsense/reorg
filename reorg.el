@@ -85,10 +85,6 @@ switch to that buffer in the window."
 
 ;;; view buffer
 
-
-
-
-
 ;; (defun reorg--get-field-at-point (&optional point)
 ;;   "Get the reorg-field-type at point."
 ;;   (get-text-property (or point (point)) reorg--field-property-name))
@@ -184,6 +180,7 @@ switch to that buffer in the window."
 (defvar reorg-view-mode-map 
   (let ((map (make-keymap)))
     (suppress-keymap map)
+;;    (define-key map [remap undo] #'org-agenda-undo)
     (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "c") #'reorg--goto-next-clone)
@@ -284,26 +281,16 @@ switch to that buffer in the window."
 
 (defun reorg-views--delete-leaf ()
   "delete the heading at point"
-  (let ((inhibit-field-text-motion t))
-    (delete-region (point-at-bol)
-		   (line-beginning-position 2))))
+  (delete-region (point-at-bol)
+		 (line-beginning-position 2)))
 
-(defun reorg-views--delete-headers-maybe () ;; SUSPECT
-  "VERY SUSPECT"
-  (save-excursion 
-    (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
-			(not (reorg--get-next-level-branches))
-			(not (reorg-tree--branch-has-leaves-p)))
-	     do (reorg-views--delete-leaf))))
-
-(defun reorg-views--replace-heading (data) 
-  "Replace the heading at point with DATA. SUSPECT"
-  (let ((level (reorg--get-view-prop 'reorg-level))
-	(inhibiit-field-text-motion t)
-	(search-invisible t))
-    (save-excursion
-      (reorg-views--delete-headers-maybe)
-      (reorg-views--insert-before-point data level))))
+;; (defun reorg-views--delete-headers-maybe () ;; SUSPECT
+;;   "VERY SUSPECT"
+;;   (save-excursion 
+;;     (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
+;; 			(not (reorg--get-next-level-branches))
+;; 			(not (reorg-tree--branch-has-leaves-p)))
+;; 	     do (reorg-views--delete-leaf))))
 
 (defun reorg-view--update-view-headline ()
   "Goto source buffer, re-parse, update. WORKS"
@@ -339,17 +326,9 @@ switch to that buffer in the window."
   "Execute BODY at each entry that matches ID."
   `(save-excursion  
      (goto-char (point-min))
-     (while (text-property-search-forward 'reorg-data
-					  ,id
-					  (lambda (val alist)
-					    (string= 
-					     (alist-get 'id alist)
-					     val))
-					  'not-current)
-       (save-excursion 
-	 (outline-back-to-heading)
-	 ,@body)
-       (forward-char 1))))
+     (let ((id ,id))
+       (while (reorg--goto-next-prop 'id id)
+	 ,@body))))
 
 (defmacro reorg--map-next-level (&rest body)
   "Go to the next branch. With integer RELATIVE-LEVEL, go to the next

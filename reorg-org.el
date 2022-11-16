@@ -8,18 +8,30 @@ update the heading at point."
   (declare (indent defun))
   `(progn
      (let (data)
-       (reorg--org--goto-source)
-       (org-with-wide-buffer
-	(org-back-to-heading)
-	,@body
-	(setq data (reorg--parser nil 'org)))
-       (reorg--select-tree-window)
-       (reorg--map-id (alist-get 'id data)
-		      (reorg-views--delete-leaf)
-		      (reorg-views--delete-headers-maybe))
-       (save-excursion 
-	 (reorg--branch-insert--drop-into-outline data
-						  reorg--current-template)))))
+       (org-with-remote-undo (reorg--get-view-prop 'buffer)
+	 (reorg--goto-source)
+	 (org-with-wide-buffer
+	  (org-back-to-heading)
+	  ,@body
+	  (setq data (reorg--parser nil 'org)))
+	 (reorg--select-tree-window)       
+	 (reorg--map-id (alist-get 'id data)
+			(let ((format-string (reorg--get-format-string))
+			      (level (reorg--get-view-prop 'reorg-level)))
+			  (reorg-views--delete-leaf)
+			  (reorg-views--insert-before-point
+			   data
+			   level
+			   format-string)))))))
+
+
+(defun reorg--get-format-string ()
+  "get format string at point"
+  (save-excursion 
+    (cl-loop until (or (reorg--get-view-prop 'format-string)
+		       (not (reorg--goto-parent t)))
+	     finally return (or (reorg--get-view-prop 'format-string)
+				reorg-headline-format))))
 
 ;;; parsing functions 
 
