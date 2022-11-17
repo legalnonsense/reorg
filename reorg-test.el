@@ -105,7 +105,7 @@
 	       :sort-results ((.ts . string<)))
 	     ( :group (when (string= .headline "_NOTES_")
 			"Progress Notes")
-	       :format-string (.stars " Notes"))))))
+	       :format-string (.stars " " .headline))))))
        ( :group "Date tree"
 	 :children
 	 (( :group (when-let ((time (or .timestamp
