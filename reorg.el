@@ -180,7 +180,7 @@ switch to that buffer in the window."
 (defvar reorg-view-mode-map 
   (let ((map (make-keymap)))
     (suppress-keymap map)
-;;    (define-key map [remap undo] #'org-agenda-undo)
+    ;;    (define-key map [remap undo] #'org-agenda-undo)
     (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "c") #'reorg--goto-next-clone)
@@ -257,15 +257,14 @@ switch to that buffer in the window."
   "insert a hearing before the heading at point."
   (reorg--with-restore-state
    (beginning-of-line)
-   (insert "\n")
-   (previous-line 1)
-   (beginning-of-line)
    (let ((string (reorg--create-headline-string data
 						(or format-string reorg-headline-format)
 						(or level (reorg--get-view-prop 'reorg-level)))))
      (insert string)
-     (reorg-dynamic-bullets--fontify-heading)
-     (1+ (length string)))))
+     (goto-char (point-at-bol))
+     (reorg-dynamic-bullets--fontify-heading))))
+
+
 
 (defun reorg-views--insert-after-point (data &optional level format-string)
   "insert a heading after the current point."

@@ -14,7 +14,7 @@ update the heading at point."
 	  (org-back-to-heading)
 	  ,@body
 	  (setq data (reorg--parser nil 'org)))
-	 (reorg--select-tree-window)       
+	 (reorg--select-tree-window)
 	 (reorg--map-id (alist-get 'id data)
 			(let ((format-string (reorg--get-format-string))
 			      (level (reorg--get-view-prop 'reorg-level)))
@@ -22,8 +22,8 @@ update the heading at point."
 			  (reorg-views--insert-before-point
 			   data
 			   level
-			   format-string)))))))
-
+			   format-string))
+			(reorg-dynamic-bullets--fontify-heading))))))
 
 (defun reorg--get-format-string ()
   "get format string at point"
