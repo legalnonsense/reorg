@@ -22,8 +22,9 @@ update the heading at point."
 			  (reorg-views--insert-before-point
 			   data
 			   level
-			   format-string))
-			(reorg-dynamic-bullets--fontify-heading))))))
+			   format-string)
+			  (reorg-dynamic-bullets--fontify-heading)))
+	 (reorg-dynamic-bullets--fontify-heading)))))
 
 (defun reorg--get-format-string ()
   "get format string at point"

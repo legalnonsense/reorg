@@ -323,11 +323,11 @@ switch to that buffer in the window."
 
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
-  `(save-excursion  
-     (goto-char (point-min))
-     (let ((id ,id))
-       (while (reorg--goto-next-prop 'id id)
-	 ,@body))))
+  `(org-with-wide-buffer 
+    (goto-char (point-min))
+    (let ((id ,id))
+      (while (reorg--goto-next-prop 'id id)
+	,@body))))
 
 (defmacro reorg--map-next-level (&rest body)
   "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
