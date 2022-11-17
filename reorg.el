@@ -18,6 +18,7 @@
 (require 'reorg-data)
 (require 'reorg-sort)
 (require 'reorg-dynamic-bullets)
+(require 'reorg-test)
 
 ;;; reorg data types 
 (require 'reorg-org)
