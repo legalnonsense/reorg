@@ -3,13 +3,14 @@
 ;;; requires
 (eval-when-compile
   (require 'cl-lib))
-(require 'org)
 (require 'outline)
-(require 'let-alist)
+(require 'org)
+(require 'org-agenda) ;; needed for `org-with-remote-undo'
 (require 'seq)
-(require 'org-visual-indent)
+(require 'let-alist)
 (require 'dash)
 (require 's)
+(require 'org-visual-indent nil t)
 
 ;;; reorg requires 
 (require 'reorg-utils)
@@ -21,6 +22,7 @@
 ;;; reorg data types 
 (require 'reorg-org)
 (require 'reorg-files)
+(require 'reorg-leo)
 
 ;;; constants
 
