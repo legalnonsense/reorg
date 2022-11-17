@@ -181,13 +181,15 @@ and FORM is evaluated to see if that target exists.
 This creates two functions: reorg--get-NAME and reorg--goto-NAME."
   `(progn 
      ,@(cl-loop for (name . form) in alist
-		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) nil
+		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) (&optional no-update)
 				,(concat "Move point to "
 					 (s-replace "-" " " (symbol-name name))
 					 " and run navigation hook.")
 				(interactive)
 				(when-let ((point ,form))
-				  (reorg--goto-char point)))
+				  (if no-update
+				      (goto-char point)
+				    (reorg--goto-char point))))
 			     `(defun ,(reorg--create-symbol 'reorg--get- name) nil
 				,(concat "Get the point of "
 					 (s-replace "-" " " (symbol-name name))

@@ -38,9 +38,9 @@
    :template '( :group "tmp.org"
 		:format-string ((make-string (1+ (or .org-level 1)) ?*) " " .headline)
 		:format-string-overrides ((reorg-branch . t)
-					  (reorg-level . .org-level))
-		:sort <
-		:sort-getter .order)))
+					  (reorg-level . .org-level)))))
+		;; :sort <
+		;; :sort-getter .order)))
 
 (defun reorg-user--clone-file ()
   (interactive)
