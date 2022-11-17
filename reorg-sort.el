@@ -15,9 +15,7 @@ SEQUENCE is a sequence to sort."
    sequence))
 
 (cl-defgeneric reorg--seq-group-by (form sequence)
-  "Apply FUNCTION to each element of SEQUENCE.
-Separate the elements of SEQUENCE into an alist using the results as
-keys.  Keys are compared using `equal'."
+  "Custom version of 'seq-group-by'"
   (seq-reduce
    (lambda (acc elt)
      (let* ((key (funcall `(lambda (e)
@@ -34,7 +32,9 @@ keys.  Keys are compared using `equal'."
 (defun reorg--dot-at-search (data)
   "Return alist of symbols inside DATA that start with a `.@'.
 Perform a deep search and return an alist where each car is the
-symbol, and each cdr is the same symbol without the `.'."
+symbol, and each cdr is the same symbol without the `.'.
+
+See `let-alist--deep-dot-search'."
   (cond
    ((symbolp data)
     (let ((name (symbol-name data)))
@@ -54,9 +54,7 @@ symbol, and each cdr is the same symbol without the `.'."
               (reorg--dot-at-search (cdr data))))))
 
 (defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
-  "turn a .@symbol into .symbol
-the value from the parsed data or calling the display
-function created by the type creation macro."
+  "turn .@symbol into .symbol."
   (if (and (symbolp elem)
 	   (string-match "\\`\\.@" (symbol-name elem)))
       (intern (concat "." (substring (symbol-name elem) 2)))
