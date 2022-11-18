@@ -147,7 +147,7 @@ See `let-alist--deep-dot-search'."
 							  (setf (alist-get at-dot ppp) x)
 							  ppp))
 				finally return data))))
-		    (setq xxx grouper)
+
 		    (->> it			      
 			 (reorg--seq-group-by
 			  (reorg--walk-tree grouper
