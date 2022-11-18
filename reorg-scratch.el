@@ -10,32 +10,34 @@
 (setq xxx-data (xxx-create-test-data))
 
 (setq xxx-template
-      '( :children (( :group (lambda (x) (when (oddp (alist-get 'a x))
-				 	   (concat "A: "
-						   (number-to-string 
-						    (alist-get 'a x)))))
-		      :sort-group (lambda (a b)
-				    (string>
-				     (car a)
-				     (car b)))
-		      :sort-results (((lambda (x) (alist-get 'd x)) . >))
-		      :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
-				   :group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
-							  "B is even"
-							"B is odd")))))
-		    ( :group (lambda (x) (when (= (alist-get 'a x) 6)
-					   "A = 6"))
-		      :sort-results (
-				     ((lambda (x) (alist-get 'b x)) . >))))))
+      '( :format-string (format "a is %d but b is %d" .a .b)
+	 :children
+	 (( :group (lambda (x) (when (oddp (alist-get 'a x))
+				 (concat "A: "
+					 (number-to-string 
+					  (alist-get 'a x)))))
+	    :sort-group (lambda (a b)
+			  (string>
+			   (car a)
+			   (car b)))
+	    :sort-results (((lambda (x) (alist-get 'd x)) . >))
+	    :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
+			 :group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
+						"B is even"
+					      "B is odd"))))))))
 
-(defcustom reorg-default-result-sort nil "")
+;; (reorg--multi-sort '(((lambda (x) (alist-get 'c x)) . >)) yyy)
+;; ( :group (lambda (x) (when (= (alist-get 'a x) 6)
+;; 			 "A = 6"))
+;;   :sort-results (
+;; 		   ((lambda (x) (alist-get 'b x)) . >))))))
 
-(defun xxx-thread-as-rewrite (data
-			      template
-			      &optional
-			      sorters
-			      format-string
-			      level)
+(defun reorg--group-and-sort* (data
+			       template
+			       &optional
+			       sorters
+			       format-string
+			       level)
   (setq format-string
 	(or format-string
 	    (plist-get template :format-string)
@@ -63,7 +65,7 @@
 		   (cl-loop for e in data
 			    collect
 			    (cons (car e)
-				  (xxx-thread-as-rewrite
+				  (reorg--group-and-sort*
 				   (cdr e)
 				   groups
 				   sorters
@@ -73,10 +75,71 @@
 		   (cl-loop for each in data
 			    collect
 			    (cons (car each)
-				  (reorg--multi-sort sorters (cdr each)))))
+				  (cl-loop for each in (reorg--multi-sort sorters (cdr each))
+					   collect (reorg--create-headline-string*
+						    each 
+						    format-string
+						    level)))))
+		  ;; format-string
+		  ;; level))))
 		  (t ;; no more headers; no sort
-		   (cl-loop for (header . rest) in data
-			    collect (cons header rest)))))))
+		   (cl-loop for (h . r) in data
+			    collect (cons h
+					  (cl-loop for each in r
+						   collect
+						   (reorg--create-headline-string*
+						    each
+						    format-string
+						    level
+						    nil)))))))))
+
+(defun reorg--create-headline-string* (data format-string &optional level overrides)
+  "Create a headline string from DATA using FORMAT-STRING as the
+template.  Use LEVEL number of leading stars.  Add text properties
+`reorg--field-property-name' and  `reorg--data-property-name'."
+  (cl-flet ((create-stars (num &optional data)
+			  (make-string (if (functionp num)
+					   (funcall num data)
+					 num)
+				       ?*)))
+    (push (cons 'reorg-level level) data)
+    (apply
+     #'propertize 
+     (concat
+      (if (alist-get 'reorg-branch data)
+	  (propertize 
+	   (concat (create-stars level) " " (alist-get 'branch-name data))
+	   reorg--field-property-name
+	   'branch)
+	;; TODO:get rid of this copy-tree
+	(cl-loop for (prop . val) in overrides
+		 do (setf (alist-get prop data)
+			  (funcall `(lambda ()
+				      (let-alist data 
+					,val)))))
+	(let ((xxx (reorg--walk-tree format-string
+				     #'reorg--turn-dot-to-display-string
+				     data)))
+	  (funcall `(lambda (data)
+		      (concat ,xxx))
+		   data)))
+      ;; (apply (car xxx)
+      ;; 	 (cdr xxx)))
+      
+      ;; `(lambda (data)
+      ;;    (let-alist data 
+      ;;      ,format-string))
+      ;; data))))
+      "\n")
+     'reorg-data     
+     (append data
+	     (list 			;
+	      (cons 'reorg-class (alist-get 'class data))
+	      (cons 'reorg-level level)))
+     reorg--field-property-name
+     'leaf
+     (alist-get (alist-get 'class data)
+		reorg--extra-prop-list))))
 
 (defmacro reorg--thread-as (name &rest form)
   "like `-as->' but better!?"
@@ -111,4 +174,4 @@ that return nil."
    (seq-reverse sequence)
    nil))
 
-(xxx-thread-as-rewrite xxx-data xxx-template) ;;;test 
+(reorg--group-and-sort* xxx-data xxx-template) ;;;test 
