@@ -4,6 +4,7 @@
 
 (defun reorg--update-this-heading (&optional data level format)
   "update this heading"
+  (interactive)
   (let ((data (or data (reorg--with-point-at-orig-entry
 			(reorg--get-view-prop 'id)
 			(reorg--get-view-prop 'buffer)

@@ -186,6 +186,7 @@ switch to that buffer in the window."
     ;;    (define-key map [remap undo] #'org-agenda-undo)
     (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
+    (define-key map (kbd "g") #'reorg--update-this-heading)
     (define-key map (kbd "c") #'reorg--goto-next-clone)
     (define-key map (kbd "f") #'reorg--goto-next-sibling)
     (define-key map (kbd "b") #'reorg--goto-previous-sibling)
