@@ -8,6 +8,11 @@
 			    collect (cons b (random 10)))))
 
 (setq xxx-data (xxx-create-test-data))
+(setq xxx-template '(:format-string
+		     (format "a is %d but b is %d" \.a \.b)
+		     :children
+		     ;; (( :group (lambda (&rest whatever) "Everything")))))
+		     ((:group "Everything" )))) ;
 
 (setq xxx-template
       '( :format-string (format "a is %d but b is %d" .a .b)
@@ -60,6 +65,90 @@
 	    (if (plist-get groups :sort-group)
 		(seq-sort (plist-get groups :sort-group)
 			  data)
+	      data)  
+	    (cond ((plist-get groups :children)
+		   (cl-loop for e in data
+			    collect
+			    (cons (car e)
+				  (reorg--group-and-sort*
+				   (cdr e)
+				   groups
+				   sorters
+				   format-string
+				   (1+ level)))))
+		  (sorters ;; no more headers
+		   (cl-loop for each in data
+			    collect
+			    (cons (car each)
+				  (cl-loop for each in (reorg--multi-sort sorters (cdr each))
+					   collect (reorg--create-headline-string*
+						    each 
+						    format-string
+						    level)))))
+		  ;; format-string
+		  ;; level))))
+		  (t ;; no more headers; no sort
+		   (cl-loop for (h . r) in data
+			    collect (cons h
+					  (cl-loop for each in r
+						   collect
+						   (reorg--create-headline-string*
+						    each
+						    format-string
+						    level
+						    nil)))))))))
+
+(defun reorg--group-and-sort** (data
+				template
+				&optional
+				sorters
+				format-string
+				level)
+  (setq format-string
+	(or format-string
+	    (plist-get template :format-string)
+	    reorg-headline-format)
+	sorters
+	(or sorters
+	    (plist-get template :sort-results)
+	    reorg-default-result-sort))
+  
+  (cl-loop 
+   for groups in (plist-get template :children)
+   do (setq format-string (or format-string
+			      (plist-get template :format-string)
+			      reorg-headline-format)
+	    sorters (append sorters (plist-get groups :sort-results))
+	    level (or level 1))
+   append (reorg--thread-as data
+	    (pcase (plist-get groups :group)
+	      ((pred functionp)      
+	       (reorg--seq-group-by* (plist-get groups :group)
+				     data))
+	      ((pred stringp)
+	       (setq xxx (list (cons (plist-get groups :group) 
+				     data)))
+	       (list (cons (plist-get groups :group)
+			   data)))
+
+	      (_
+	       (when-let ((at-dots (cl-delete-duplicates
+				    (reorg--dot-at-search grouper)
+				    :test #'equal)))
+		 (cl-loop
+		  for d in data 
+		  append (cl-loop
+			  for (_ . at-dot) in at-dots
+			  if (listp (alist-get at-dot data))
+			  return (cl-loop for x in (alist-get at-dot d)
+					  collect (let ((ppp (copy-alist d)))
+						    (setf (alist-get at-dot ppp) x)
+						    ppp))
+			  finally return data)))))
+	    (if (plist-get groups :sort-group)
+		(progn (debug nil data)
+		       (seq-sort (plist-get groups :sort-group)
+				 data))
 	      data)  
 	    (cond ((plist-get groups :children)
 		   (cl-loop for e in data
@@ -174,4 +263,4 @@ that return nil."
    (seq-reverse sequence)
    nil))
 
-(reorg--group-and-sort* xxx-data xxx-template) ;;;test 
+(reorg--group-and-sort** xxx-data xxx-template) ;;;test 
