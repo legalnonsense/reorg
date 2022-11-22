@@ -4,10 +4,15 @@
 (defvar reorg--grouper-action-function #'reorg--create-headline-string*
   "")
 
-(defun reorg--insert-heading* (data)
+(defun reorg--insert-heading* (data template)
   "insert an individual heading"
-  (reorg--flatten* 
-   (reorg--group-and-sort* (list data) xxx-template)))
+  (reorg--thread-as data
+    (reorg--group-and-sort* (list data) template)
+    (reorg--flatten* data)
+    (reverse data)
+    (cdr data)))
+
+  (reorg--insert-heading* '((a . 1) (b . 2)) xxx-template)
 
 (defun reorg--flatten* (data)
   (cl-labels ((walk (tree)
