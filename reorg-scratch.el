@@ -1,8 +1,8 @@
 ;; -*- lexical-binding: t; -*-
+
 (defvar reorg-default-result-sort nil "")
-
-
-
+(defvar reorg--field-property-name 'reorg-field-name "")
+(defvar reorg--extra-prop-list nil "")
 (defvar reorg--grouper-action-function #'reorg--create-headline-string*
   "")
 (setq reorg--grouper-action-function (lambda (data
@@ -19,7 +19,8 @@
 
 (defun reorg--insert-heading* (data template)
   "insert an individual heading"
-  (reorg--thread-as data
+  (reorg--thread-as*
+    data
     (reorg--group-and-sort* (list data) template)
     (reorg--flatten* data)
     (reverse data)
@@ -27,15 +28,16 @@
 
 (reorg--insert-heading* '((a . 1) (b . 2)) xxx-template)
 
-(defun reorg--flatten* (data)
-  (cl-labels ((walk (tree)
-		    (cl-loop for each in tree
-			     if (listp each)
-			     collect (car each)
-			     and collect (walk (cdr each))
-			     else
-			     collect each)))
-    (-flatten (walk data))))
+;; (defun reorg--flatten* (data)
+;;   (cl-labels
+;;       ((walk (tree)
+;; 	     (cl-loop for each in tree
+;; 		      if (listp each)
+;; 		      collect (car each)
+;; 		      and collect (walk (cdr each))
+;; 		      else
+;; 		      collect each)))
+;;     (-flatten (walk data))))
 
 (defun xxx-create-test-data ()
   (interactive)
@@ -46,31 +48,37 @@
 
 (setq xxx-data (xxx-create-test-data))
 
-;; (setq xxx-template '( :format-string (format "xxx %d" .b)
-;; 		      :sort-results (((lambda (x) (alist-get 'd x)) . <))
-;; 		      :children
-;; 		      (( :group (number-to-string .a)
-;; 			 :children (( :group (if (evenp .b)
-;; 						 "B is even"
-;; 					       "B is odd")))))))
-
 (setq xxx-template
       '(
-	:format-string (.stars " " (pp (list .a .b .c .d)))
+	:format-results (.stars " " (pp (list .a .b .c .d)))
 	:children
 	(( :group (lambda (x) (when (oddp (alist-get 'a x))
 				(concat "A: "
 					(number-to-string 
 					 (alist-get 'a x)))))
-	   :sort-group (lambda (a b)
-			 (string>
-			  (car a)
-			  (car b)))
+	   :sort-groups (lambda (a b)
+			  (string<
+			   (car a)
+			   (car b)))
 	   :sort-results (((lambda (x) (alist-get 'd x)) . >))
 	   :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
 			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
 					       "B is even"
 					     "B is odd"))))))))
+
+(defun reorg--multi-sort* (functions-and-predicates sequence)
+  "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
+It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
+SEQUENCE is a sequence to sort."
+  (seq-sort 
+   (lambda (a b)
+     (cl-loop for (func . pred) in functions-and-predicates	      
+	      unless (equal (funcall func a)
+			    (funcall func b))
+	      return (funcall pred
+			      (funcall func a)
+			      (funcall func b))))
+   sequence))
 
 (defun reorg--group-and-sort* (data
 			       template
@@ -80,7 +88,7 @@
 			       level)
   (cl-flet ((get-header-props
 	     (header groups)
-	     (reorg--thread-as (props (list 
+	     (reorg--thread-as* (props (list 
 				       (cons 'branch-name header)
 				       (cons 'headline header)
 				       (cons 'reorg-branch t)
@@ -113,7 +121,7 @@
     ;; inheritance
     (setq format-string
 	  (or format-string
-	      (plist-get template :format-string)
+	      (plist-get template :format-results)
 	      reorg-headline-format)
 	  sorters 
 	  (or sorters
@@ -125,11 +133,11 @@
      for groups in (plist-get template :children)
      ;; inheritence for 
      do (setq format-string (or format-string
-				(plist-get template :format-string)
+				(plist-get template :format-results)
 				reorg-headline-format)
 	      sorters (append sorters (plist-get groups :sort-results))
 	      level (or level 1))
-     append (reorg--thread-as data
+     append (reorg--thread-as* data
 	      (pcase (plist-get groups :group)
 		((pred functionp)
 		 ;; easy.
@@ -144,6 +152,7 @@
 		 ;; not so easy.
 		 (when-let ((at-dots (seq-uniq 
 				      (reorg--at-dot-search* (plist-get groups :group)))))
+		   
 		   ;; if it has an at-dot, then make a copy of each entry in DATA
 		   ;; if its value is a list.
 		   ;; For example, if the grouping form was:
@@ -162,7 +171,7 @@
 		   ;; '((a . 1) (b . 2))
 		   ;; '((a . 1) (b . 3))
 		   ;; '((a . 1) (b . 4))
-		   ;;		 
+
 		   (setq data
 			 (cl-loop
 			  for d in data 
@@ -181,8 +190,8 @@
 				     data)
 		  data)))
 	      ;; If there is a group sorter, sort the headers
-	      (if (plist-get groups :sort-group)
-		  (seq-sort (plist-get groups :sort-group)
+	      (if (plist-get groups :sort-groups)
+		  (seq-sort (plist-get groups :sort-groups)
 			    data)
 		data)
 	      ;; If there are children, recurse 
@@ -217,8 +226,8 @@
 			   level
 			   nil)
 			  (cl-loop with results = (if sorters
-						      (reorg--multi-sort sorters
-									 results)
+						      (reorg--multi-sort* sorters
+									  results)
 						    results)
 				   for result in results
 				   collect
@@ -265,7 +274,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 	   (funcall `(lambda (data)
 		       (concat ,@xxx))
 		    data))
-	 "\n")))         
+	 )))         
      'reorg-data     
      (append data
 	     (list 			;
@@ -276,7 +285,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
      (alist-get (alist-get 'class data)
 		reorg--extra-prop-list))))
 
-(defmacro reorg--thread-as (name &rest form)
+(defmacro reorg--thread-as* (name &rest form)
   "like `-as->' but better!?"
   (declare (indent defun)
 	   (debug t))
@@ -316,14 +325,16 @@ that return nil."
 (defun reorg--walk-tree* (form func &optional data)
   "Why the hell doesn't dash or seq do this?
 Am I crazy?" 
-  (cl-labels ((walk (form)
-		    (cl-loop for each in form
-			     if (listp each)
-			     collect (walk each)
-			     else
-			     collect (if data
-					 (funcall func each data)
-				       (funcall func each)))))
+  (cl-labels
+      ((walk
+	(form)
+	(cl-loop for each in form
+		 if (listp each)
+		 collect (walk each)
+		 else
+		 collect (if data
+			     (funcall func each data)
+			   (funcall func each)))))
     (if (listp form)
 	(walk form)
       (if data 
