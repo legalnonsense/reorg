@@ -1,16 +1,29 @@
 ;; -*- lexical-binding: t; -*-
+(defvar reorg-default-result-sort nil "")
+
 
 
 (defvar reorg--grouper-action-function #'reorg--create-headline-string*
   "")
+(setq reorg--grouper-action-function (lambda (data
+					      format-string
+					      &optional
+					      level
+					      overrides)
+				       (with-current-buffer (get-buffer-create "*TEMP*")
+					 (insert (reorg--create-headline-string*
+						  data
+						  format-string
+						  level
+						  overrides)))))
 
 (defun reorg--insert-heading* (data template)
   "insert an individual heading"
   (reorg--thread-as data
-		    (reorg--group-and-sort* (list data) template)
-		    (reorg--flatten* data)
-		    (reverse data)
-		    (cdr data)))
+    (reorg--group-and-sort* (list data) template)
+    (reorg--flatten* data)
+    (reverse data)
+    (cdr data)))
 
 (reorg--insert-heading* '((a . 1) (b . 2)) xxx-template)
 
@@ -33,33 +46,31 @@
 
 (setq xxx-data (xxx-create-test-data))
 
-(setq xxx-template '( :format-string (format "xxx %d" .b)
-		      :sort-results (((lambda (x) (alist-get 'd x)) . <))
-		      :children
-		      (( :group (number-to-string .a)
-			 :children (( :group (if (evenp .b)
-						 "B is even"
-					       "B is odd")))))))
-
-
+;; (setq xxx-template '( :format-string (format "xxx %d" .b)
+;; 		      :sort-results (((lambda (x) (alist-get 'd x)) . <))
+;; 		      :children
+;; 		      (( :group (number-to-string .a)
+;; 			 :children (( :group (if (evenp .b)
+;; 						 "B is even"
+;; 					       "B is odd")))))))
 
 (setq xxx-template
-      '( :format-string (format "a is %d but b is %d" .a .b)
-	 :children
-	 (( :group (lambda (x) (when (oddp (alist-get 'a x))
-				 (concat "A: "
-					 (number-to-string 
-					  (alist-get 'a x)))))
-	    :sort-group (lambda (a b)
-			  (string>
-			   (car a)
-			   (car b)))
-	    :sort-results (((lambda (x) (alist-get 'd x)) . >))
-	    :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
-			 :group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
-						"B is even"
-					      "B is odd"))))))))
-
+      '(
+	:format-string (.stars " " (pp (list .a .b .c .d)))
+	:children
+	(( :group (lambda (x) (when (oddp (alist-get 'a x))
+				(concat "A: "
+					(number-to-string 
+					 (alist-get 'a x)))))
+	   :sort-group (lambda (a b)
+			 (string>
+			  (car a)
+			  (car b)))
+	   :sort-results (((lambda (x) (alist-get 'd x)) . >))
+	   :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
+			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
+					       "B is even"
+					     "B is odd"))))))))
 
 (defun reorg--group-and-sort* (data
 			       template
@@ -215,7 +226,7 @@
 				    reorg--grouper-action-function
 				    result
 				    format-string
-				    level
+				    (1+ level)
 				    ;;OVERRIDES
 				    )))))))))
 
@@ -252,7 +263,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 				       #'reorg--turn-dot-to-display-string*
 				       data)))
 	   (funcall `(lambda (data)
-		       (concat ,xxx))
+		       (concat ,@xxx))
 		    data))
 	 "\n")))         
      'reorg-data     
@@ -363,5 +374,5 @@ See `let-alist--deep-dot-search'."
 ;; TESTS
 (let ((reorg--grouper-action-function (lambda (x &rest y) (identity x))))
   (reorg--group-and-sort* xxx-data xxx-template))
-
-(reorg--group-and-sort* xxx-data xxx-template) ;;;test 
+(with-current-buffer (get-buffer-create "*TEMP*")
+  (reorg--group-and-sort* xxx-data xxx-template)) ;;;test 
