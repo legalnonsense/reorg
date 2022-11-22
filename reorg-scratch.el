@@ -7,12 +7,12 @@
 (defun reorg--insert-heading* (data template)
   "insert an individual heading"
   (reorg--thread-as data
-    (reorg--group-and-sort* (list data) template)
-    (reorg--flatten* data)
-    (reverse data)
-    (cdr data)))
+		    (reorg--group-and-sort* (list data) template)
+		    (reorg--flatten* data)
+		    (reverse data)
+		    (cdr data)))
 
-  (reorg--insert-heading* '((a . 1) (b . 2)) xxx-template)
+(reorg--insert-heading* '((a . 1) (b . 2)) xxx-template)
 
 (defun reorg--flatten* (data)
   (cl-labels ((walk (tree)
@@ -359,6 +359,8 @@ See `let-alist--deep-dot-search'."
 			   (let-alist ',data
 			     ,elem))))))
     elem))
+
+;; TESTS
 (let ((reorg--grouper-action-function (lambda (x &rest y) (identity x))))
   (reorg--group-and-sort* xxx-data xxx-template))
 
