@@ -344,7 +344,7 @@ See `let-alist--deep-dot-search'."
 	   (string-match "\\`\\." (symbol-name elem)))
       (let* ((sym (intern (substring (symbol-name elem) 1)))
 	     (fu (reorg--get-display-func-name
-		  'org
+		  (alist-get 'class data)
 		  (substring (symbol-name elem) 1))))
 	(cond ((eq sym 'stars)
 	       (make-string (alist-get 'reorg-level data) ?*))
