@@ -19,35 +19,6 @@
 					   (insert h))
 					 h)))
 
-(setq xxx (reverse (-flatten (reorg--group-and-sort* (list (list (cons 'a 1)
-								 (cons 'b 2)
-								 (cons 'c 3)
-								 (cons 'd 4)))
-						     xxx-template
-						     #'reorg--create-headline-string*))))
-
-(car xxx)
-(reverse (cdr xxx))
-
-
-(defun reorg--find-leaf-location* (data)
-  (let ((this-header (alist-get 'headline 
-
-(defun reorg--insert-heading* (data template)
-  "insert an individual heading"
-  (let ((headers (reorg--thread-as*
-		   data
-		   (reorg--group-and-sort* (list data) template #'reorg--create-headline-string*)
-		   (-flatten data))))
-
-    (cl-loop for headers in (cdr headers)
-	     for n from 0
-	     if (reorg--goto-next-prop 'id (alist-get 'id data))
-	     return (reorg--find-leaf-location (car headers))
-
-
-
-
 ;; (defun reorg--flatten* (data)
 ;;   (cl-labels
 ;;       ((walk (tree)
@@ -84,7 +55,9 @@
 	   :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
 			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
 					       "B is even"
-					     "B is odd"))))))))
+					     "B is odd")))))
+	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
+				"B IS FIVE"))))))
 
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
@@ -378,9 +351,9 @@ See `let-alist--deep-dot-search'."
    ((symbolp data)
     (let ((name (symbol-name data)))
       (when (string-match "\\`\\.@" name)
-        ;; Return the cons cell inside a list, so it can be appended
-        ;; with other results in the clause below.
-        (list (cons data (intern (replace-match "" nil nil name)))))))
+	;; Return the cons cell inside a list, so it can be appended
+	;; with other results in the clause below.
+	(list (cons data (intern (replace-match "" nil nil name)))))))
    ((vectorp data)
     (apply #'nconc (mapcar #'reorg--at-dot-search* data)))
    ((not (consp data)) nil)
@@ -390,7 +363,7 @@ See `let-alist--deep-dot-search'."
     ;; being processed.  See Bug#24641.
     (reorg--at-dot-search* (cadr data)))
    (t (append (reorg--at-dot-search* (car data))
-              (reorg--at-dot-search* (cdr data))))))
+	      (reorg--at-dot-search* (cdr data))))))
 
 (defun reorg--turn-dot-to-display-string* (elem data)
   "turn .symbol to a string using a display function."
@@ -413,4 +386,48 @@ See `let-alist--deep-dot-search'."
 (let ((reorg--grouper-action-function (lambda (x &rest y) (identity x))))
   (reorg--group-and-sort* xxx-data xxx-template))
 (with-current-buffer (get-buffer-create "*TEMP*")
-  (reorg--group-and-sort* xxx-data xxx-template)) ;;;test 
+  (reorg--group-and-sort* xxx-data xxx-template)) 
+
+
+(setq xxx (cl-loop for each in (reorg--group-and-sort* (list (list (cons 'a 1)
+								   (cons 'b 5)
+								   (cons 'c 3)
+								   (cons 'd 4)))
+						       xxx-template
+						       #'reorg--create-headline-string*)
+		   collect (reverse (-flatten each))))
+
+
+(reorg--insert-heading* '((a . 1) (b . 2) (c . 3) (d . 4)) xxx-template) ;;;test 
+
+(defun reorg--insert-heading* (data template)
+  "insert an individual heading"
+  (let* ((headers (reorg--thread-as* data
+		    (reorg--group-and-sort* (list data) template #'reorg--create-headline-string*)
+		    (-flatten data)
+		    (reverse data)))
+	 (result-sorters
+	  (alist-get 'result-sorters
+		     (get-text-property 0 'reorg-data (cadr headers)))))
+    
+    (cl-loop for header in (cdr headers)
+	     for n from 0
+	     if (reorg--goto-next-prop 'id (alist-get 'id header))
+	     return (cl-loop while (reorg--goto-next-sibling)
+			     if (cl-loop for (func . pred) in functions-and-predicates	      
+					 unless (equal (funcall func data)
+						       (funcall func (reorg--get-view-prop))
+					 return (funcall pred
+							 (funcall func data)
+							 (funcall func reorg--get-view-prop))))
+			     do ;;insert leaf
+
+    (reorg-views--delete-leaf)
+    (reorg--insert-heading props level format)))
+			     
+			     finally do ;;insert leaf 
+
+			     (reorg--multi-sort* result-sorters
+						   
+
+
