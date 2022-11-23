@@ -398,36 +398,48 @@ See `let-alist--deep-dot-search'."
 		   collect (reverse (-flatten each))))
 
 
-(reorg--insert-heading* '((a . 1) (b . 2) (c . 3) (d . 4)) xxx-template) ;;;test 
+(reorg--insert-heading* '((a . 1) (b . 2) (c . 3) (d . 4)) xxx-template) 
 
 (defun reorg--insert-heading* (data template)
   "insert an individual heading"
-  (let* ((headers (reorg--thread-as* data
-		    (reorg--group-and-sort* (list data) template #'reorg--create-headline-string*)
-		    (-flatten data)
-		    (reverse data)))
-	 (result-sorters
-	  (alist-get 'result-sorters
-		     (get-text-property 0 'reorg-data (cadr headers)))))
-    
-    (cl-loop for header in (cdr headers)
-	     for n from 0
-	     if (reorg--goto-next-prop 'id (alist-get 'id header))
-	     return (cl-loop while (reorg--goto-next-sibling)
-			     if (cl-loop for (func . pred) in functions-and-predicates	      
-					 unless (equal (funcall func data)
-						       (funcall func (reorg--get-view-prop))
-					 return (funcall pred
-							 (funcall func data)
-							 (funcall func reorg--get-view-prop))))
-			     do ;;insert leaf
+  (let* ((header-groups
+	  (reorg--thread-as* data
+	    (reorg--group-and-sort* (list data)
+				    template
+				    #'reorg--create-headline-string*))))    
+    (cl-loop for headers in header-groups
+	     do (cl-loop
+		 with headers = (reverse (-flatten headers))
+		 with leaf = (car headers)
+		 with result-sorters = (alist-get 'result-sorters (cadr headers))
+		 with format-string = (alist-get 'format-string (cadr headers))
+		 for header in headers
+		 if (reorg--goto-next-prop 'id (alist-get 'id header))
+		 return (if (reorg--goto-next-child)
+			    (cl-loop 
+			     when (cl-loop for (func . pred) in result-sorters 
+					   unless (equal (funcall func data)
+							 (funcall func (reorg--get-view-prop)))
+					   return (funcall pred
+							   (funcall func data)
+							   (funcall func (reorg--get-view-prop))))
+			     return (reorg--insert-heading props level format)
+			     while (reorg--goto-next-sibling)
+			     finally return t))))))
 
-    (reorg-views--delete-leaf)
-    (reorg--insert-heading props level format)))
-			     
-			     finally do ;;insert leaf 
+(defun reorg--insert-heading** (data template)
+  "insert an individual heading"
+  (let* ((header-groups
+	  (reorg--group-and-sort* (list data)
+				  template
+				  #'reorg--create-headline-string*)))
+    (cl-loop for headers in header-groups
+	     collect
+	     (list (cons 'leaf (car (setq headers (reverse (-flatten headers)))))
+		   (cons 'headers (setq headers (cdr headers)))
+		   (cons 'result-sorters (alist-get 'result-sorters
+						    (get-text-property 0 'reorg-data (car headers))))
+		   (cons 'format-string (alist-get 'format-string
+						   (get-text-property 0 'reorg-data (car headers))))))))
 
-			     (reorg--multi-sort* result-sorters
-						   
-
-
+(reorg--insert-heading** '((a . 1)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
