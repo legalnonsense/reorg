@@ -10,23 +10,43 @@
 					      &optional
 					      level
 					      overrides)
-				       (with-current-buffer (get-buffer-create "*TEMP*")
-					 (insert (reorg--create-headline-string*
-						  data
-						  format-string
-						  level
-						  overrides)))))
+				       (let ((h (reorg--create-headline-string*
+						 data
+						 format-string
+						 level
+						 overrides)))
+					 (with-current-buffer (get-buffer-create "*TEMP*")
+					   (insert h))
+					 h)))
+
+(setq xxx (reverse (-flatten (reorg--group-and-sort* (list (list (cons 'a 1)
+								 (cons 'b 2)
+								 (cons 'c 3)
+								 (cons 'd 4)))
+						     xxx-template
+						     #'reorg--create-headline-string*))))
+
+(car xxx)
+(reverse (cdr xxx))
+
+
+(defun reorg--find-leaf-location* (data)
+  (let ((this-header (alist-get 'headline 
 
 (defun reorg--insert-heading* (data template)
   "insert an individual heading"
-  (reorg--thread-as*
-    data
-    (reorg--group-and-sort* (list data) template)
-    (reorg--flatten* data)
-    (reverse data)
-    (cdr data)))
+  (let ((headers (reorg--thread-as*
+		   data
+		   (reorg--group-and-sort* (list data) template #'reorg--create-headline-string*)
+		   (-flatten data))))
 
-(reorg--insert-heading* '((a . 1) (b . 2)) xxx-template)
+    (cl-loop for headers in (cdr headers)
+	     for n from 0
+	     if (reorg--goto-next-prop 'id (alist-get 'id data))
+	     return (reorg--find-leaf-location (car headers))
+
+
+
 
 ;; (defun reorg--flatten* (data)
 ;;   (cl-labels
@@ -83,41 +103,41 @@ SEQUENCE is a sequence to sort."
 (defun reorg--group-and-sort* (data
 			       template
 			       &optional
+			       action
 			       sorters
 			       format-string
-			       level)
+			       level
+			       )
   (cl-flet ((get-header-props
 	     (header groups)
 	     (reorg--thread-as* (props (list 
-				       (cons 'branch-name header)
-				       (cons 'headline header)
-				       (cons 'reorg-branch t)
-				       (cons 'grouper-list
-					     `(lambda (x)
-						(let-alist x
-						  ,(plist-get groups :group))))
-				       (cons 'branch-predicate
-					     `(lambda (x)
-						(let-alist x
-						  ,(plist-get groups :group))))
-				       (cons 'branch-result header)
-				       (cons 'grouper-list-results header)
-				       (cons 'format-string format-string)
-				       (cons 'result-sorters sorters)
-				       (cons 'template template)
-				       (cons 'children (plist-get groups :children))
-				       (cons 'branch-sorter ;; heading-sorter
-					     nil)
-				       (cons 'branch-sort-getter ;; heading-sort-getter
-					     nil)
-				       (cons 'reorg-level level)))
+					(cons 'branch-name header)
+					(cons 'headline header)
+					(cons 'reorg-branch t)
+					(cons 'grouper-list
+					      `(lambda (x)
+						 (let-alist x
+						   ,(plist-get groups :group))))
+					(cons 'branch-predicate
+					      `(lambda (x)
+						 (let-alist x
+						   ,(plist-get groups :group))))
+					(cons 'branch-result header)
+					(cons 'grouper-list-results header)
+					(cons 'format-string format-string)
+					(cons 'result-sorters sorters)
+					(cons 'template template)
+					(cons 'children (plist-get groups :children))
+					(cons 'branch-sorter ;; heading-sorter
+					      nil)
+					(cons 'branch-sort-getter ;; heading-sort-getter
+					      nil)
+					(cons 'reorg-level level)))
 	       (append props
 		       `((group-id . ,(md5 (with-temp-buffer
 					     (insert (pp template))
 					     (buffer-string))))
-			 (id . ,(md5 (with-temp-buffer
-				       (insert (pp props))
-				       (buffer-string)))))))))
+			 (id . ,(org-id-new)))))))
     ;; inheritance
     (setq format-string
 	  (or format-string
@@ -200,15 +220,17 @@ SEQUENCE is a sequence to sort."
 		   for (header . results) in data
 		   collect
 		   (cons (funcall
-			  reorg--grouper-action-function
+			  (or action
+			      reorg--grouper-action-function)
 			  (get-header-props header groups)
 			  nil
 			  level
 			  ;; overrides
 			  )
-			 (reorg--group-and-sort*
+			 (reorg--group-and-sort*			  
 			  results
 			  groups
+			  action
 			  sorters
 			  format-string
 			  (1+ level))))
@@ -220,7 +242,8 @@ SEQUENCE is a sequence to sort."
 			 collect
 			 (cons				
 			  (funcall
-			   reorg--grouper-action-function
+			   (or action
+			       reorg--grouper-action-function)
 			   (get-header-props header groups)
 			   nil
 			   level
@@ -232,7 +255,8 @@ SEQUENCE is a sequence to sort."
 				   for result in results
 				   collect
 				   (funcall
-				    reorg--grouper-action-function
+				    (or action
+					reorg--grouper-action-function)
 				    result
 				    format-string
 				    (1+ level)
@@ -253,37 +277,40 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					 num)
 				       ?*)))
     (push (cons 'reorg-level level) data)
-    (apply
-     #'propertize 
-     (concat
-      (if (alist-get 'reorg-branch data)
-	  (propertize 
-	   (concat (create-stars level) " " (alist-get 'branch-name data) "\n")
-	   reorg--field-property-name
-	   'branch)
-	;; TODO:get rid of this copy-tree
-	(cl-loop for (prop . val) in overrides
-		 do (setf (alist-get prop data)
-			  (funcall `(lambda ()
-				      (let-alist data 
-					,val)))))
-	(concat 
-	 (let ((xxx (reorg--walk-tree* format-string
-				       #'reorg--turn-dot-to-display-string*
-				       data)))
-	   (funcall `(lambda (data)
-		       (concat ,@xxx))
-		    data))
-	 )))         
-     'reorg-data     
-     (append data
-	     (list 			;
-	      (cons 'reorg-class (alist-get 'class data))))
-     reorg--field-property-name
-     (if (alist-get 'reorg-branch data)
-	 'branch 'leaf)
-     (alist-get (alist-get 'class data)
-		reorg--extra-prop-list))))
+    (let (headline-text)
+      (apply
+       #'propertize 
+       (concat
+	(if (alist-get 'reorg-branch data)
+	    (propertize 
+	     (concat (create-stars level) " " (alist-get 'branch-name data) "\n")
+	     reorg--field-property-name
+	     'branch)
+	  ;; TODO:get rid of this copy-tree
+	  (cl-loop for (prop . val) in overrides
+		   do (setf (alist-get prop data)
+			    (funcall `(lambda ()
+					(let-alist data 
+					  ,val)))))
+	  (concat 
+	   (let ((xxx (reorg--walk-tree* format-string
+					 #'reorg--turn-dot-to-display-string*
+					 data)))
+	     (setq headline-text 
+		   (funcall `(lambda (data)
+			       (concat ,@xxx))
+			    data)))))) 
+       'reorg-data     
+       (append data
+	       (list
+		(cons 'reorg-orig-data data)
+		(cons 'reorg-headline headline-text)
+		(cons 'reorg-class (alist-get 'class data))))
+       reorg--field-property-name
+       (if (alist-get 'reorg-branch data)
+	   'branch 'leaf)
+       (alist-get (alist-get 'class data)
+		  reorg--extra-prop-list)))))
 
 (defmacro reorg--thread-as* (name &rest form)
   "like `-as->' but better!?"
