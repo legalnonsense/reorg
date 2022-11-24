@@ -100,6 +100,7 @@ SEQUENCE is a sequence to sort."
 					(cons 'format-string format-string)
 					(cons 'result-sorters sorters)
 					(cons 'template template)
+					(cons 'sort-groups (plist-get groups :sort-groups))
 					(cons 'children (plist-get groups :children))
 					(cons 'branch-sorter ;; heading-sorter
 					      nil)
@@ -177,7 +178,9 @@ SEQUENCE is a sequence to sort."
 							    ppp))
 				  finally return data))))
 		 (reorg--seq-group-by*
-		  ;; convert any at-dots to dots 
+		  ;; convert any at-dots to dots (yes, this could be part
+		  ;; of the conditional above, but I wanted to avoid it for
+		  ;; some reason. 
 		  (reorg--walk-tree* (plist-get groups :group)
 				     #'reorg--turn-at-dot-to-dot
 				     data)
@@ -276,7 +279,6 @@ template.  Use LEVEL number of leading stars.  Add text properties
        'reorg-data     
        (append data
 	       (list
-		(cons 'reorg-orig-data data)
 		(cons 'reorg-headline headline-text)
 		(cons 'reorg-class (alist-get 'class data))))
        reorg--field-property-name
@@ -434,12 +436,40 @@ See `let-alist--deep-dot-search'."
 				  template
 				  #'reorg--create-headline-string*)))
     (cl-loop for headers in header-groups
-	     collect
-	     (list (cons 'leaf (car (setq headers (reverse (-flatten headers)))))
-		   (cons 'headers (setq headers (cdr headers)))
-		   (cons 'result-sorters (alist-get 'result-sorters
-						    (get-text-property 0 'reorg-data (car headers))))
-		   (cons 'format-string (alist-get 'format-string
-						   (get-text-property 0 'reorg-data (car headers))))))))
+	     collect (let ((leaf (get-text-property
+				  0
+				  'reorg-data
+				  (car (setq headers (reverse (-flatten headers))))))
+			   (headers (cl-loop for header in (cdr headers)
+					     collect (let* ((props (get-text-property 0 'reorg-data header))
+							    (result-sorters (alist-get 'result-sorters props))
+							    (format-string (alist-get 'format-string props))
+							    (sort-groups (alist-get 'sort-groups props)))
+						       ;; here, look for the header and insert it
+						       ;; if it does not exist
+
+						       ;; if it does not exist, check if parents
+						       ;; need to be inserted
+
+						       ;; or first check the parent header
+						       ;; and if it's not there, insert all headers
+
+						       ;; need function:
+						       ;; find header location, based on sort-groups
+						       ;; (do this by searching for the header group-id)
+						       ;; 
+						       ;; stay at the current level
+						       ;; is this the right spot?
+						       ;; if t, yes
+						       ;; if nil, continue until the end
+						       ;; if reach the end, insert it there
+
+						       ;; insertion requires a delete leaf and insert
+						       ;; leaf function (which already exist)
+						       
+						       props))))
+		       (list leaf headers)))))
+
+
 
 (reorg--insert-heading** '((a . 1)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
