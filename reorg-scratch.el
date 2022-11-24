@@ -416,40 +416,53 @@ See `let-alist--deep-dot-search'."
 				'reorg-data
 				(car (setq headers (reverse (-flatten headers))))))
 			 (headers (cl-loop for header in (cdr headers)
-					   collect (let* ((props (get-text-property 0 'reorg-data header))
-							  (result-sorters (alist-get 'result-sorters props))
-							  (format-string (alist-get 'format-string props))
-							  (sort-groups (alist-get 'sort-groups props)))
-						     ;; here, look for the header and insert it
-						     ;; if it does not exist
+					   append (let-alist (get-text-property 0 'reorg-data header)
+						    (list
+						     (cons 'result-sorters
+							   .result-sorters)
+						     (cons 'format-string
+							   .format-string)
+						     (cons 'sort-groups
+							   .sort-groups)
+						     (cons 'group-id
+							   .group-id)
+						     (cons 'id .id))))))		     
+		     (append leaf headers))))
+  
+  ;; here, look for the header and insert it
+  ;; if it does not exist
 
-						     ;;TODO the group-id is shared between
-						     ;; different same-level groups 
-						     
-						     ;; if it does not exist, check if parents
-						     ;; need to be inserted
 
-						     ;; or first check the parent header
-						     ;; and if it's not there, insert all headers
+  
+  ;; FIXED the group-id is shared between
+  ;; different same-level groups
 
-						     ;; need function:
-						     ;; find header location, based on sort-groups
-						     ;; (do this by searching for the header group-id)
-						     ;;TODO rename these functions 
 
-						     ;; stay at the current level
-						     ;; is this the right spot?
-						     ;; if t, yes
-						     ;; if nil, continue until the end
-						     ;; if reach the end, insert it there
+  
+  ;; if it does not exist, check if parents
+  ;; need to be inserted
 
-						     ;; insertion requires a delete leaf and insert
-						     ;; leaf function (which already exist)
-						     
-						     props))))
-		     (list leaf headers))))
+  ;; or first check the parent header
+  ;; and if it's not there, insert all headers
+
+  ;; need function:
+  ;; find header location, based on sort-groups
+  ;; (do this by searching for the header group-id)
+  ;;TODO rename these functions 
+
+  ;; stay at the current level
+  ;; is this the right spot?
+  ;; if t, yes
+  ;; if nil, continue until the end
+  ;; if reach the end, insert it there
+
+  ;; insertion requires a delete leaf and insert
+  ;; leaf function (which already exist)
+  
+  props))))
+  (list leaf headers))))
 
 
 (with-current-buffer (get-buffer-create "*TEMP*")
-  (reorg--group-and-sort* xxx-data xxx-template)) ;;;test
-(reorg--insert-heading** '((a . 1)(b . 5) (c . 3) (d . 4)) xxx-template) 
+  (reorg--group-and-sort* xxx-data xxx-template)) 
+(reorg--insert-heading** '((a . 1)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
