@@ -387,8 +387,7 @@ See `let-alist--deep-dot-search'."
 ;; TESTS
 (let ((reorg--grouper-action-function (lambda (x &rest y) (identity x))))
   (reorg--group-and-sort* xxx-data xxx-template))
-(with-current-buffer (get-buffer-create "*TEMP*")
-  (reorg--group-and-sort* xxx-data xxx-template)) 
+
 
 
 (setq xxx (cl-loop for each in (reorg--group-and-sort* (list (list (cons 'a 1)
@@ -402,74 +401,52 @@ See `let-alist--deep-dot-search'."
 
 (reorg--insert-heading* '((a . 1) (b . 2) (c . 3) (d . 4)) xxx-template) 
 
-(defun reorg--insert-heading* (data template)
-  "insert an individual heading"
-  (let* ((header-groups
-	  (reorg--thread-as* data
-	    (reorg--group-and-sort* (list data)
-				    template
-				    #'reorg--create-headline-string*))))    
-    (cl-loop for headers in header-groups
-	     do (cl-loop
-		 with headers = (reverse (-flatten headers))
-		 with leaf = (car headers)
-		 with result-sorters = (alist-get 'result-sorters (cadr headers))
-		 with format-string = (alist-get 'format-string (cadr headers))
-		 for header in headers
-		 if (reorg--goto-next-prop 'id (alist-get 'id header))
-		 return (if (reorg--goto-next-child)
-			    (cl-loop 
-			     when (cl-loop for (func . pred) in result-sorters 
-					   unless (equal (funcall func data)
-							 (funcall func (reorg--get-view-prop)))
-					   return (funcall pred
-							   (funcall func data)
-							   (funcall func (reorg--get-view-prop))))
-			     return (reorg--insert-heading props level format)
-			     while (reorg--goto-next-sibling)
-			     finally return t))))))
-
 (defun reorg--insert-heading** (data template)
   "insert an individual heading"
-  (let* ((header-groups
-	  (reorg--group-and-sort* (list data)
-				  template
-				  #'reorg--create-headline-string*)))
-    (cl-loop for headers in header-groups
-	     collect (let ((leaf (get-text-property
-				  0
-				  'reorg-data
-				  (car (setq headers (reverse (-flatten headers))))))
-			   (headers (cl-loop for header in (cdr headers)
-					     collect (let* ((props (get-text-property 0 'reorg-data header))
-							    (result-sorters (alist-get 'result-sorters props))
-							    (format-string (alist-get 'format-string props))
-							    (sort-groups (alist-get 'sort-groups props)))
-						       ;; here, look for the header and insert it
-						       ;; if it does not exist
+  (cl-loop with header-groups = (reorg--group-and-sort*
+				 (list data)
+				 template
+				 #'reorg--create-headline-string*)
+	   for headers in header-groups
+	   collect (let ((leaf (get-text-property
+				0
+				'reorg-data
+				(car (setq headers (reverse (-flatten headers))))))
+			 (headers (cl-loop for header in (cdr headers)
+					   collect (let* ((props (get-text-property 0 'reorg-data header))
+							  (result-sorters (alist-get 'result-sorters props))
+							  (format-string (alist-get 'format-string props))
+							  (sort-groups (alist-get 'sort-groups props)))
+						     ;; here, look for the header and insert it
+						     ;; if it does not exist
 
-						       ;; if it does not exist, check if parents
-						       ;; need to be inserted
+						     ;;TODO the group-id is shared between
+						     ;; different same-level groups 
+						     
+						     ;; if it does not exist, check if parents
+						     ;; need to be inserted
 
-						       ;; or first check the parent header
-						       ;; and if it's not there, insert all headers
+						     ;; or first check the parent header
+						     ;; and if it's not there, insert all headers
 
-						       ;; need function:
-						       ;; find header location, based on sort-groups
-						       ;; (do this by searching for the header group-id)
-						       ;; 
-						       ;; stay at the current level
-						       ;; is this the right spot?
-						       ;; if t, yes
-						       ;; if nil, continue until the end
-						       ;; if reach the end, insert it there
+						     ;; need function:
+						     ;; find header location, based on sort-groups
+						     ;; (do this by searching for the header group-id)
+						     ;;TODO rename these functions 
 
-						       ;; insertion requires a delete leaf and insert
-						       ;; leaf function (which already exist)
-						       
-						       props))))
-		       (list leaf headers)))))
+						     ;; stay at the current level
+						     ;; is this the right spot?
+						     ;; if t, yes
+						     ;; if nil, continue until the end
+						     ;; if reach the end, insert it there
+
+						     ;; insertion requires a delete leaf and insert
+						     ;; leaf function (which already exist)
+						     
+						     props))))
+		     (list leaf headers))))
 
 
-
-(reorg--insert-heading** '((a . 1)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
+(with-current-buffer (get-buffer-create "*TEMP*")
+  (reorg--group-and-sort* xxx-data xxx-template)) ;;;test
+(reorg--insert-heading** '((a . 1)(b . 5) (c . 3) (d . 4)) xxx-template) 
