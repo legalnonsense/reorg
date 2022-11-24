@@ -109,7 +109,7 @@ SEQUENCE is a sequence to sort."
 					(cons 'reorg-level level)))
 	       (append props
 		       `((group-id . ,(md5 (with-temp-buffer
-					     (insert (pp template))
+					     (insert (pp groups))
 					     (buffer-string))))
 			 (id . ,(org-id-new)))))))
     ;; inheritance
@@ -195,21 +195,24 @@ SEQUENCE is a sequence to sort."
 		  (cl-loop
 		   for (header . results) in data
 		   collect
-		   (cons (funcall
-			  (or action
-			      reorg--grouper-action-function)
-			  (get-header-props header groups)
-			  nil
-			  level
-			  ;; overrides
-			  )
-			 (reorg--group-and-sort*			  
-			  results
-			  groups
-			  action
-			  sorters
-			  format-string
-			  (1+ level))))
+		   (cons
+		    ;; format the header since it won't be in the recursed
+		    ;; data 
+		    (funcall
+		     (or action
+			 reorg--grouper-action-function)
+		     (get-header-props header groups)
+		     nil
+		     level
+		     ;; overrides
+		     )
+		    (reorg--group-and-sort*			  
+		     results
+		     groups
+		     action
+		     sorters
+		     format-string
+		     (1+ level))))
 		;; if there aren't children,
 		;; sort the results if necessary
 		;; then convert each batch of results
