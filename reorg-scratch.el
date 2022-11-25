@@ -402,6 +402,12 @@ See `let-alist--deep-dot-search'."
 		   collect (reverse (-flatten each))))
 
 
+;; (reorg--insert-heading* '((a . 1) (b . 2) (c . 3) (d . 4)) xxx-template) 
+
+(defun reorg--goto-next-sibling-same-group ()
+  (let ((id (reorg--get-view-prop 'group-id)))
+    (reorg--goto-next-prop 'group-id id))) 
+
 (defun reorg--insert-heading** (data template)
   "insert an individual heading"
   (cl-loop with header-groups = (reorg--group-and-sort*
@@ -455,10 +461,6 @@ See `let-alist--deep-dot-search'."
 
   ;; insertion requires a delete leaf and insert
   ;; leaf function (which already exist)
-
-  props))))
-(list leaf headers))))
-
 
 (with-current-buffer (get-buffer-create "*TEMP*")
   (reorg--group-and-sort* xxx-data xxx-template)) 
