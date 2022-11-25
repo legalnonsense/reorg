@@ -19,17 +19,6 @@
 					   (insert h))
 					 h)))
 
-;; (defun reorg--flatten* (data)
-;;   (cl-labels
-;;       ((walk (tree)
-;; 	     (cl-loop for each in tree
-;; 		      if (listp each)
-;; 		      collect (car each)
-;; 		      and collect (walk (cdr each))
-;; 		      else
-;; 		      collect each)))
-;;     (-flatten (walk data))))
-
 (defun xxx-create-test-data ()
   (interactive)
   (cl-loop for x below 1000
@@ -49,8 +38,8 @@
 					 (alist-get 'a x)))))
 	   :sort-groups (lambda (a b)
 			  (string<
-			   (car a)
-			   (car b)))
+			   a
+			   b))
 	   :sort-results (((lambda (x) (alist-get 'd x)) . >))
 	   :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
 			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
@@ -87,6 +76,7 @@ SEQUENCE is a sequence to sort."
 					(cons 'branch-name header)
 					(cons 'headline header)
 					(cons 'reorg-branch t)
+					(cons 'branch-type 'branch)
 					(cons 'grouper-list
 					      `(lambda (x)
 						 (let-alist x
@@ -187,8 +177,9 @@ SEQUENCE is a sequence to sort."
 		  data)))
 	      ;; If there is a group sorter, sort the headers
 	      (if (plist-get groups :sort-groups)
-		  (seq-sort (plist-get groups :sort-groups)
-			    data)
+		  (seq-sort-by #'car 
+			       (plist-get groups :sort-groups)
+			       data)
 		data)
 	      ;; If there are children, recurse 
 	      (if (plist-get groups :children)
@@ -283,7 +274,9 @@ template.  Use LEVEL number of leading stars.  Add text properties
        (append data
 	       (list
 		(cons 'reorg-headline headline-text)
-		(cons 'reorg-class (alist-get 'class data))))
+		(cons 'reorg-class (alist-get 'class data))
+		(cons 'reorg-field-type (if (alist-get 'reorg-branch data)
+					    'branch 'leaf))))
        reorg--field-property-name
        (if (alist-get 'reorg-branch data)
 	   'branch 'leaf)
@@ -387,91 +380,107 @@ See `let-alist--deep-dot-search'."
 			     ,elem))))))
     elem))
 
-;; TESTS
-(let ((reorg--grouper-action-function (lambda (x &rest y) (identity x))))
-  (reorg--group-and-sort* xxx-data xxx-template))
+(defun reorg--goto-next-sibling-same-group* (&optional data)
+  "goot next sibing same group"
+  (let ((id (or
+	     (and data (alist-get 'group-id data))
+	     (reorg--get-view-prop 'group-id))))
+    (reorg--goto-next-prop 'group-id id)))
+
+(defun reorg--goto-next-leaf-sibling* ()
+  "goto next sibling"
+  (reorg--goto-next-prop 'reorg-field-type
+			 'leaf
+			 (reorg--get-next-parent)))
 
 
+(defun reorg--find-header-location* (header-data)
+  "assume the point is on the first header in the group"
+  (let-alist header-data
+    (when .sort-groups
+      (cl-loop with point = (point)
+	       when (funcall .sort-groups
+			     .branch-name
+			     (reorg--get-view-prop 'branch-name))
+	       return (point)
+	       while (reorg--goto-next-sibling-same-group* header-data)
+	       finally return (progn (goto-char point)
+				     nil)))))
 
-(setq xxx (cl-loop for each in (reorg--group-and-sort* (list (list (cons 'a 1)
-								   (cons 'b 5)
-								   (cons 'c 3)
-								   (cons 'd 4)))
-						       xxx-template
-						       #'reorg--create-headline-string*)
-		   collect (reverse (-flatten each))))
+(defun reorg--find-leaf-location* (leaf-data &optional result-sorters)
+  "assume the point is on the first leaf in the group"
+  (when-let ((result-sorters (or result-sorters
+				 (save-excursion 
+				   (reorg--goto-parent)
+				   (reorg--get-view-prop 'result-sorters)))))
+    (let ((leaf-data (get-text-property 0 'reorg-data leaf-data)))
+      (cl-loop with point = (point)
+	       when (cl-loop for (func . pred) in result-sorters
+			     unless (equal (funcall func leaf-data)
+					   (funcall func (reorg--get-view-prop)))
+			     return (funcall pred
+					     (funcall func leaf-data)
+					     (funcall func (reorg--get-view-prop))))
+	       return (point)
+	       while (reorg--goto-next-sibling-same-group*)
+	       finally return (progn (goto-char point)
+				     nil)))))
 
 
-;; (reorg--insert-heading* '((a . 1) (b . 2) (c . 3) (d . 4)) xxx-template) 
-
-(defun reorg--goto-next-sibling-same-group ()
-  (let ((id (reorg--get-view-prop 'group-id)))
-    (reorg--goto-next-prop 'group-id id))) 
-
-(defun reorg--insert-heading** (data template)
+(defun reorg--insert-heading* (data template)
   "insert an individual heading"
   (cl-loop with header-groups = (reorg--group-and-sort*
 				 (list data)
 				 template
 				 #'reorg--create-headline-string*)
 	   for headers in header-groups
-	   collect (cl-loop with leaf = (car (last (-flatten headers)))
-			    for header in (butlast (-flatten headers))
-			    ;; does it exist? If so, create the rest
-			    ;; does it not exist? if not, check the parent, then create the rest
-			    ;; where should it exist? traverse entries and find home
-			    ;; where should the leaf go? traverse leaves and find home
-			    collect (let-alist (get-text-property 0 'reorg-data header)
-				      ;; now there will be groups for each group
-				      ;; the headers for each group will be in order
-				      ;; the last header will be the leaf. you can access
-				      ;; all of the heading data with .notation 
-				      (list
-				       (cons 'reorg-level
-					     .reorg-level)
-				       
-				       (cons 'result-sorters
-					     .result-sorters)
-				       (cons 'format-string
-					     .format-string)
-				       (cons 'sort-groups
-					     .sort-groups)
-				       (cons 'group-id
-					     .group-id)
-				       (cons 'id .id))))))
+	   collect
+	   (cons (car (last (-flatten headers)))
+		 (cl-loop with headers = (-flatten headers)
+			  with leaf = (car (last headers))
+			  for header in (butlast headers)
+			  ;; does it exist? If so, create the rest
+			  ;; does it not exist? if not, check the parent, then create the rest
+			  ;; where should it exist? traverse entries and find home
+			  ;; where should the leaf go? traverse leaves and find home
+			  collect (get-text-property 0 'reorg-data header)))))
+;; now there will be groups for each group
+;; the headers for each group will be in order
+;; the last header will be the leaf. you can access
+;; all of the heading data with .notation 
 
 
 
-  ;; here, look for the header and insert it
-  ;; if it does not exist
+;; here, look for the header and insert it
+;; if it does not exist
 
 
 
-  ;; FIXED the group-id is shared between
-  ;; different same-level groups
+;; FIXED the group-id is shared between
+;; different same-level groups
 
 
 
-  ;; if it does not exist, check if parents
-  ;; need to be inserted
+;; if it does not exist, check if parents
+;; need to be inserted
 
-  ;; or first check the parent header
-  ;; and if it's not there, insert all headers
+;; or first check the parent header
+;; and if it's not there, insert all headers
 
-  ;; need function:
-  ;; find header location, based on sort-groups
-  ;; (do this by searching for the header group-id)
-  ;;TODO rename these functions 
+;; need function:
+;; find header location, based on sort-groups
+;; (do this by searching for the header group-id)
+;;TODO rename these functions 
 
-  ;; stay at the current level
-  ;; is this the right spot?
-  ;; if t, yes
-  ;; if nil, continue until the end
-  ;; if reach the end, insert it there
+;; stay at the current level
+;; is this the right spot?
+;; if t, yes
+;; if nil, continue until the end
+;; if reach the end, insert it there
 
-  ;; insertion requires a delete leaf and insert
-  ;; leaf function (which already exist)
+;; insertion requires a delete leaf and insert
+;; leaf function (which already exist)
 
 (with-current-buffer (get-buffer-create "*TEMP*")
-  (reorg--group-and-sort* xxx-data xxx-template)) 
-(reorg--insert-heading** '((a . 1)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
+  (reorg--group-and-sort* xxx-data xxx-template))
+(reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
