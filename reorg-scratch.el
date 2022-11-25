@@ -415,8 +415,13 @@ See `let-alist--deep-dot-search'."
 				 template
 				 #'reorg--create-headline-string*)
 	   for headers in header-groups
-	   collect (cl-loop for header in (-flatten headers)
+	   collect (cl-loop with leaf = (car (last (-flatten headers)))
+			    for header in (butlast (-flatten headers))
 			    collect (let-alist (get-text-property 0 'reorg-data header)
+				      ;; now there will be groups for each group
+				      ;; the headers for each group will be in order
+				      ;; the last header will be the leaf. you can access
+				      ;; all of the heading data with .notation 
 				      (list
 				       (cons 'reorg-level
 					     .reorg-level)
@@ -430,10 +435,8 @@ See `let-alist--deep-dot-search'."
 				       (cons 'group-id
 					     .group-id)
 				       (cons 'id .id))))))
-;; now there will be groups for each group
-;; the headers for each group will be in order
-;; the last header will be the leaf
-  headers)))
+
+
 
   ;; here, look for the header and insert it
   ;; if it does not exist
