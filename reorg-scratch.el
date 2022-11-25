@@ -417,6 +417,10 @@ See `let-alist--deep-dot-search'."
 	   for headers in header-groups
 	   collect (cl-loop with leaf = (car (last (-flatten headers)))
 			    for header in (butlast (-flatten headers))
+			    ;; does it exist? If so, create the rest
+			    ;; does it not exist? if not, check the parent, then create the rest
+			    ;; where should it exist? traverse entries and find home
+			    ;; where should the leaf go? traverse leaves and find home
 			    collect (let-alist (get-text-property 0 'reorg-data header)
 				      ;; now there will be groups for each group
 				      ;; the headers for each group will be in order
