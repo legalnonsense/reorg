@@ -402,8 +402,6 @@ See `let-alist--deep-dot-search'."
 		   collect (reverse (-flatten each))))
 
 
-(reorg--insert-heading* '((a . 1) (b . 2) (c . 3) (d . 4)) xxx-template) 
-
 (defun reorg--insert-heading** (data template)
   "insert an individual heading"
   (cl-loop with header-groups = (reorg--group-and-sort*
@@ -411,34 +409,33 @@ See `let-alist--deep-dot-search'."
 				 template
 				 #'reorg--create-headline-string*)
 	   for headers in header-groups
-	   collect (let ((leaf (get-text-property
-				0
-				'reorg-data
-				(car (setq headers (reverse (-flatten headers))))))
-			 (headers (cl-loop for header in (cdr headers)
-					   append (let-alist (get-text-property 0 'reorg-data header)
-						    (list
-						     (cons 'result-sorters
-							   .result-sorters)
-						     (cons 'format-string
-							   .format-string)
-						     (cons 'sort-groups
-							   .sort-groups)
-						     (cons 'group-id
-							   .group-id)
-						     (cons 'id .id))))))		     
-		     (append leaf headers))))
-  
+	   collect (cl-loop for header in (-flatten headers)
+			    collect (let-alist (get-text-property 0 'reorg-data header)
+				      (list
+				       (cons 'reorg-level
+					     .reorg-level)
+				       
+				       (cons 'result-sorters
+					     .result-sorters)
+				       (cons 'format-string
+					     .format-string)
+				       (cons 'sort-groups
+					     .sort-groups)
+				       (cons 'group-id
+					     .group-id)
+				       (cons 'id .id))))))
+  headers)))
+
   ;; here, look for the header and insert it
   ;; if it does not exist
 
 
-  
+
   ;; FIXED the group-id is shared between
   ;; different same-level groups
 
 
-  
+
   ;; if it does not exist, check if parents
   ;; need to be inserted
 
@@ -458,9 +455,9 @@ See `let-alist--deep-dot-search'."
 
   ;; insertion requires a delete leaf and insert
   ;; leaf function (which already exist)
-  
+
   props))))
-  (list leaf headers))))
+(list leaf headers))))
 
 
 (with-current-buffer (get-buffer-create "*TEMP*")
