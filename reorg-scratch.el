@@ -409,6 +409,13 @@ See `let-alist--deep-dot-search'."
 			 'leaf
 			 (reorg--get-next-sibling)))
 
+(defun reorg--goto-id (header-string)
+  "goto ID that matches the header string"
+  (reorg--goto-next-prop 'id (alist-get 'id
+					(get-text-property 0
+							   'reorg-data
+							   header-string))))
+
 (defun reorg--find-first-header-group-member* (header-data)
   "goto the first header that matches the group-id of header-data"
   (let ((point (point)))
