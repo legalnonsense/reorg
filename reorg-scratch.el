@@ -393,8 +393,36 @@ See `let-alist--deep-dot-search'."
 			 'leaf
 			 (reorg--get-next-parent)))
 
+(defun reorg--goto-first-leaf* ()
+  "goto the first leaf of the current group"
+  (reorg--goto-next-prop 'reorg-field-type
+			 'leaf
+			 (reorg--get-next-sibling)))
 
-(defun reorg--find-header-location* (header-data)
+(defun reorg--find-first-header-group-member* (header-data)
+  "goto the first header that matches the group-id of header-data"
+  (let ((point (point)))
+    (goto-char (point-min))
+    (if (reorg--goto-next 'group-id
+			  (alist-get 'group-id header-data))
+	(point)
+      (goto-char point)
+      nil)))
+
+(defun reorg--delete-header-at-point ()
+  "delete the header at point"
+  (delete-region (point-at-bol)
+		 (line-beginning-position 2)))
+
+(defun reorg--insert-header-at-point (string)
+  "insert header at point"
+  (goto-char (point-at-bol))
+  (let ((point (point)))
+    (insert string)
+    (goto-char point)
+    (run-hooks 'reorg--navigation-hook)))
+
+(defun reorg--find-header-location-within-groups* (header-data)
   "assume the point is on the first header in the group"
   (let-alist header-data
     (when .sort-groups
@@ -435,52 +463,59 @@ See `let-alist--deep-dot-search'."
 				 #'reorg--create-headline-string*)
 	   for headers in header-groups
 	   collect
-	   (cons (car (last (-flatten headers)))
-		 (cl-loop with headers = (-flatten headers)
-			  with leaf = (car (last headers))
-			  for header in (butlast headers)
-			  ;; does it exist? If so, create the rest
-			  ;; does it not exist? if not, check the parent, then create the rest
-			  ;; where should it exist? traverse entries and find home
-			  ;; where should the leaf go? traverse leaves and find home
-			  collect (get-text-property 0 'reorg-data header)))))
-;; now there will be groups for each group
-;; the headers for each group will be in order
-;; the last header will be the leaf. you can access
-;; all of the heading data with .notation 
+	   (cl-loop with headers = (-flatten headers)
+		    with leaf = (car (last headers))
+		    for header in (reverse (butlast headers))
+		    ;; does it exist? If so, create the rest
+		    ;; does it not exist? if not, check the parent, then create the rest
+		    ;; where should it exist? traverse entries and find home
+		    ;; where should the leaf go? traverse leaves and find home
+		    when (reorg--find-first-header-group-member* header)
+		    return (progn (reorg--goto-first-leaf*)
+				  (reorg--find-leaf-location* leaf)
+				  (reorg--insert-header-at-point leaf)
+				  t)
+		    finally return (progn
+				     (cl-loop for h in (reverse (butlast headers))
+					      
+
+				     ;; now there will be groups for each group
+						   ;; the headers for each group will be in order
+						   ;; the last header will be the leaf. you can access
+						   ;; all of the heading data with .notation 
 
 
 
-;; here, look for the header and insert it
-;; if it does not exist
+						   ;; here, look for the header and insert it
+						   ;; if it does not exist
 
 
 
-;; FIXED the group-id is shared between
-;; different same-level groups
+						   ;; FIXED the group-id is shared between
+						   ;; different same-level groups
 
 
 
-;; if it does not exist, check if parents
-;; need to be inserted
+						   ;; if it does not exist, check if parents
+						   ;; need to be inserted
 
-;; or first check the parent header
-;; and if it's not there, insert all headers
+						   ;; or first check the parent header
+						   ;; and if it's not there, insert all headers
 
-;; need function:
-;; find header location, based on sort-groups
-;; (do this by searching for the header group-id)
-;;TODO rename these functions 
+						   ;; need function:
+						   ;; find header location, based on sort-groups
+						   ;; (do this by searching for the header group-id)
+						   ;;TODO rename these functions 
 
-;; stay at the current level
-;; is this the right spot?
-;; if t, yes
-;; if nil, continue until the end
-;; if reach the end, insert it there
+						   ;; stay at the current level
+						   ;; is this the right spot?
+						   ;; if t, yes
+						   ;; if nil, continue until the end
+						   ;; if reach the end, insert it there
 
-;; insertion requires a delete leaf and insert
-;; leaf function (which already exist)
+						   ;; insertion requires a delete leaf and insert
+						   ;; leaf function (which already exist)
 
-(with-current-buffer (get-buffer-create "*TEMP*")
-  (reorg--group-and-sort* xxx-data xxx-template))
-(reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
+						   (with-current-buffer (get-buffer-create "*TEMP*")
+						     (reorg--group-and-sort* xxx-data xxx-template))
+						   (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
