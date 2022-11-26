@@ -470,52 +470,75 @@ See `let-alist--deep-dot-search'."
 		    ;; does it not exist? if not, check the parent, then create the rest
 		    ;; where should it exist? traverse entries and find home
 		    ;; where should the leaf go? traverse leaves and find home
-		    when (reorg--find-first-header-group-member* header)
-		    return (progn (reorg--goto-first-leaf*)
-				  (reorg--find-leaf-location* leaf)
-				  (reorg--insert-header-at-point leaf)
-				  t)
-		    finally return (progn
-				     (cl-loop for h in (reverse (butlast headers))
-					      
+		    do (let ((header-exists? (reorg--find-first-header-group-member* header))
+			     (leaf-exists? (reorg--get-next-prop 'id
+								 (alist-get 'id leaf)
+								 (reorg--get-next-parent)
+								 )))
+			 (cond (leaf-exists? (reorg--goto-next-prop 'id (alist-get 'id leaf))
+					     (reorg--delete-header-at-point)
+					     (reorg--goto-parent)
+					     (reorg--goto-first-leaf*)
+					     (reorg--find-leaf-location*)
+					     (reorg--insert-header-at-point leaf)
+					     (reorg--goto-first-leaf*)
+					     (reorg--insert-header-at-point leaf))
+			       (header-exists? (reorg--goto-next-prop 'id
+								      (alist-get 'id header)
+								      (reorg--get-next-prop 'group-id
+											    (reorg--get-view-prop)
+											    nil
+											    (lambda (a b)
+											      (not (equal a b))))
+											    
 
-				     ;; now there will be groups for each group
-						   ;; the headers for each group will be in order
-						   ;; the last header will be the leaf. you can access
-						   ;; all of the heading data with .notation 
+				(not header-exists?)
+				(cl-loop for h in (reverse (butlast headers))
+					 do (reorg--insert-header-at-point h)
+					 finally return 'stop ))
+
+
+			  finally return (progn
+					   (cl-loop for h in (reverse (butlast headers))
+						    
+
+						    ;; now there will be groups for each group
+						    ;; the headers for each group will be in order
+						    ;; the last header will be the leaf. you can access
+						    ;; all of the heading data with .notation 
 
 
 
-						   ;; here, look for the header and insert it
-						   ;; if it does not exist
+						    ;; here, look for the header and insert it
+						    ;; if it does not exist
 
 
 
-						   ;; FIXED the group-id is shared between
-						   ;; different same-level groups
+						    ;; FIXED the group-id is shared between
+						    ;; different same-level groups
 
 
 
-						   ;; if it does not exist, check if parents
-						   ;; need to be inserted
+						    ;; if it does not exist, check if parents
+						    ;; need to be inserted
 
-						   ;; or first check the parent header
-						   ;; and if it's not there, insert all headers
+						    ;; or first check the parent header
+						    ;; and if it's not there, insert all headers
 
-						   ;; need function:
-						   ;; find header location, based on sort-groups
-						   ;; (do this by searching for the header group-id)
-						   ;;TODO rename these functions 
+						    ;; need function:
+						    ;; find header location, based on sort-groups
+						    ;; (do this by searching for the header group-id)
+						    ;;TODO rename these functions 
 
-						   ;; stay at the current level
-						   ;; is this the right spot?
-						   ;; if t, yes
-						   ;; if nil, continue until the end
-						   ;; if reach the end, insert it there
+						    ;; stay at the current level
+						    ;; is this the right spot?
+						    ;; if t, yes
+						    ;; if nil, continue until the end
+						    ;; if reach the end, insert it there
 
-						   ;; insertion requires a delete leaf and insert
-						   ;; leaf function (which already exist)
+						    ;; insertion requires a delete leaf and insert
+						    ;; leaf function (which already exist)
 
-						   (with-current-buffer (get-buffer-create "*TEMP*")
-						     (reorg--group-and-sort* xxx-data xxx-template))
-						   (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
+						    (with-current-buffer (get-buffer-create "*TEMP*")
+						      (reorg--group-and-sort* xxx-data xxx-template))
+						    (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
