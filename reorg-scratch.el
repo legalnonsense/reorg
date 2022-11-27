@@ -436,6 +436,8 @@ See `let-alist--deep-dot-search'."
     (goto-char point)
     (run-hooks 'reorg--navigation-hook)))
 
+
+;;;TODO write find header location without groups
 (defun reorg--find-header-location-within-groups* (header-data)
   "assume the point is on the first header in the group"
   (let-alist (get-text-property 0 'reorg-data header-data)
@@ -500,13 +502,16 @@ See `let-alist--deep-dot-search'."
 		    ;; where should it exist? traverse entries and find home
 		    ;; where should the leaf go? traverse leaves and find home
 		do (let* ((header-props (get-text-property 0 'reorg-data header))
-			  (header-exists? (reorg--find-first-header-group-member*
+			  (header-group-exists? (reorg--find-first-header-group-member*
 					   header-props)))
-		     (cond (header-exists?
-			    (reorg--goto-next-prop
-			     'id
-			     (alist-get 'id header-props)
-			     (reorg--get-next-group-id-change)))
+		     (cond (header-group-exists?
+			    (unless 
+				(reorg--goto-next-prop
+				 'id
+				 (alist-get 'id header-props)
+				 (reorg--get-next-group-id-change))
+			      (reorg--find-header-location-within-groups* header)
+			      (reorg--insert-header-at-point header)))
 			   (t (reorg--find-header-location-within-groups* header)
 			      (reorg--insert-header-at-point header)))
 		    finally (progn (reorg--find-leaf-location* leaf-props)
