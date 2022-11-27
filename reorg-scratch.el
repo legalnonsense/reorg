@@ -1,9 +1,3 @@
-:PROPERTIES:
-:ID:       9dbb9b68-30a0-4369-8b98-fff40e956ad9
-:END:
-:PROPERTIES:
-
-:END:
 ;; -*- lexical-binding: t; -*-
 
 (defvar reorg-default-result-sort nil "")
@@ -485,47 +479,35 @@ See `let-alist--deep-dot-search'."
 			(lambda (a b)
 			  (not (equal a b)))))
 
+
 (defun reorg--insert-heading* (data template)
   "insert an individual heading"
+  (reorg--map-id (alist-get 'id data)
+		 (reorg-views--delete-leaf))
   (cl-loop with header-groups = (reorg--group-and-sort*
 				 (list data)
 				 template
-				 #'reorg--create-headline-string*)
+				 #'reorg--create-headline-string*)   
 	   for headers in header-groups
 	   collect
-	   (cl-loop with headers = (-flatten headers)
+	   (cl-loop with headers = (-flatten headers)    
 		    with leaf = (car (last headers))
 		    with leaf-props = (get-text-property 0 'reorg-data leaf)
-		    with leaf-exists? = (reorg--get-next-prop
-					 'id
-					 (alist-get 'id leaf-props)
-					 (reorg--get-next-parent))
 		    with stop = nil
 		    for header in (reverse (butlast headers))
 		    ;; does it exist? If so, create the rest
 		    ;; does it not exist? if not, check the parent, then create the rest
 		    ;; where should it exist? traverse entries and find home
 		    ;; where should the leaf go? traverse leaves and find home
-		    do (let* ((header-props (get-text-property 0 'reorg-data header))
-			      (header-exists? (reorg--find-first-header-group-member*
-					       header-props)))
-			 (cond (leaf-exists? (reorg--goto-next-prop
-					      'id
-					      (alist-get 'id leaf-props))
-					     (reorg--delete-header-at-point)
-					     (reorg--goto-parent)
-					     (reorg--goto-first-leaf*)
-					     (reorg--find-leaf-location* leaf-props)
-					     (reorg--insert-header-at-point leaf)
-					     (setq stop t))
-			       (header-exists?
-				(reorg--goto-next-prop
-				 'id
-				 (alist-get 'id header-props)
-				 (reorg--get-next-group-id-change)))
-			       ((not header-exists?)
-				(cl-loop for h in (reverse (butlast headers))
-					 do (reorg--insert-header-at-point h)))))
+		do (let* ((header-props (get-text-property 0 'reorg-data header))
+			  (header-exists? (reorg--find-first-header-group-member*
+					   header-props)))
+		     (cond (header-exists?
+			    (reorg--goto-next-prop
+			     'id
+			     (alist-get 'id header-props)
+			     (reorg--get-next-group-id-change)))
+			   (t (reorg--find-header-location* 
 		    when stop
 		    return t
 		    finally (progn (reorg--find-leaf-location* leaf-props)
