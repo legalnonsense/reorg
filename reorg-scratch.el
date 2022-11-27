@@ -507,11 +507,10 @@ See `let-alist--deep-dot-search'."
 			     'id
 			     (alist-get 'id header-props)
 			     (reorg--get-next-group-id-change)))
-			   (t (reorg--find-header-location* 
-		    when stop
-		    return t
+			   (t (reorg--find-header-location-within-groups* header)
+			      (reorg--insert-header-at-point header)))
 		    finally (progn (reorg--find-leaf-location* leaf-props)
-				   (reorg--insert-header-at-point leaf)))))p
+				   (reorg--insert-header-at-point leaf)))))
 
 (defun reorg--run-new-test ()
   "test"
