@@ -1,3 +1,6 @@
+:PROPERTIES:
+:ID:       7d86d5de-0e44-4ff9-9b2f-b2b76c7d31df
+:END:
 ;; -*- lexical-binding: t; -*-
 
 (defvar reorg-default-result-sort nil "")
@@ -15,13 +18,13 @@
 						 format-string
 						 level
 						 overrides)))
-					 (with-current-buffer (get-buffer-create "*TEMP*")
+					 (with-current-buffer (get-buffer-create "*REORG*")
 					   (insert h))
 					 h)))
 
 (defun xxx-create-test-data ()
   (interactive)
-  (cl-loop for x below 100
+  (cl-loop for x below 20
 	   collect (cl-loop for b in ;; '(a b c d e f g h i j k l m n o p)
 			    '(a b c d)
 			    collect (cons b (random 10)) into x
@@ -97,24 +100,26 @@ SEQUENCE is a sequence to sort."
 					      nil)
 					(cons 'branch-sort-getter ;; heading-sort-getter
 					      nil)
-					(cons 'reorg-level level))
+					(cons 'reorg-level level)))
 	       (append props
 		       `((group-id . ,(md5 (with-temp-buffer
+
+					     (insert (pp header))
 					     (insert (pp groups))
 					     (buffer-string))))
 			 (id . ,(md5 (with-temp-buffer
-				       (insert (pp branch-name)
-					       (pp headline)
-					       (pp header)))))))))))
+				       (insert 
+					       (pp (plist-get groups :group)))
+				       (buffer-string)))))))))
 	       ;; inheritance
-	       (setq format-string
-		     (or format-string
-			 (plist-get template :format-results)
-			 reorg-headline-format)
-		     sorters 
-		     (or sorters
-			 (plist-get template :sort-results)
-			 reorg-default-result-sort))
+    (setq format-string
+	  (or format-string
+	      (plist-get template :format-results)
+	      reorg-headline-format)
+	  sorters 
+	  (or sorters
+	      (plist-get template :sort-results)
+	      reorg-default-result-sort))
 
     ;; for each child...
     (cl-loop 
@@ -413,8 +418,6 @@ See `let-alist--deep-dot-search'."
 							   'reorg-data
 							   header-string))))
 
-
-
 (defun reorg--delete-header-at-point ()
   "delete the header at point"
   (delete-region (point-at-bol)
@@ -445,20 +448,25 @@ See `let-alist--deep-dot-search'."
 				     nil)))))
 
 (defun reorg--find-first-header-group-member* (header-data)
+  
+
+(defun reorg--find-first-header-group-member* (header-data)
   "goto the first header that matches the group-id of header-data"
   (let ((point (point)))
-    (goto-char (point-min))
     (if (equal (reorg--get-view-prop 'group-id)
 	       (alist-get 'group-id header-data))
 	(point)
       (if (reorg--goto-next-prop 'group-id
-				 (alist-get 'group-id header-data))
+				 (alist-get 'group-id header-data)
+				 (reorg--get-next-parent))
 	  (point)
 	(goto-char point)
 	nil))))
 
 (defun reorg--find-leaf-location* (leaf-data &optional result-sorters)
   "assume the point is on the first leaf in the group"
+  (unless (eq 'leaf (reorg--get-view-prop 'branch-type ))
+    (reorg--goto-first-leaf*))
   (when-let ((result-sorters (or result-sorters
 				 (save-excursion 
 				   (reorg--goto-parent)
@@ -503,23 +511,24 @@ See `let-alist--deep-dot-search'."
 		    do (let* ((header-props (get-text-property 0 'reorg-data header))
 			      (group-id (alist-get 'group-id header-props))
 			      (id (alist-get 'id header-props)))
-			 (debug nil (reorg--get-view-prop 'id)
-				id
-				"group id:"
-				(reorg--get-view-prop 'group-id)
-				group-id)
-			 (unless (reorg--goto-id id)
+			 ;; (debug nil (reorg--get-view-prop 'id)
+			 ;; 	id
+			 ;; 	"group id:"
+			 ;; 	(reorg--get-view-prop 'group-id)
+			 ;; 	group-id)
+			 (unless (or (equal id (reorg--get-view-prop 'id))
+				     (reorg--goto-id id))
 			   (reorg--find-first-header-group-member* header-props)
-			   (reorg--find-header-location-within-groups* header-props)))
-		    finally (progn (reorg--find-leaf-location* leaf-props)
+			   (reorg--find-header-location-within-groups* header)))
+		    finally (progn (reorg--find-leaf-location* leaf)
 				   (reorg--insert-header-at-point leaf)))))
 
 (defun reorg--run-new-test ()
   "test"
   (interactive)
   (with-current-buffer (get-buffer-create "*REORG*")
-  (erase-buffer)
-  (reorg--group-and-sort* xxx-data xxx-template)))
+    (erase-buffer)
+    (reorg--group-and-sort* xxx-data xxx-template)))
 
 (defun reorg--insertion-test ()
   (interactive)
