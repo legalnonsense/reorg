@@ -73,38 +73,41 @@ SEQUENCE is a sequence to sort."
 			       sorters
 			       format-string
 			       level
-			       )
+			       parent-id
+			       parent-header)
+  "group and sort and run action on the results"
   (cl-flet ((get-header-props
 	     (header groups)
-	     (reorg--thread-as* (props (list 
-					(cons 'branch-name header)
-					(cons 'headline header)
-					(cons 'reorg-branch t)
-					(cons 'branch-type 'branch)
-					(cons 'grouper-list
-					      `(lambda (x)
-						 (let-alist x
-						   ,(plist-get groups :group))))
-					(cons 'branch-predicate
-					      `(lambda (x)
-						 (let-alist x
-						   ,(plist-get groups :group))))
-					(cons 'branch-result header)
-					(cons 'grouper-list-results header)
-					(cons 'format-string format-string)
-					(cons 'result-sorters sorters)
-					(cons 'template template)
-					(cons 'sort-groups (plist-get groups :sort-groups))
-					(cons 'children (plist-get groups :children))
-					(cons 'branch-sorter ;; heading-sorter
-					      nil)
-					(cons 'branch-sort-getter ;; heading-sort-getter
-					      nil)
-					(cons 'reorg-level level)))
+	     (reorg--thread-as*
+	       (props (list 
+		       (cons 'branch-name header)
+		       (cons 'headline header)
+		       (cons 'reorg-branch t)
+		       (cons 'branch-type 'branch)
+		       (cons 'grouper-list
+			     `(lambda (x)
+				(let-alist x
+				  ,(plist-get groups :group))))
+		       (cons 'branch-predicate
+			     `(lambda (x)
+				(let-alist x
+				  ,(plist-get groups :group))))
+		       (cons 'branch-result header)
+		       (cons 'grouper-list-results header)
+		       (cons 'format-string format-string)
+		       (cons 'result-sorters sorters)
+		       (cons 'template template)
+		       (cons 'sort-groups (plist-get groups :sort-groups))
+		       (cons 'children (plist-get groups :children))
+		       (cons 'branch-sorter ;; heading-sorter
+			     nil)
+		       (cons 'branch-sort-getter ;; heading-sort-getter
+			     nil)
+		       (cons 'reorg-level level)))
 	       (append props
 		       `((group-id . ,(md5 (with-temp-buffer
-
-					     (insert (pp header))
+					     (insert (pp parent-id))
+					     (insert (pp parent-header))
 					     (insert (pp groups))
 					     (buffer-string))))
 			 (id . ,(md5 (with-temp-buffer
@@ -165,17 +168,19 @@ SEQUENCE is a sequence to sort."
 		   ;; '((a . 1) (b . 3))
 		   ;; '((a . 1) (b . 4))
 
-		   (setq data
-			 (cl-loop
-			  for d in data 
-			  append (cl-loop
-				  for at-dot in at-dots
-				  if (listp (alist-get at-dot d))
-				  return (cl-loop for x in (alist-get at-dot d)
-						  collect (let ((ppp (copy-alist d)))
-							    (setf (alist-get at-dot ppp) x)
-							    ppp))
-				  finally return data))))
+		   (setq
+		    data
+		    (cl-loop
+		     for d in data 
+		     append
+		     (cl-loop
+		      for at-dot in at-dots
+		      if (listp (alist-get at-dot d))
+		      return (cl-loop for x in (alist-get at-dot d)
+				      collect (let ((ppp (copy-alist d)))
+						(setf (alist-get at-dot ppp) x)
+						ppp))
+		      finally return data))))
 		 (reorg--seq-group-by*
 		  ;; convert any at-dots to dots (yes, this could be part
 		  ;; of the conditional above, but I wanted to avoid it for
@@ -212,7 +217,8 @@ SEQUENCE is a sequence to sort."
 		     action
 		     sorters
 		     format-string
-		     (1+ level))))
+		     (1+ level)
+			      header)))
 		;; if there aren't children,
 		;; sort the results if necessary
 		;; then convert each batch of results
@@ -413,10 +419,12 @@ See `let-alist--deep-dot-search'."
 
 (defun reorg--goto-id (header-string)
   "goto ID that matches the header string"
-  (reorg--goto-next-prop 'id (alist-get 'id
-					(get-text-property 0
-							   'reorg-data
-							   header-string))))
+  (reorg--goto-next-prop
+   'id
+   (alist-get 'id
+	      (get-text-property 0
+				 'reorg-data
+				 header-string))))
 
 (defun reorg--delete-header-at-point ()
   "delete the header at point"
@@ -446,9 +454,6 @@ See `let-alist--deep-dot-search'."
 		      (get-text-property 0 'reorg-data header-string))
 	       finally return (progn (goto-char point)
 				     nil)))))
-
-(defun reorg--find-first-header-group-member* (header-data)
-  
 
 (defun reorg--find-first-header-group-member* (header-data)
   "goto the first header that matches the group-id of header-data"
