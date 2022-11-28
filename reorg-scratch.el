@@ -247,7 +247,6 @@ SEQUENCE is a sequence to sort."
 				    (1+ level)
 				    ;;OVERRIDES
 				    )))))))))
-
 (defun reorg--create-headline-string* (data
 				       format-string
 				       &optional
@@ -538,3 +537,9 @@ See `let-alist--deep-dot-search'."
 (defun reorg--insertion-test ()
   (interactive)
   (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4) (id . "1234")) xxx-template))
+
+(setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234"))) xxx-template))
+(cl-loop for headers in xxx
+	 collect (cl-loop for header in (-flatten headers)
+			  collect headers))
+xxx
