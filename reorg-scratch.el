@@ -97,21 +97,24 @@ SEQUENCE is a sequence to sort."
 					      nil)
 					(cons 'branch-sort-getter ;; heading-sort-getter
 					      nil)
-					(cons 'reorg-level level)))
+					(cons 'reorg-level level))
 	       (append props
 		       `((group-id . ,(md5 (with-temp-buffer
 					     (insert (pp groups))
 					     (buffer-string))))
-			 (id . ,(org-id-new)))))))
-    ;; inheritance
-    (setq format-string
-	  (or format-string
-	      (plist-get template :format-results)
-	      reorg-headline-format)
-	  sorters 
-	  (or sorters
-	      (plist-get template :sort-results)
-	      reorg-default-result-sort))
+			 (id . ,(md5 (with-temp-buffer
+				       (insert (pp branch-name)
+					       (pp headline)
+					       (pp header)))))))))))
+	       ;; inheritance
+	       (setq format-string
+		     (or format-string
+			 (plist-get template :format-results)
+			 reorg-headline-format)
+		     sorters 
+		     (or sorters
+			 (plist-get template :sort-results)
+			 reorg-default-result-sort))
 
     ;; for each child...
     (cl-loop 
@@ -410,18 +413,7 @@ See `let-alist--deep-dot-search'."
 							   'reorg-data
 							   header-string))))
 
-(defun reorg--find-first-header-group-member* (header-data)
-  "goto the first header that matches the group-id of header-data"
-  (let ((point (point)))
-    (goto-char (point-min))
-    (if (equal (reorg--get-view-prop 'group-id)
-	       (alist-get 'group-id header-data))
-	(point)
-      (if (reorg--goto-next-prop 'group-id
-				 (alist-get 'group-id header-data))
-	  (point)
-	(goto-char point)
-	nil))))
+
 
 (defun reorg--delete-header-at-point ()
   "delete the header at point"
@@ -436,11 +428,9 @@ See `let-alist--deep-dot-search'."
     (goto-char point)
     (run-hooks 'reorg--navigation-hook)))
 
-
-;;;TODO write find header location without groups
-(defun reorg--find-header-location-within-groups* (header-data)
+(defun reorg--find-header-location-within-groups* (header-string)
   "assume the point is on the first header in the group"
-  (let-alist (get-text-property 0 'reorg-data header-data)
+  (let-alist (get-text-property 0 'reorg-data header-string)
     (when .sort-groups
       (cl-loop with point = (point)
 	       when (or (equal .branch-name
@@ -450,9 +440,22 @@ See `let-alist--deep-dot-search'."
 				 (reorg--get-view-prop 'branch-name)))
 	       return (point)
 	       while (reorg--goto-next-sibling-same-group*
-		      (get-text-property 0 'reorg-data header-data))
+		      (get-text-property 0 'reorg-data header-string))
 	       finally return (progn (goto-char point)
 				     nil)))))
+
+(defun reorg--find-first-header-group-member* (header-data)
+  "goto the first header that matches the group-id of header-data"
+  (let ((point (point)))
+    (goto-char (point-min))
+    (if (equal (reorg--get-view-prop 'group-id)
+	       (alist-get 'group-id header-data))
+	(point)
+      (if (reorg--goto-next-prop 'group-id
+				 (alist-get 'group-id header-data))
+	  (point)
+	(goto-char point)
+	nil))))
 
 (defun reorg--find-leaf-location* (leaf-data &optional result-sorters)
   "assume the point is on the first leaf in the group"
@@ -491,29 +494,23 @@ See `let-alist--deep-dot-search'."
 				 template
 				 #'reorg--create-headline-string*)   
 	   for headers in header-groups
-	   collect
+ 	   collect 
 	   (cl-loop with headers = (-flatten headers)    
 		    with leaf = (car (last headers))
 		    with leaf-props = (get-text-property 0 'reorg-data leaf)
-		    with stop = nil
-		    for header in (reverse (butlast headers))
-		    ;; does it exist? If so, create the rest
-		    ;; does it not exist? if not, check the parent, then create the rest
-		    ;; where should it exist? traverse entries and find home
-		    ;; where should the leaf go? traverse leaves and find home
-		do (let* ((header-props (get-text-property 0 'reorg-data header))
-			  (header-group-exists? (reorg--find-first-header-group-member*
-					   header-props)))
-		     (cond (header-group-exists?
-			    (unless 
-				(reorg--goto-next-prop
-				 'id
-				 (alist-get 'id header-props)
-				 (reorg--get-next-group-id-change))
-			      (reorg--find-header-location-within-groups* header)
-			      (reorg--insert-header-at-point header)))
-			   (t (reorg--find-header-location-within-groups* header)
-			      (reorg--insert-header-at-point header)))
+		    for header in (butlast headers)
+		    ;; headers is alist of the parent headers in order 
+		    do (let* ((header-props (get-text-property 0 'reorg-data header))
+			      (group-id (alist-get 'group-id header-props))
+			      (id (alist-get 'id header-props)))
+			 (debug nil (reorg--get-view-prop 'id)
+				id
+				"group id:"
+				(reorg--get-view-prop 'group-id)
+				group-id)
+			 (unless (reorg--goto-id id)
+			   (reorg--find-first-header-group-member* header-props)
+			   (reorg--find-header-location-within-groups* header-props)))
 		    finally (progn (reorg--find-leaf-location* leaf-props)
 				   (reorg--insert-header-at-point leaf)))))
 
@@ -523,4 +520,7 @@ See `let-alist--deep-dot-search'."
   (with-current-buffer (get-buffer-create "*REORG*")
   (erase-buffer)
   (reorg--group-and-sort* xxx-data xxx-template)))
-(reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4)) xxx-template) ;;;test
+
+(defun reorg--insertion-test ()
+  (interactive)
+  (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4) (id . "1234")) xxx-template))
