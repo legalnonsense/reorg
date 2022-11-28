@@ -1,6 +1,3 @@
-:PROPERTIES:
-:ID:       7d86d5de-0e44-4ff9-9b2f-b2b76c7d31df
-:END:
 ;; -*- lexical-binding: t; -*-
 
 (defvar reorg-default-result-sort nil "")
