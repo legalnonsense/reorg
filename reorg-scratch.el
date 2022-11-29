@@ -1,6 +1,3 @@
-:PROPERTIES:
-:ID:       7d86d5de-0e44-4ff9-9b2f-b2b76c7d31df
-:END:
 ;; -*- lexical-binding: t; -*-
 
 (defvar reorg-default-result-sort nil "")
@@ -28,7 +25,7 @@
 	   collect (cl-loop for b in ;; '(a b c d e f g h i j k l m n o p)
 			    '(a b c d)
 			    collect (cons b (random 10)) into x
-			    finally return (append x (list (cons 'id (org-id-get-create t)))))))
+			    finally return (append x (list (cons 'id (org-id-new)))))))
 
 (setq xxx-data (xxx-create-test-data))
 
@@ -110,11 +107,8 @@ SEQUENCE is a sequence to sort."
 					     (insert (pp parent-header))
 					     (insert (pp groups))
 					     (buffer-string))))
-			 (id . ,(md5 (with-temp-buffer
-				       (insert 
-					       (pp (plist-get groups :group)))
-				       (buffer-string)))))))))
-	       ;; inheritance
+			 (id . ,(org-id-new)))))))
+    ;; inheritance
     (setq format-string
 	  (or format-string
 	      (plist-get template :format-results)
@@ -218,7 +212,7 @@ SEQUENCE is a sequence to sort."
 		     sorters
 		     format-string
 		     (1+ level)
-			      header)))
+		     header)))
 		;; if there aren't children,
 		;; sort the results if necessary
 		;; then convert each batch of results
@@ -416,27 +410,36 @@ See `let-alist--deep-dot-search'."
 			 'leaf
 			 (reorg--get-next-sibling)))
 
-(defun reorg--goto-id (header-string)
+(defun reorg--goto-id (header &optional group)
   "goto ID that matches the header string"
-  (reorg--goto-next-prop
-   'id
-   (alist-get 'id
-	      (get-text-property 0
-				 'reorg-data
-				 header-string))))
+  (let ((point (point)))
+    (goto-char (point-min))
+    (if (reorg--goto-next-prop
+	 (if group 'group-id 'id)
+	 (alist-get (if group 'group-id 'id) header))
+	(point)
+      (reorg--goto-char point)
+      nil)))
 
 (defun reorg--delete-header-at-point ()
   "delete the header at point"
   (delete-region (point-at-bol)
 		 (line-beginning-position 2)))
 
-(defun reorg--insert-header-at-point (header-string)
+(defun reorg--insert-header-at-point (header-string &optional next-line)
   "insert header at point"
-  (goto-char (point-at-bol))
-  (let ((point (point)))
-    (insert header-string)
-    (goto-char point)
-    (run-hooks 'reorg--navigation-hook)))
+  (if next-line
+      (progn
+	(goto-char (point-at-bol))
+	(forward-line)
+	(insert "\n")
+	(forward-line -1)
+	(insert header-string)
+	(goto-char (point-at-bol)))
+    (let ((point (point)))
+      (insert header-string)
+      (goto-char point)))
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--find-header-location-within-groups* (header-string)
   "assume the point is on the first header in the group"
@@ -520,12 +523,12 @@ See `let-alist--deep-dot-search'."
 			 ;; 	"group id:"
 			 ;; 	(reorg--get-view-prop 'group-id)
 			 ;; 	group-id)
-			 (unless (or (equal id (reorg--get-view-prop 'id))
-				     (reorg--goto-id id))
+			 (unless (or (reorg--goto-id header-props)
+				     (equal id (reorg--get-view-prop 'id)))
 			   (reorg--find-first-header-group-member* header-props)
 			   (reorg--find-header-location-within-groups* header)))
 		    finally (progn (reorg--find-leaf-location* leaf)
-				   (reorg--insert-header-at-point leaf)))))
+				   (reorg--insert-header-at-point leaf t)))))
 
 (defun reorg--run-new-test ()
   "test"
@@ -538,7 +541,8 @@ See `let-alist--deep-dot-search'."
   (interactive)
   (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4) (id . "1234")) xxx-template))
 
-(setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234"))) xxx-template))
+(setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
+				  xxx-template))
 (cl-loop for headers in xxx
 	 collect (cl-loop for header in (-flatten headers)
 			  collect headers))
