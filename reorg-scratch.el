@@ -470,15 +470,18 @@ See `let-alist--deep-dot-search'."
 	(goto-char point)
 	nil))))
 
-(defun reorg--find-leaf-location* (leaf-data &optional result-sorters)
-  "assume the point is on the first leaf in the group"
-  (unless (eq 'leaf (reorg--get-view-prop 'branch-type ))
+(defun reorg--find-leaf-location* (leaf-string &optional result-sorters)
+  "find the location for LEAF-DATA among the current leaves."
+  ;; goto the first leaf if at a branch 
+  (unless (eq 'leaf (reorg--get-view-prop 'reorg-field-type ))
     (reorg--goto-first-leaf*))
+  ;; get the result sorters from the parent unless they are
+  ;; already provided 
   (when-let ((result-sorters (or result-sorters
 				 (save-excursion 
 				   (reorg--goto-parent)
-				   (reorg--get-view-prop 'result-sorters)))))
-    (let ((leaf-data (get-text-property 0 'reorg-data leaf-data)))
+				   (reorg--get-view-prop 'result-sorters)))))    
+    (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
       (cl-loop with point = (point)
 	       when (cl-loop for (func . pred) in result-sorters
 			     unless (equal (funcall func leaf-data)
@@ -487,10 +490,12 @@ See `let-alist--deep-dot-search'."
 					     (funcall func leaf-data)
 					     (funcall func (reorg--get-view-prop))))
 	       return (point)
-	       while (reorg--goto-next-sibling-same-group*)
+	       while (reorg--goto-next-leaf-sibling*)
 	       finally return (progn (goto-char point)
 				     nil)))))
-
+(cl-loop for a from 1 to 5
+	 unless (> a 0)
+	 return 666)
 (defun reorg--get-next-group-id-change ()
   "get next group id change"
   (reorg--get-next-prop 'group-id
