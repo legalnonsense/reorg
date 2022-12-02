@@ -471,7 +471,8 @@ See `let-alist--deep-dot-search'."
 	nil))))
 
 (defun reorg--find-leaf-location* (leaf-string &optional result-sorters)
-  "find the location for LEAF-DATA among the current leaves."
+  "find the location for LEAF-DATA among the current leaves. put the
+point where the leaf should be inserted (ie, insert before)"
   ;; goto the first leaf if at a branch 
   (unless (eq 'leaf (reorg--get-view-prop 'reorg-field-type ))
     (reorg--goto-first-leaf*))
@@ -491,8 +492,8 @@ See `let-alist--deep-dot-search'."
 					     (funcall func (reorg--get-view-prop))))
 	       return (point)
 	       while (reorg--goto-next-leaf-sibling*)
-	       finally return (progn (goto-char point)
-				     nil)))))
+	       finally (goto-char (line-beginning-position 2))))))
+      
 (cl-loop for a from 1 to 5
 	 unless (> a 0)
 	 return 666)
