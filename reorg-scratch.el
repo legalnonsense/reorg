@@ -21,7 +21,7 @@
 
 (defun xxx-create-test-data ()
   (interactive)
-  (cl-loop for x below 20
+  (cl-loop for x below 100
 	   collect (cl-loop for b in ;; '(a b c d e f g h i j k l m n o p)
 			    '(a b c d)
 			    collect (cons b (random 10)) into x
@@ -453,7 +453,7 @@ See `let-alist--deep-dot-search'."
 				 (reorg--get-view-prop 'branch-name)))
 	       return (point)
 	       while (reorg--goto-next-sibling-same-group*
-		      (get-text-property 0 'reorg-data header-string))
+		      header-string)
 	       finally return (progn (goto-char point)
 				     nil)))))
 
@@ -494,9 +494,6 @@ point where the leaf should be inserted (ie, insert before)"
 	       while (reorg--goto-next-leaf-sibling*)
 	       finally (goto-char (line-beginning-position 2))))))
       
-(cl-loop for a from 1 to 5
-	 unless (> a 0)
-	 return 666)
 (defun reorg--get-next-group-id-change ()
   "get next group id change"
   (reorg--get-next-prop 'group-id
@@ -508,6 +505,7 @@ point where the leaf should be inserted (ie, insert before)"
 
 (defun reorg--insert-heading* (data template)
   "insert an individual heading"
+  (goto-char (point-min))
   (reorg--map-id (alist-get 'id data)
 		 (reorg-views--delete-leaf))
   (cl-loop with header-groups = (reorg--group-and-sort*
@@ -524,17 +522,12 @@ point where the leaf should be inserted (ie, insert before)"
 		    do (let* ((header-props (get-text-property 0 'reorg-data header))
 			      (group-id (alist-get 'group-id header-props))
 			      (id (alist-get 'id header-props)))
-			 ;; (debug nil (reorg--get-view-prop 'id)
-			 ;; 	id
-			 ;; 	"group id:"
-			 ;; 	(reorg--get-view-prop 'group-id)
-			 ;; 	group-id)
 			 (unless (or (reorg--goto-id header-props)
 				     (equal id (reorg--get-view-prop 'id)))
 			   (reorg--find-first-header-group-member* header-props)
 			   (reorg--find-header-location-within-groups* header)))
 		    finally (progn (reorg--find-leaf-location* leaf)
-				   (reorg--insert-header-at-point leaf t)))))
+				   (reorg--insert-header-at-point leaf)))))
 
 (defun reorg--run-new-test ()
   "test"
@@ -552,4 +545,4 @@ point where the leaf should be inserted (ie, insert before)"
 (cl-loop for headers in xxx
 	 collect (cl-loop for header in (-flatten headers)
 			  collect headers))
-xxx
+
