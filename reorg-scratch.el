@@ -534,7 +534,15 @@ point where the leaf should be inserted (ie, insert before)"
   (interactive)
   (with-current-buffer (get-buffer-create "*REORG*")
     (erase-buffer)
-    (reorg--group-and-sort* xxx-data xxx-template)))
+    (reorg--group-and-sort* xxx-data xxx-template)
+    (goto-char (point-min))
+    (reorg-view-mode)
+    (reorg-dynamic-bullets-mode)
+    (org-visual-indent-mode)))
+    
+    
+
+	    
 
 (defun reorg--insertion-test ()
   (interactive)
@@ -542,7 +550,18 @@ point where the leaf should be inserted (ie, insert before)"
 
 (setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
 				  xxx-template))
-(cl-loop for headers in xxx
-	 collect (cl-loop for header in (-flatten headers)
-			  collect headers))
+(setq xxx (cl-loop for headers in xxx
+		   collect (cl-loop for header in (-flatten headers)
+				    collect headers)))
 
+(setq xxx #("** (7 5 3 4)\n" 0 13
+	    (reorg-field-type leaf reorg-data
+			      ((reorg-level . 2)
+			       (a . 7)
+			       (b . 5)
+			       (c . 3)
+			       (d . 4)
+			       (id . "1234")
+			       (reorg-headline . "** (7 5 3 4)\n")
+			       (reorg-class)
+			       (reorg-field-type . leaf)))))
