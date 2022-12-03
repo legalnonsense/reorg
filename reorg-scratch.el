@@ -549,19 +549,10 @@ point where the leaf should be inserted (ie, insert before)"
   (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4) (id . "1234")) xxx-template))
 
 (setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
-				  xxx-template))
-(setq xxx (cl-loop for headers in xxx
-		   collect (cl-loop for header in (-flatten headers)
-				    collect headers)))
+				  xxx-template)
+      xxx (-flatten (cl-loop for headers in xxx
+			     collect (cl-loop for header in (-flatten headers)
+					      collect headers)))
+      xxx (car (last xxx)))
 
-(setq xxx #("** (7 5 3 4)\n" 0 13
-	    (reorg-field-type leaf reorg-data
-			      ((reorg-level . 2)
-			       (a . 7)
-			       (b . 5)
-			       (c . 3)
-			       (d . 4)
-			       (id . "1234")
-			       (reorg-headline . "** (7 5 3 4)\n")
-			       (reorg-class)
-			       (reorg-field-type . leaf)))))
+
