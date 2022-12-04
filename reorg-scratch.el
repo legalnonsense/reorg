@@ -241,6 +241,7 @@ SEQUENCE is a sequence to sort."
 				    (1+ level)
 				    ;;OVERRIDES
 				    )))))))))
+
 (defun reorg--create-headline-string* (data
 				       format-string
 				       &optional
@@ -289,6 +290,61 @@ template.  Use LEVEL number of leading stars.  Add text properties
        (if (alist-get 'reorg-branch data)
 	   'branch 'leaf)
        (alist-get (alist-get 'class data)
+		  reorg--extra-prop-list)))))
+
+(defun reorg--create-headline-string** (data
+					format-string
+					&optional
+					level
+					overrides)
+  "Create a headline string from DATA using FORMAT-STRING as the
+template.  Use LEVEL number of leading stars.  Add text properties
+`reorg--field-property-name' and  `reorg--data-property-name'."
+  (cl-flet ((create-stars (num &optional data)
+			  (make-string (if (functionp num)
+					   (funcall num data)
+					 num)
+				       ?*)))
+    ;; update the DATA that will be stored in
+    ;; `reorg-data'
+    (push (cons 'reorg-level level) data)
+    (cl-loop for (prop . val) in overrides
+	     do (setf (alist-get prop data)
+		      (funcall `(lambda ()
+				  (let-alist data 
+				    ,val)))))
+    (let (headline-text)
+      (apply
+       #'propertize
+       ;; get the headline text 
+       (setq headline-text
+	     (if (alist-get 'reorg-branch data)
+		 (concat (create-stars level)
+			 " "
+			 (alist-get 'branch-name data)
+			 "\n"))
+	     (let ((new (reorg--walk-tree*
+			 format-string
+			 #'reorg--turn-dot-to-display-string*
+			 data)))
+	       (funcall `(lambda (data)
+			   (concat ,@new))
+			data)))
+       'reorg-data ;; property1
+       (append data
+	       (list
+		(cons 'reorg-headline
+		      headline-text)
+		(cons 'reorg-class
+		      (alist-get 'class data))
+		(cons 'reorg-field-type
+		      (if (alist-get
+			   'reorg-branch data)
+			  'branch 'leaf))))       
+       reorg--field-property-name ;; property2
+       (if (alist-get 'reorg-branch data)
+	   'branch 'leaf)
+       (alist-get (alist-get 'class data) ;; extra props 
 		  reorg--extra-prop-list)))))
 
 (defmacro reorg--thread-as* (name &rest form)
@@ -501,6 +557,7 @@ point where the leaf should be inserted (ie, insert before)"
 			nil
 			(lambda (a b)
 			  (not (equal a b)))))
+
 
 
 (defun reorg--insert-heading* (data template)

@@ -268,8 +268,6 @@ switch to that buffer in the window."
      (goto-char (point-at-bol))
      (reorg-dynamic-bullets--fontify-heading))))
 
-
-
 (defun reorg-views--insert-after-point (data &optional level format-string)
   "insert a heading after the current point."
   (reorg--with-restore-state
