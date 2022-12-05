@@ -19,39 +19,6 @@
 					   (insert h))
 					 h)))
 
-(defun xxx-create-test-data ()
-  (interactive)
-  (cl-loop
-   for x below 100
-   collect
-   (cl-loop
-    for b in ;; '(a b c d e f g h i j k l m n o p)
-    '(a b c d)
-    collect (cons b (random 10)) into x
-    finally return (append x (list (cons 'id (org-id-new))
-				   (cons 'class 'org))))))
-
-(setq xxx-data (xxx-create-test-data))
-
-(setq xxx-template
-      '(
-	:format-results (.stars " " (pp (list .a .b .c .d)))
-	:children
-	(( :group (lambda (x) (when (oddp (alist-get 'a x))
-				(concat "A: "
-					(number-to-string 
-					 (alist-get 'a x)))))
-	   :sort-groups (lambda (a b)
-			  (string<
-			   a
-			   b))
-	   :sort-results (((lambda (x) (alist-get 'd x)) . >))
-	   :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
-			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
-					       "B is even"
-					     "B is odd")))))
-	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
-				"B IS FIVE"))))))
 
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
@@ -419,7 +386,11 @@ See `let-alist--deep-dot-search'."
   "goto the first leaf of the current group"
   (reorg--goto-next-prop 'reorg-field-type
 			 'leaf
-			 (reorg--get-next-sibling)))
+			 (let ((sib (reorg--get-next-sibling))
+			       (par (reorg--get-next-parent)))
+			   (if (and sib par)
+			       (if (< sib par) sib par)
+			     (if sib sib par)))))
 
 (defun reorg--goto-id (header &optional group)
   "goto ID that matches the header string"
@@ -439,18 +410,12 @@ See `let-alist--deep-dot-search'."
 
 (defun reorg--insert-header-at-point (header-string &optional next-line)
   "insert header at point"
-  (if next-line
-      (progn
-	(goto-char (point-at-bol))
-	(forward-line)
-	(insert "\n")
-	(forward-line -1)
-	(insert header-string)
-	(goto-char (point-at-bol)))
-    (let ((point (point)))
-      (insert header-string)
-      (goto-char point)))
-  (run-hooks 'reorg--navigation-hook))
+  (when next-line
+    (forward-line))
+  (save-excursion 
+    (insert header-string)
+    (reorg-dynamic-bullets--fontify-heading)
+    (run-hooks 'reorg--navigation-hook)))
 
 (defun reorg--find-header-location-within-groups* (header-string)
   "assume the point is on the first header in the group"
@@ -491,28 +456,28 @@ See `let-alist--deep-dot-search'."
 	nil))))
 
 (defun reorg--find-leaf-location* (leaf-string &optional result-sorters)
-  "find the location for LEAF-DATA among the current leaves. put the
+"find the location for LEAF-DATA among the current leaves. put the
 point where the leaf should be inserted (ie, insert before)"
-  ;; goto the first leaf if at a branch 
-  (unless (eq 'leaf (reorg--get-view-prop 'reorg-field-type ))
-    (reorg--goto-first-leaf*))
-  ;; get the result sorters from the parent unless they are
-  ;; already provided 
-  (when-let ((result-sorters (or result-sorters
-				 (save-excursion 
-				   (reorg--goto-parent)
-				   (reorg--get-view-prop 'result-sorters)))))    
-    (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
-      (cl-loop with point = (point)
-	       when (cl-loop for (func . pred) in result-sorters
-			     unless (equal (funcall func leaf-data)
-					   (funcall func (reorg--get-view-prop)))
-			     return (funcall pred
-					     (funcall func leaf-data)
-					     (funcall func (reorg--get-view-prop))))
-	       return (point)
-	       while (reorg--goto-next-leaf-sibling*)
-	       finally (goto-char (line-beginning-position 2))))))
+;; goto the first leaf if at a branch 
+(unless (eq 'leaf (reorg--get-view-prop 'reorg-field-type))
+  (if (reorg--goto-first-leaf*)
+      (when-let ((result-sorters
+		  (or result-sorters
+		      (save-excursion 
+			(reorg--goto-parent)
+			(reorg--get-view-prop 'result-sorters))))) 
+	(let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
+	  (cl-loop with point = (point)
+		   when (cl-loop for (func . pred) in result-sorters
+				 unless (equal (funcall func leaf-data)
+					       (funcall func (reorg--get-view-prop)))
+				 return (funcall pred
+						 (funcall func leaf-data)
+						 (funcall func (reorg--get-view-prop))))
+		   return (point)
+		   while (reorg--goto-next-leaf-sibling*)
+		   finally (goto-char (line-beginning-position 2)))))
+    (reorg--goto-next-heading))))
       
 (defun reorg--get-next-group-id-change ()
   "get next group id change"
@@ -521,8 +486,6 @@ point where the leaf should be inserted (ie, insert before)"
 			nil
 			(lambda (a b)
 			  (not (equal a b)))))
-
-
 
 (defun reorg--insert-new-heading* (data template)
   "insert an individual heading"
@@ -546,13 +509,49 @@ point where the leaf should be inserted (ie, insert before)"
 		      (group-id (alist-get 'group-id header-props))
 		      (id (alist-get 'id header-props)))
 		 (unless (or (reorg--goto-id header-props)
-			     (equal id (reorg--get-view-prop 'id)))
-		   (reorg--find-first-header-group-member* header-props)
-		   (unless (reorg--find-header-location-within-groups* header)
-		     (reorg--insert-header-at-point header-string))))
+			     (equal id (reorg--get-view-prop 'id)))		   
+		   (if (reorg--find-first-header-group-member* header-props)
+		       (unless (reorg--find-header-location-within-groups* header)
+			 (reorg--insert-header-at-point header))
+		     (reorg--insert-header-at-point header t))))
 	    finally (progn (reorg--find-leaf-location* leaf)
 			   (debug nil "about to insert at " (number-to-string (point)))
 			   (reorg--insert-header-at-point leaf)))))
+
+(defun xxx-create-test-data ()
+  (interactive)
+  (cl-loop
+   for x below 10
+   collect
+   (cl-loop
+    for b in ;; '(a b c d e f g h i j k l m n o p)
+    '(a b c d)
+    collect (cons b (random 10)) into x
+    finally return (append x (list (cons 'id (org-id-new))
+				   (cons 'class 'org))))))
+
+(setq xxx-data (xxx-create-test-data))
+
+(setq xxx-template
+      '(
+	:format-results (.stars " " (pp (list .a .b .c .d)))
+	:children
+	(( :group (lambda (x) (when (oddp (alist-get 'a x))
+				(concat "A: "
+					(number-to-string 
+					 (alist-get 'a x)))))
+	   :sort-groups (lambda (a b)
+			  (string<
+			   a
+			   b))
+	   :sort-results (((lambda (x) (alist-get 'd x)) . >))
+	   :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
+			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
+					       "B is even"
+					     "B is odd")))))
+	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
+				"B IS FIVE"))))))
+
 
 (defun reorg--run-new-test ()
   "test"
@@ -568,13 +567,9 @@ point where the leaf should be inserted (ie, insert before)"
     (org-visual-indent-mode))
   (set-window-buffer nil "*REORG*"))
 
-
-
-
-
-(defun reorg--insertion-test ()
+(defun reorg--insertion-test (data)
   (interactive)
-  (reorg--insert-new-heading* '((a . 9)(b . 7) (c . 3) (d . 4) (id . "12345")) xxx-template))
+  (reorg--insert-new-heading* data xxx-template))
 
 (setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
 				  xxx-template)
