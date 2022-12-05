@@ -19,7 +19,6 @@
 					   (insert h))
 					 h)))
 
-
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
@@ -245,13 +244,14 @@ template.  Use LEVEL number of leading stars.  Add text properties
 			 " "
 			 (alist-get 'branch-name data)
 			 "\n")
-	       (let ((new (reorg--walk-tree*
-			   format-string
-			   #'reorg--turn-dot-to-display-string*
-			   data)))
-		 (funcall `(lambda (data)
-			     (concat ,@new))
-			  data))))
+	       (let* ((new (reorg--walk-tree*
+			    format-string
+			    #'reorg--turn-dot-to-display-string*
+			    data))
+		      (result (funcall `(lambda (data)
+					  (concat ,@new "\n"))
+				       data)))
+		 result)))
        'reorg-data ;; property1
        (append data
 	       (list
@@ -378,8 +378,6 @@ See `let-alist--deep-dot-search'."
   (reorg--goto-next-prop 'reorg-field-type
 			 'leaf
 			 (reorg--get-next-parent)))
-
-
 
 ;;TODO move these into `reorg--create-navigation-commands'
 (defun reorg--goto-first-leaf* ()
@@ -522,7 +520,7 @@ point where the leaf should be inserted (ie, insert before)"
 (defun xxx-create-test-data ()
   (interactive)
   (cl-loop
-   for x below 10
+   for x below 100
    collect
    (cl-loop
     for b in ;; '(a b c d e f g h i j k l m n o p)
@@ -535,7 +533,7 @@ point where the leaf should be inserted (ie, insert before)"
 
 (setq xxx-template
       '(
-	:format-results (.stars " " (pp (list .a .b .c .d)))
+	:format-results (.stars (format " (%d %d %d %d)" .a .b .c .d))
 	:children
 	(( :group (lambda (x) (when (oddp (alist-get 'a x))
 				(concat "A: "
@@ -552,6 +550,7 @@ point where the leaf should be inserted (ie, insert before)"
 					     "B is odd")))))
 	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
 				"B IS FIVE"))
+	   :sort-results (((lambda (x) (alist-get 'a x)) . >))
 	   :format-results (.stars " " (format "a is %s, b is %s"
 					       (number-to-string .a)
 					       (number-to-string .b)))))))
