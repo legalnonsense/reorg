@@ -247,56 +247,6 @@ SEQUENCE is a sequence to sort."
 			      format-string
 			      (1+ level)))))))))))
 
-;; (defun reorg--create-headline-string** (data
-;; 					format-string
-;; 					&optional
-;; 					level
-;; 					overrides)
-;;   "Create a headline string from DATA using FORMAT-STRING as the
-;; template.  Use LEVEL number of leading stars.  Add text properties
-;; `reorg--field-property-name' and  `reorg--data-property-name'."
-;;   (cl-flet ((create-stars (num &optional data)
-;; 			  (make-string (if (functionp num)
-;; 					   (funcall num data)
-;; 					 num)
-;; 				       ?*)))
-;;     (push (cons 'reorg-level level) data)
-;;     (let (headline-text)
-;;       (apply
-;;        #'propertize 
-;;        (concat
-;; 	(if (alist-get 'reorg-branch data)
-;; 	    (propertize 
-;; 	     (concat (create-stars level) " " (alist-get 'branch-name data) "\n")
-;; 	     reorg--field-property-name
-;; 	     'branch)
-;; 	  ;; TODO:get rid of this copy-tree
-;; 	  (cl-loop for (prop . val) in overrides
-;; 		   do (setf (alist-get prop data)
-;; 			    (funcall `(lambda ()
-;; 					(let-alist data 
-;; 					  ,val)))))
-;; 	  (concat 
-;; 	   (let ((xxx (reorg--walk-tree* format-string
-;; 					 #'reorg--turn-dot-to-display-string*
-;; 					 data)))
-;; 	     (setq headline-text 
-;; 		   (funcall `(lambda (data)
-;; 			       (concat ,@xxx))
-;; 			    data)))))) 
-;;        'reorg-data     
-;;        (append data
-;; 	       (list
-;; 		(cons 'reorg-headline headline-text)
-;; 		(cons 'reorg-class (alist-get 'class data))
-;; 		(cons 'reorg-field-type (if (alist-get 'reorg-branch data)
-;; 					    'branch 'leaf))))
-;;        reorg--field-property-name
-;;        (if (alist-get 'reorg-branch data)
-;; 	   'branch 'leaf)
-;;        (alist-get (alist-get 'class data)
-;; 		  reorg--extra-prop-list)))))
-
 (defun reorg--create-headline-string* (data
 				       format-string
 				       &optional
@@ -504,17 +454,26 @@ See `let-alist--deep-dot-search'."
 
 (defun reorg--find-header-location-within-groups* (header-string)
   "assume the point is on the first header in the group"
-  (let-alist (get-text-property 0 'reorg-data header-string)
-    (when .sort-groups
+  (let-alist (get-text-property 0 'reorg-data header-string)    
+    (if .sort-groups
+	(cl-loop with point = (point)
+		 if (equal .branch-name
+			   (reorg--get-view-prop 'branch-name))
+		 return (point)
+		 else if (funcall .sort-groups
+				  .branch-name
+				  (reorg--get-view-prop 'branch-name))
+		 return nil
+		 while (reorg--goto-next-sibling-same-group*
+			(get-text-property 0 'reorg-data header-string))
+		 finally return (progn (goto-char point)
+				       nil))
       (cl-loop with point = (point)
-	       when (or (equal .branch-name
-			       (reorg--get-view-prop 'branch-name))
-			(funcall .sort-groups
-				 .branch-name
-				 (reorg--get-view-prop 'branch-name)))
-	       return (point)
+	       when (equal .branch-name
+			   (reorg--get-view-prop 'branch-name))
+	       return t
 	       while (reorg--goto-next-sibling-same-group*
-		      header-string)
+		      (get-text-property 0 'reorg-data header-string))
 	       finally return (progn (goto-char point)
 				     nil)))))
 
@@ -565,7 +524,7 @@ point where the leaf should be inserted (ie, insert before)"
 
 
 
-(defun reorg--insert-heading* (data template)
+(defun reorg--insert-new-heading* (data template)
   "insert an individual heading"
   (goto-char (point-min))
   (reorg--map-id (alist-get 'id data)
@@ -575,21 +534,25 @@ point where the leaf should be inserted (ie, insert before)"
 				 template
 				 #'reorg--create-headline-string*)   
 	   for headers in header-groups
+	   do (goto-char (point-min))
  	   collect 
-	   (cl-loop with headers = (-flatten headers)    
-		    with leaf = (car (last headers))
-		    with leaf-props = (get-text-property 0 'reorg-data leaf)
-		    for header in (butlast headers)
-		    ;; headers is alist of the parent headers in order 
-		    do (let* ((header-props (get-text-property 0 'reorg-data header))
-			      (group-id (alist-get 'group-id header-props))
-			      (id (alist-get 'id header-props)))
-			 (unless (or (reorg--goto-id header-props)
-				     (equal id (reorg--get-view-prop 'id)))
-			   (reorg--find-first-header-group-member* header-props)
-			   (reorg--find-header-location-within-groups* header)))
-		    finally (progn (reorg--find-leaf-location* leaf)
-				   (reorg--insert-header-at-point leaf)))))
+	   (cl-loop
+	    with headers = (-flatten headers)    
+	    with leaf = (car (last headers))
+	    with leaf-props = (get-text-property 0 'reorg-data leaf)
+	    for header in (butlast headers)
+	    ;; headers is alist of the parent headers in order 
+	    do (let* ((header-props (get-text-property 0 'reorg-data header))
+		      (group-id (alist-get 'group-id header-props))
+		      (id (alist-get 'id header-props)))
+		 (unless (or (reorg--goto-id header-props)
+			     (equal id (reorg--get-view-prop 'id)))
+		   (reorg--find-first-header-group-member* header-props)
+		   (unless (reorg--find-header-location-within-groups* header)
+		     (reorg--insert-header-at-point header-string))))
+	    finally (progn (reorg--find-leaf-location* leaf)
+			   (debug nil "about to insert at " (number-to-string (point)))
+			   (reorg--insert-header-at-point leaf)))))
 
 (defun reorg--run-new-test ()
   "test"
@@ -599,16 +562,19 @@ point where the leaf should be inserted (ie, insert before)"
     (reorg--group-and-sort* xxx-data xxx-template)
     (goto-char (point-min))
     (reorg-view-mode)
+    (olivetti-mode)    
+    (setq cursor-type 'box)
     (reorg-dynamic-bullets-mode)
-    (org-visual-indent-mode)))
-    
-    
+    (org-visual-indent-mode))
+  (set-window-buffer nil "*REORG*"))
 
-	    
+
+
+
 
 (defun reorg--insertion-test ()
   (interactive)
-  (reorg--insert-heading* '((a . 7)(b . 5) (c . 3) (d . 4) (id . "1234")) xxx-template))
+  (reorg--insert-new-heading* '((a . 9)(b . 7) (c . 3) (d . 4) (id . "12345")) xxx-template))
 
 (setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
 				  xxx-template)
