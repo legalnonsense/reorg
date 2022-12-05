@@ -44,7 +44,7 @@ SEQUENCE is a sequence to sort."
 			       parent-header)
   "group and sort and run action on the results"
   (cl-flet ((get-header-props
-	     (header groups)
+	     (header groups sss)
 	     (reorg--thread-as*
 	       (props (list 
 		       (cons 'branch-name header)
@@ -62,7 +62,7 @@ SEQUENCE is a sequence to sort."
 		       (cons 'branch-result header)
 		       (cons 'grouper-list-results header)
 		       (cons 'format-string format-string)
-		       (cons 'result-sorters sorters)
+		       (cons 'result-sorters sss)
 		       (cons 'template template)
 		       (cons 'sort-groups (plist-get groups :sort-groups))
 		       (cons 'children (plist-get groups :children))
@@ -81,22 +81,24 @@ SEQUENCE is a sequence to sort."
     (let (pppz)
       ;; inheritance
       (setq format-string
-	    (or (plist-get template :format-results)
-		format-string
-		reorg-headline-format)
-	    sorters 
-	    (or sorters
-		(plist-get template :sort-results)
-		reorg-default-result-sort))
+	    (or format-string
+		(plist-get template :format-results)
+		reorg-headline-format))
+      
+      ;; sorters
+      ;; (or sorters
+      ;; 	(plist-get template :sort-results)
+      ;; 	reorg-default-result-sort))
 
       ;; for each child...
-      (cl-loop 
+      (cl-loop
+       with sorterz = sorters
        for groups in (plist-get template :children)
-       ;; inheritence for 
+       ;; inheritence for
        do (setq format-string (or (plist-get groups :format-results)
 				  format-string
 				  reorg-headline-format)
-		sorters (append sorters (plist-get groups :sort-results))
+		sorterz (append sorters (plist-get groups :sort-results))
 		level (or level 1))
        append (reorg--thread-as* data
 		(pcase (plist-get groups :group)
@@ -170,14 +172,14 @@ SEQUENCE is a sequence to sort."
 		       (or action
 			   reorg--grouper-action-function)
 		       (setq pppz 
-			     (get-header-props header groups))
+			     (get-header-props header groups sorterz))
 		       nil
 		       level)
 		      (reorg--group-and-sort*			  
 		       results
 		       groups
 		       action
-		       sorters
+		       sorterz
 		       format-string
 		       (1+ level)
 		       header)))
@@ -192,15 +194,16 @@ SEQUENCE is a sequence to sort."
 			     (or action
 				 reorg--grouper-action-function)
 			     (setq pppz 
-				   (get-header-props header groups))
+				   (get-header-props header groups sorterz))
 			     nil
 			     level)
 			    (cl-loop
 			     with
-			     results = (if sorters
-					   (reorg--multi-sort* sorters
-							       results)
-					 results)
+			     results = 
+			     (if sorterz
+				 (reorg--multi-sort* sorterz
+						     results)
+			       results)
 			     for result in results
 			     collect
 			     (funcall
@@ -271,8 +274,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 
 (defmacro reorg--thread-as* (name &rest form)
   "like `-as->' but better!?"
-  (declare (indent defun)
-	   (debug t))
+  (declare (indent defun))  
   (if (listp name)
       (append 
        `(let* ,(append `((,(car name) ,(cadr name)))
@@ -533,12 +535,13 @@ point where the leaf should be inserted (ie, insert before)"
 
 (setq xxx-template
       '(
-	:format-results (.stars (format " (%d %d %d %d)" .a .b .c .d))
+
 	:children
 	(( :group (lambda (x) (when (oddp (alist-get 'a x))
 				(concat "A: "
 					(number-to-string 
 					 (alist-get 'a x)))))
+	   :format-results (.stars (format " (%d %d %d %d)" .a .b .c .d))
 	   :sort-groups (lambda (a b)
 			  (string<
 			   a
@@ -550,10 +553,10 @@ point where the leaf should be inserted (ie, insert before)"
 					     "B is odd")))))
 	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
 				"B IS FIVE"))
-	   :sort-results (((lambda (x) (alist-get 'a x)) . >))
-	   :format-results (.stars " " (format "a is %s, b is %s"
-					       (number-to-string .a)
-					       (number-to-string .b)))))))
+	   :sort-results (((lambda (x) (alist-get 'a x)) . <))
+	   :format-results (.stars " " (format "a is %d, b is %d"
+					       .a
+					       .b))))))
 
 (defun reorg--run-new-test ()
   "test"
