@@ -9,9 +9,18 @@
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/tmp/tmp.org"))
-   :template '( :children
-		(( :group .todo
-		   :sort-results (((lambda (x) (alist-get 'headline x)) . string<)))))))
+   :template '(
+	       :children
+	       (( :group "TASKS"
+		  :children
+		  (( :group .todo
+		     :format-results (.stars " " .headline)
+		     :sort-groups string<
+		     :sort-results (((lambda (x) (alist-get 'headline x)) . string<)))))
+		( :group "Calendar deadlines"
+		  :children (( :group .deadline
+			       :sort-groups string<
+			       :format-results (.stars " " .headline " " .deadline))))))))
 
 
 

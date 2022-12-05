@@ -39,7 +39,7 @@
 
 (add-to-list 'company-backends #'reorg-company)
 
-(provide 'reorg-devel)
+(provide 'reorg-company)
 
 
 

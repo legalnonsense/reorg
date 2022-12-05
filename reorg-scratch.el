@@ -19,6 +19,10 @@
 					   (insert h))
 					 h)))
 
+
+(defun reorg--delete-headers-maybe* ()
+  "delete headers at point if it has no children"
+  
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.

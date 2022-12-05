@@ -19,6 +19,29 @@
        format)
       (reorg-dynamic-bullets--fontify-heading))))
 
+;; (defmacro reorg--with-source-and-sync (&rest body)
+;;   "Execute BODY in the source buffer and
+;; update the heading at point."
+;;   (declare (indent defun))
+;;   `(progn
+;;      (let (data)
+;;        (org-with-remote-undo (reorg--get-view-prop 'buffer)
+;; 	 (reorg--goto-source)
+;; 	 (org-with-wide-buffer
+;; 	  (org-back-to-heading)
+;; 	  ,@body
+;; 	  (setq data (reorg--parser nil 'org)))
+;; 	 (reorg--select-tree-window)
+;; 	 (save-excursion
+;; 	   (goto-char (point-min))
+;; 	   (reorg--map-id (alist-get 'id data)
+;; 			  (let ((format-string (reorg--get-format-string))
+;; 				(level (reorg--get-view-prop 'reorg-level)))
+;; 			    (reorg--update-this-heading data
+;; 							level
+;; 							format-string))))
+;; 	 (reorg-dynamic-bullets--fontify-heading)))))
+
 (defmacro reorg--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
 update the heading at point."
@@ -33,14 +56,10 @@ update the heading at point."
 	  (setq data (reorg--parser nil 'org)))
 	 (reorg--select-tree-window)
 	 (save-excursion
-	   (goto-char (point-min))
-	   (reorg--map-id (alist-get 'id data)
-			  (let ((format-string (reorg--get-format-string))
-				(level (reorg--get-view-prop 'reorg-level)))
-			    (reorg--update-this-heading data
-							level
-							format-string))))
-	 (reorg-dynamic-bullets--fontify-heading)))))
+	   (reorg--insert-new-heading* data reorg--current-template))))))
+
+
+
 
 (defun reorg--get-format-string ()
   "get format string at point"
