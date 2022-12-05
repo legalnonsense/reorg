@@ -114,7 +114,7 @@ switch to that buffer in the window."
   "Open this shit in the sidebar."
   (interactive)
   (let ((results (--> (reorg--getter sources)
-		      (reorg--group-and-sort it template))))
+		      (reorg--group-and-sort* it template))))
     (when (get-buffer reorg-buffer-name)
       (kill-buffer reorg-buffer-name))
     (reorg--open-side-window)
@@ -127,7 +127,7 @@ switch to that buffer in the window."
     (org-visual-indent-mode)
     (toggle-truncate-lines 1)
     (setq reorg--current-template template)
-    (setq-local cursor-type nil)
+    (setq-local cursor-type 'box)
     (goto-char (point-min))))
 
 ;;;; view buffer functions

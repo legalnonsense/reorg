@@ -5,13 +5,15 @@
 ;; (alist-get 'org reorg--extra-prop-list)
 ;; (alist-get 'org reorg--render-func-list)
 
-(defun reorg-user--test-new-heading-sort ()
+(defun reorg-user--test-new-grouper ()
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/tmp/tmp.org"))
-   :template '( :group .todo
-		:sort string>
-		:sort-getter (lambda (x) (downcase x)))))
+   :template '( :children
+		(( :group .todo
+		   :sort-results (((lambda (x) (alist-get 'headline x)) . string<)))))))
+
+
 
 
 (defun reorg-user--leo-2 ()

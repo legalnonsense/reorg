@@ -273,7 +273,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
 		  reorg--extra-prop-list)))))
 
 (defmacro reorg--thread-as* (name &rest form)
-  "like `-as->' but better!?"
+  "I didn't know `-as->' existed..."
   (declare (indent defun))  
   (if (listp name)
       (append 
@@ -413,7 +413,7 @@ See `let-alist--deep-dot-search'."
   (when next-line
     (forward-line))
   ;; (when (eobp)
-  ;;   (insert (apply #'propertize "\n" (text-properties-at (1- (point))))))n
+  ;;   (insert (apply #'propertize "\n" (text-properties-at (1- (point))))))
   (save-excursion 
     (insert header-string))
   (reorg-dynamic-bullets--fontify-heading)
@@ -534,8 +534,7 @@ point where the leaf should be inserted (ie, insert before)"
 (setq xxx-data (xxx-create-test-data))
 
 (setq xxx-template
-      '(
-
+      '(	
 	:children
 	(( :group (lambda (x) (when (oddp (alist-get 'a x))
 				(concat "A: "
