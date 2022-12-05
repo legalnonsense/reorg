@@ -412,8 +412,8 @@ See `let-alist--deep-dot-search'."
   "insert header at point"
   (when next-line
     (forward-line))
-  (when (eobp)
-    (insert (apply #'propertize "\n" (text-properties-at (1- (point))))))
+  ;; (when (eobp)
+  ;;   (insert (apply #'propertize "\n" (text-properties-at (1- (point))))))n
   (save-excursion 
     (insert header-string))
   (reorg-dynamic-bullets--fontify-heading)
