@@ -21,11 +21,15 @@
 
 (defun xxx-create-test-data ()
   (interactive)
-  (cl-loop for x below 100
-	   collect (cl-loop for b in ;; '(a b c d e f g h i j k l m n o p)
-			    '(a b c d)
-			    collect (cons b (random 10)) into x
-			    finally return (append x (list (cons 'id (org-id-new)))))))
+  (cl-loop
+   for x below 100
+   collect
+   (cl-loop
+    for b in ;; '(a b c d e f g h i j k l m n o p)
+    '(a b c d)
+    collect (cons b (random 10)) into x
+    finally return (append x (list (cons 'id (org-id-new))
+				   (cons 'class 'org))))))
 
 (setq xxx-data (xxx-create-test-data))
 
@@ -242,11 +246,11 @@ SEQUENCE is a sequence to sort."
 				    ;;OVERRIDES
 				    )))))))))
 
-(defun reorg--create-headline-string* (data
-				       format-string
-				       &optional
-				       level
-				       overrides)
+(defun reorg--create-headline-string** (data
+					format-string
+					&optional
+					level
+					overrides)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  Add text properties
 `reorg--field-property-name' and  `reorg--data-property-name'."
@@ -292,11 +296,11 @@ template.  Use LEVEL number of leading stars.  Add text properties
        (alist-get (alist-get 'class data)
 		  reorg--extra-prop-list)))))
 
-(defun reorg--create-headline-string** (data
-					format-string
-					&optional
-					level
-					overrides)
+(defun reorg--create-headline-string* (data
+				       format-string
+				       &optional
+				       level
+				       overrides)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  Add text properties
 `reorg--field-property-name' and  `reorg--data-property-name'."
@@ -322,14 +326,14 @@ template.  Use LEVEL number of leading stars.  Add text properties
 		 (concat (create-stars level)
 			 " "
 			 (alist-get 'branch-name data)
-			 "\n"))
-	     (let ((new (reorg--walk-tree*
-			 format-string
-			 #'reorg--turn-dot-to-display-string*
-			 data)))
-	       (funcall `(lambda (data)
-			   (concat ,@new))
-			data)))
+			 "\n")
+	       (let ((new (reorg--walk-tree*
+			   format-string
+			   #'reorg--turn-dot-to-display-string*
+			   data)))
+		 (funcall `(lambda (data)
+			     (concat ,@new))
+			  data))))
        'reorg-data ;; property1
        (append data
 	       (list
