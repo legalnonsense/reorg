@@ -119,7 +119,6 @@ SEQUENCE is a sequence to sort."
 		   ;; not so easy.
 		   (when-let ((at-dots (seq-uniq 
 					(reorg--at-dot-search* (plist-get groups :group)))))
-		     
 		     ;; if it has an at-dot, then make a copy of each entry in DATA
 		     ;; if its value is a list.
 		     ;; For example, if the grouping form was:
@@ -138,7 +137,6 @@ SEQUENCE is a sequence to sort."
 		     ;; '((a . 1) (b . 2))
 		     ;; '((a . 1) (b . 3))
 		     ;; '((a . 1) (b . 4))
-
 		     (setq
 		      data
 		      (cl-loop
@@ -146,7 +144,8 @@ SEQUENCE is a sequence to sort."
 		       append
 		       (cl-loop
 			for at-dot in at-dots
-			if (listp (alist-get at-dot d))
+			if (progn
+			     (listp (alist-get at-dot d)))
 			return (cl-loop for x in (alist-get at-dot d)
 					collect (let ((ppp (copy-alist d)))
 						  (setf (alist-get at-dot ppp) x)
@@ -343,7 +342,8 @@ See `let-alist--deep-dot-search'."
       (when (string-match "\\`\\.@" name)
 	;; Return the cons cell inside a list, so it can be appended
 	;; with other results in the clause below.
-	(list (cons data (intern (replace-match "" nil nil name)))))))
+	(list (intern (replace-match "" nil nil name))))))
+   ;; (list (cons data (intern (replace-match "" nil nil name)))))))
    ((vectorp data)
     (apply #'nconc (mapcar #'reorg--at-dot-search* data)))
    ((not (consp data)) nil)
@@ -354,6 +354,7 @@ See `let-alist--deep-dot-search'."
     (reorg--at-dot-search* (cadr data)))
    (t (append (reorg--at-dot-search* (car data))
 	      (reorg--at-dot-search* (cdr data))))))
+
 
 (defun reorg--turn-dot-to-display-string* (elem data)
   "turn .symbol to a string using a display function."
@@ -462,28 +463,28 @@ See `let-alist--deep-dot-search'."
 	nil))))
 
 (defun reorg--find-leaf-location* (leaf-string &optional result-sorters)
-"find the location for LEAF-DATA among the current leaves. put the
+  "find the location for LEAF-DATA among the current leaves. put the
 point where the leaf should be inserted (ie, insert before)"
-;; goto the first leaf if at a branch 
-(unless (eq 'leaf (reorg--get-view-prop 'reorg-field-type))
-  (if (reorg--goto-first-leaf*)
-      (when-let ((result-sorters
-		  (or result-sorters
-		      (save-excursion 
-			(reorg--goto-parent)
-			(reorg--get-view-prop 'result-sorters))))) 
-	(let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
-	  (cl-loop with point = (point)
-		   when (cl-loop for (func . pred) in result-sorters
-				 unless (equal (funcall func leaf-data)
-					       (funcall func (reorg--get-view-prop)))
-				 return (funcall pred
-						 (funcall func leaf-data)
-						 (funcall func (reorg--get-view-prop))))
-		   return (point)
-		   while (reorg--goto-next-leaf-sibling*)
-		   finally (goto-char (line-beginning-position 2)))))
-    (reorg--goto-next-heading))))
+  ;; goto the first leaf if at a branch 
+  (unless (eq 'leaf (reorg--get-view-prop 'reorg-field-type))
+    (if (reorg--goto-first-leaf*)
+	(when-let ((result-sorters
+		    (or result-sorters
+			(save-excursion 
+			  (reorg--goto-parent)
+			  (reorg--get-view-prop 'result-sorters))))) 
+	  (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
+	    (cl-loop with point = (point)
+		     when (cl-loop for (func . pred) in result-sorters
+				   unless (equal (funcall func leaf-data)
+						 (funcall func (reorg--get-view-prop)))
+				   return (funcall pred
+						   (funcall func leaf-data)
+						   (funcall func (reorg--get-view-prop))))
+		     return (point)
+		     while (reorg--goto-next-leaf-sibling*)
+		     finally (goto-char (line-beginning-position 2)))))
+      (reorg--goto-next-heading))))
       
 (defun reorg--get-next-group-id-change ()
   "get next group id change"

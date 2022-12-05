@@ -11,7 +11,14 @@
    :sources '((org . "~/tmp/tmp.org"))
    :template '(
 	       :children
-	       (( :group "TASKS"
+	       (( :group "SPLIT TAGS"
+		  :children (( :group .@tag-list))
+		  :sort-groups string<)
+		( :group "TAGS"
+		  :children (( :group (when (not (string= "" .tags))
+					.tags))))
+
+		( :group "TASKS"
 		  :children
 		  (( :group .todo
 		     :format-results (.stars " " .headline)
