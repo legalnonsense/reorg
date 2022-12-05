@@ -82,8 +82,8 @@ SEQUENCE is a sequence to sort."
     (let (pppz)
       ;; inheritance
       (setq format-string
-	    (or format-string
-		(plist-get template :format-results)
+	    (or (plist-get template :format-results)
+		format-string
 		reorg-headline-format)
 	    sorters 
 	    (or sorters
@@ -94,8 +94,8 @@ SEQUENCE is a sequence to sort."
       (cl-loop 
        for groups in (plist-get template :children)
        ;; inheritence for 
-       do (setq format-string (or format-string
-				  (plist-get template :format-results)
+       do (setq format-string (or (plist-get groups :format-results)
+				  format-string
 				  reorg-headline-format)
 		sorters (append sorters (plist-get groups :sort-results))
 		level (or level 1))
@@ -412,10 +412,12 @@ See `let-alist--deep-dot-search'."
   "insert header at point"
   (when next-line
     (forward-line))
+  (when (eobp)
+    (insert (apply #'propertize "\n" (text-properties-at (1- (point))))))
   (save-excursion 
-    (insert header-string)
-    (reorg-dynamic-bullets--fontify-heading)
-    (run-hooks 'reorg--navigation-hook)))
+    (insert header-string))
+  (reorg-dynamic-bullets--fontify-heading)
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--find-header-location-within-groups* (header-string)
   "assume the point is on the first header in the group"
@@ -515,7 +517,6 @@ point where the leaf should be inserted (ie, insert before)"
 			 (reorg--insert-header-at-point header))
 		     (reorg--insert-header-at-point header t))))
 	    finally (progn (reorg--find-leaf-location* leaf)
-			   (debug nil "about to insert at " (number-to-string (point)))
 			   (reorg--insert-header-at-point leaf)))))
 
 (defun xxx-create-test-data ()
@@ -550,8 +551,10 @@ point where the leaf should be inserted (ie, insert before)"
 					       "B is even"
 					     "B is odd")))))
 	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
-				"B IS FIVE"))))))
-
+				"B IS FIVE"))
+	   :format-results (.stars " " (format "a is %s, b is %s"
+					       (number-to-string .a)
+					       (number-to-string .b)))))))
 
 (defun reorg--run-new-test ()
   "test"
@@ -565,7 +568,10 @@ point where the leaf should be inserted (ie, insert before)"
     (setq cursor-type 'box)
     (reorg-dynamic-bullets-mode)
     (org-visual-indent-mode))
-  (set-window-buffer nil "*REORG*"))
+  (tab-bar-new-tab)
+  (unless (tab-bar-switch-to-tab "*REORG*")
+    (tab-bar-switch-to-next-tab)
+    (set-window-buffer nil "*REORG*")))
 
 (defun reorg--insertion-test (data)
   (interactive)
