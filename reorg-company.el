@@ -37,7 +37,17 @@
     (sorted t)
     (no-cache t)))
 
-(add-to-list 'company-backends #'reorg-company)
+(defun reorg-company-enable ()
+  "Add reorg company backend to the current buffer"
+  (interactive)
+  (add-to-list 'company-backends #'reorg-company))
+
+(defun reorg-company-disable ()
+  "Remove reorg company backends from current buffer"
+  (interactive)
+  (setq company-backends 
+	(remove #'reorg-company
+		company-backends)))
 
 (provide 'reorg-company)
 
