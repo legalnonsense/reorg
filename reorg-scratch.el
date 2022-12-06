@@ -170,10 +170,16 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 				       data)
 		    data)))
 		;; If there is a group sorter, sort the headers
-		(if (plist-get groups :sort-groups)
-		    (seq-sort-by #'car 
-				 (plist-get groups :sort-groups)
-				 data)
+		(if-let ((sort (plist-get groups :sort-groups)))
+		    (cond ((functionp sort)
+			   (seq-sort-by #'car
+					sort
+					data))
+			  (t (seq-sort-by #'car
+					  `(lambda (x)
+					     (let-alist x
+					       ,sort))
+					  data)))
 		  data)
 		;; If there are children, recurse 
 		(if (plist-get groups :children)
@@ -605,3 +611,4 @@ point where the leaf should be inserted (ie, insert before)"
 			     collect (cl-loop for header in (-flatten headers)
 					      collect headers)))
       xxx (car (last xxx)))
+
