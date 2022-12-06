@@ -32,24 +32,6 @@
 	   return t
 	   else do (goto-char p)))
 
-  ;;TODO write this
-  ))
-
-
-;; (defun reorg--multi-sort** (functions-and-predicates sequence)
-;;   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
-;; It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
-;; SEQUENCE is a sequence to sort."
-;;   (seq-sort 
-;;    (lambda (a b)
-;;      (cl-loop for (func . pred) in functions-and-predicates	      
-;; 	      unless (equal (funcall func a)
-;; 			    (funcall func b))
-;; 	      return (funcall pred
-;; 			      (funcall func a)
-;; 			      (funcall func b))))
-;;    sequence))
-
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
