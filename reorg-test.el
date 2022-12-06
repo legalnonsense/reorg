@@ -23,8 +23,7 @@
 							 (not (string= "DEADLINE" .todo)))
 						      "Tasks")
 					     :format-results (.priority " " .todo " " .headline)
-					     :sort-results (((lambda (x) (alist-get 'priority x))
-							     . string<)))
+					     :sort-results ((.priority . string<)))
 					   ( :group (when .ts "Calendar")
 					     :format-results (.ts-type
 							      " "
@@ -35,30 +34,30 @@
 
 
 
-					     (defun reorg-user--test-new-grouper ()
-					       (interactive)
-					       (reorg-open-sidebar
-						:sources '((org . "~/tmp/tmp.org"))
-						:template '( :children
-							     (( :group "SPLIT TAGS"
-								:children (( :group .@tag-list))
-								:sort-groups (lambda (a b)
-									       (string< (downcase a)
-											(downcase b))))
-							      ( :group "TAGS"
-								:children (( :group (when (not (string= "" .tags))
-										      .tags))))
+(defun reorg-user--test-new-grouper ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/tmp/tmp.org"))
+   :template '( :children
+		(( :group "SPLIT TAGS"
+		   :children (( :group .@tag-list))
+		   :sort-groups (lambda (a b)
+				  (string< (downcase a)
+					   (downcase b))))
+		 ( :group "TAGS"
+		   :children (( :group (when (not (string= "" .tags))
+					 .tags))))
 
-							      ( :group "TASKS"
-								:children
-								(( :group .todo
-								   :format-results (.stars " " .headline)
-								   :sort-groups string<
-								   :sort-results (((lambda (x) (alist-get 'headline x)) . string<)))))
-							      ( :group "Calendar deadlines"
-								:children (( :group .deadline
-									     :sort-groups string<
-									     :format-results (.stars " " .headline " " .deadline))))))))
+		 ( :group "TASKS"
+		   :children
+		   (( :group .todo
+		      :format-results (.stars " " .headline)
+		      :sort-groups string<
+		      :sort-results (((lambda (x) (alist-get 'headline x)) . string<)))))
+		 ( :group "Calendar deadlines"
+		   :children (( :group .deadline
+				:sort-groups string<
+				:format-results (.stars " " .headline " " .deadline))))))))
 
 
 

@@ -22,19 +22,37 @@
 
 (defun reorg--delete-headers-maybe* ()
   "delete headers at point if it has no children"
-  
+  ;;TODO write this
+  )
+
+
+;; (defun reorg--multi-sort** (functions-and-predicates sequence)
+;;   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
+;; It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
+;; SEQUENCE is a sequence to sort."
+;;   (seq-sort 
+;;    (lambda (a b)
+;;      (cl-loop for (func . pred) in functions-and-predicates	      
+;; 	      unless (equal (funcall func a)
+;; 			    (funcall func b))
+;; 	      return (funcall pred
+;; 			      (funcall func a)
+;; 			      (funcall func b))))
+;;    sequence))
+
+
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
-SEQUENCE is a sequence to sort."
+SEQUENCE is a sequence to sort. USES LET-ALIST"
   (seq-sort 
    (lambda (a b)
-     (cl-loop for (func . pred) in functions-and-predicates	      
-	      unless (equal (funcall func a)
-			    (funcall func b))
+     (cl-loop for (form . pred) in functions-and-predicates	      
+	      unless (equal (funcall `(lambda (a) (let-alist a ,form)) a)
+			    (funcall `(lambda (b) (let-alist b ,form)) b))
 	      return (funcall pred
-			      (funcall func a)
-			      (funcall func b))))
+			      (funcall `(lambda (a) (let-alist a ,form)) a)
+			      (funcall `(lambda (b) (let-alist b ,form)) b))))
    sequence))
 
 (defun reorg--group-and-sort* (data
@@ -589,5 +607,3 @@ point where the leaf should be inserted (ie, insert before)"
 			     collect (cl-loop for header in (-flatten headers)
 					      collect headers)))
       xxx (car (last xxx)))
-
-
