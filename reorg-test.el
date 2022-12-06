@@ -1,5 +1,4 @@
-
-;;; -*- lexical-binding: t; -*-
+;; -*- lexical-binding: t; -*-
 
 ;; (alist-get 'org reorg--parser-list)
 ;; (alist-get 'org reorg--extra-prop-list)
