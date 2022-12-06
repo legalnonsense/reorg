@@ -295,6 +295,30 @@ the point and return nil."
 	     (s-trim)
 	     (s-replace " \\." "")))
 
+
+(reorg-create-data-type
+ :name ts-pretty
+ :class org
+ :parse (when-let ((ts (or
+			(org-entry-get (point) "DEADLINE")
+			(reorg--timestamp-parser)
+			(org-no-properties (reorg--timestamp-parser nil t))
+			(org-entry-get (point) "SCHEDULED"))))
+	  (if (=
+	       (string-to-number
+		(format-time-string "%Y"))
+	       (ts-year (ts-parse-org ts)))
+	      (s-pad-right 22 " "
+			   (reorg--format-time-string ts
+
+						      "%a, %b %d"
+						      "%a, %b %d at %-l:%M%p"))
+	    (s-pad-right 22 " "
+			 (reorg--format-time-string ts
+						    "%a, %b %d, %Y"
+						    "%a, %b %d, %Y at %-l:%M%p")))))
+
+
 (reorg-create-data-type
  :name ts
  :class org
@@ -309,12 +333,15 @@ the point and return nil."
 		   (string-to-number
 		    (format-time-string "%Y"))
 		   (ts-year (ts-parse-org ts)))
-		  (reorg--format-time-string ts
-					     "%a, %b %d"
-					     "%a, %b %d at %-l:%M%p")
-		(reorg--format-time-string ts
-					   "%a, %b %d, %Y"
-					   "%a, %b %d, %Y at %-l:%M%p"))
+		  (s-pad-right 22 " "
+			       (reorg--format-time-string ts
+
+							  "%a, %b %d"
+							  "%a, %b %d at %-l:%M%p"))
+		(s-pad-right 22 " "
+			     (reorg--format-time-string ts
+							"%a, %b %d, %Y"
+							"%a, %b %d, %Y at %-l:%M%p")))
 	    ""))
 
 (reorg-create-data-type

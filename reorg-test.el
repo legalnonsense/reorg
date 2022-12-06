@@ -4,7 +4,7 @@
 (defun reorg-user--test-main-view ()
   (interactive)
   (reorg-open-sidebar
-   :sources '((org . "~/org/taskmaster.org"))
+   :sources '((org . "~/tmp/tmp.org"))
    :template '( :children
 		(( :group "By client"
 		   :children (( :group .category-inherited
@@ -18,15 +18,30 @@
 							 (not (string= "EVENT" .todo))
 							 (not (string= "DEADLINE" .todo)))
 						      "Tasks")
-					     :format-results (.priority " " .todo " " .headline)
+					     :format-results (.priority
+							      " "
+							      (s-pad-right 15 " " .todo)
+							      " " .headline)
 					     :sort-results ((.priority . string<)))
 					   ( :group (when .ts "Calendar")
 					     :format-results (.ts-type
 							      " "
-							      (s-pad-right 25 " " .ts)
+							      (s-pad-right 30 " " .ts)
 							      " " .headline)
-					     ;; :sort-results
-					     )))))))))
+					     :sort-results (( .ts . string<)))))))
+		 ( :group "Calendar"
+		   :children (( :group .ts-pretty 
+				:sort-groups ;;TODO START HERE 
+				:format-results (.stars " "
+							(s-pad-right
+							 20
+							 " "
+							 .category-inherited)
+							.headline))))))))
+
+
+
+
 
 
 

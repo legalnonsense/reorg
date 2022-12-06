@@ -170,6 +170,7 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 				       data)
 		    data)))
 		;; If there is a group sorter, sort the headers
+		;;TODO add the header meta data before the sorter 
 		(if-let ((sort (plist-get groups :sort-groups)))
 		    (cond ((functionp sort)
 			   (seq-sort-by #'car
