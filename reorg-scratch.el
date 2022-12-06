@@ -22,8 +22,18 @@
 
 (defun reorg--delete-headers-maybe* ()
   "delete headers at point if it has no children"
+  (cl-loop with p = nil
+	   if (reorg--get-next-child)
+	   return t
+	   else
+	   do (setq p (reorg--get-parent))
+	   do (reorg--delete-header-at-point)
+	   if (null p)
+	   return t
+	   else do (goto-char p)))
+
   ;;TODO write this
-  )
+  ))
 
 
 ;; (defun reorg--multi-sort** (functions-and-predicates sequence)
@@ -39,7 +49,6 @@
 ;; 			      (funcall func a)
 ;; 			      (funcall func b))))
 ;;    sequence))
-
 
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
