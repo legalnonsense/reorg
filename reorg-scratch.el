@@ -341,8 +341,8 @@ Am I crazy?"
 
 (defun reorg--at-dot-search* (data)
   "Return alist of symbols inside DATA that start with a `.@'.
-Perform a deep search and return an alist where each car is the
-symbol, and each cdr is the same symbol without the `.'.
+Perform a deep search and return a alist of any symbol
+same symbol without the `@'.
 
 See `let-alist--deep-dot-search'."
   (cond
