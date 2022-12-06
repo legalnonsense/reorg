@@ -21,7 +21,8 @@
 
 
 (defun reorg--delete-headers-maybe* ()
-  "delete headers at point if it has no children"
+  "delete headers at point if it has no children.
+assume the point is at a branch." 
   (cl-loop with p = nil
 	   if (reorg--get-next-child)
 	   return t
@@ -485,11 +486,15 @@ point where the leaf should be inserted (ie, insert before)"
 	  (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
 	    (cl-loop with point = (point)
 		     when (cl-loop for (func . pred) in result-sorters
-				   unless (equal (funcall func leaf-data)
-						 (funcall func (reorg--get-view-prop)))
+				   unless (equal (funcall `(lambda (x) (let-alist x ,func))
+							  leaf-data)
+						 (funcall `(lambda (x) (let-alist x ,func))
+							  (reorg--get-view-prop)))
 				   return (funcall pred
-						   (funcall func leaf-data)
-						   (funcall func (reorg--get-view-prop))))
+						   (funcall `(lambda (x) (let-alist x ,func))
+							    leaf-data)
+						   (funcall `(lambda (x) (let-alist x ,func))
+							    (reorg--get-view-prop))))
 		     return (point)
 		     while (reorg--goto-next-leaf-sibling*)
 		     finally (goto-char (line-beginning-position 2)))))
@@ -507,7 +512,9 @@ point where the leaf should be inserted (ie, insert before)"
   "insert an individual heading"
   (goto-char (point-min))
   (reorg--map-id (alist-get 'id data)
-		 (reorg-views--delete-leaf))
+		 (reorg-views--delete-leaf)
+		 (when (reorg--goto-parent)
+		   (reorg--delete-headers-maybe*)))
   (cl-loop with header-groups = (reorg--group-and-sort*
 				 (list data)
 				 template
@@ -559,14 +566,14 @@ point where the leaf should be inserted (ie, insert before)"
 			  (string<
 			   a
 			   b))
-	   :sort-results (((lambda (x) (alist-get 'd x)) . >))
-	   :children (( :sort-results (((lambda (x) (alist-get 'c x)) . >))
+	   :sort-results ((.d . >))
+	   :children (( :sort-results ((.c . >))
 			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
 					       "B is even"
 					     "B is odd")))))
 	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
 				"B IS FIVE"))
-	   :sort-results (((lambda (x) (alist-get 'a x)) . <))
+	   :sort-results ((.a . <))
 	   :format-results (.stars " " (format "a is %d, b is %d"
 					       .a
 					       .b))))))
