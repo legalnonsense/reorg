@@ -5,29 +5,60 @@
 ;; (alist-get 'org reorg--extra-prop-list)
 ;; (alist-get 'org reorg--render-func-list)
 
-(defun reorg-user--test-new-grouper ()
+(defun reorg-user--test-main-view ()
   (interactive)
   (reorg-open-sidebar
-   :sources '((org . "~/tmp/tmp.org"))
-   :template '(
-	       :children
-	       (( :group "SPLIT TAGS"
-		  :children (( :group .@tag-list))
-		  :sort-groups string<)
-		( :group "TAGS"
-		  :children (( :group (when (not (string= "" .tags))
-					.tags))))
+   :sources '((org . "~/org/taskmaster.org"))
+   :template '( :children
+		(( :group "By client"
+		   :children (( :group .category-inherited
+				:sort-groups (lambda (a b)
+					       (string< (downcase a)
+							(downcase b)))			
+				:children (( :group (when
+							(and
+							 .todo
+							 (not (string= "DONE" .todo))
+							 (not (string= "EVENT" .todo))
+							 (not (string= "DEADLINE" .todo)))
+						      "Tasks")
+					     :format-results (.priority " " .todo " " .headline)
+					     :sort-results (((lambda (x) (alist-get 'priority x))
+							     . string<)))
+					   ( :group (when .ts "Calendar")
+					     :format-results (.ts-type
+							      " "
+							      (s-pad-right 25 " " .ts)
+							      " " .headline)
+					     ;; :sort-results
+					     )))))))))
 
-		( :group "TASKS"
-		  :children
-		  (( :group .todo
-		     :format-results (.stars " " .headline)
-		     :sort-groups string<
-		     :sort-results (((lambda (x) (alist-get 'headline x)) . string<)))))
-		( :group "Calendar deadlines"
-		  :children (( :group .deadline
-			       :sort-groups string<
-			       :format-results (.stars " " .headline " " .deadline))))))))
+
+
+					     (defun reorg-user--test-new-grouper ()
+					       (interactive)
+					       (reorg-open-sidebar
+						:sources '((org . "~/tmp/tmp.org"))
+						:template '( :children
+							     (( :group "SPLIT TAGS"
+								:children (( :group .@tag-list))
+								:sort-groups (lambda (a b)
+									       (string< (downcase a)
+											(downcase b))))
+							      ( :group "TAGS"
+								:children (( :group (when (not (string= "" .tags))
+										      .tags))))
+
+							      ( :group "TASKS"
+								:children
+								(( :group .todo
+								   :format-results (.stars " " .headline)
+								   :sort-groups string<
+								   :sort-results (((lambda (x) (alist-get 'headline x)) . string<)))))
+							      ( :group "Calendar deadlines"
+								:children (( :group .deadline
+									     :sort-groups string<
+									     :format-results (.stars " " .headline " " .deadline))))))))
 
 
 
