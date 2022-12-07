@@ -18,12 +18,15 @@
 							 (not (string= "EVENT" .todo))
 							 (not (string= "DEADLINE" .todo)))
 						      "Tasks")
+					     :sort-group string<
 					     :format-results (.priority
 							      " "
 							      (s-pad-right 15 " " .todo)
 							      " " .headline)
 					     :sort-results ((.priority . string<)))
-					   ( :group (when .ts "Calendar")
+					   ( :group (when (and .ts
+							       (ts> .ts-ts (ts-now)))
+						      "Calendar")
 					     :format-results (.ts-type
 							      " "
 							      (s-pad-right 30 " " .ts)
@@ -32,7 +35,7 @@
 		 ( :group "By delegatee"
 		   :children (( :group .delegatee
 				:sort-group (lambda (a b)
-					      (string< a b)))))
+					      (string< a b)))))		 
 		 ( :group "Calendar"
 		   :children (( :group .ts-year
 				:sort-groups (lambda (a b) (string< a b))
