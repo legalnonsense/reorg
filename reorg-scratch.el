@@ -550,7 +550,8 @@ point where the leaf should be inserted (ie, insert before)"
 		     (reorg--insert-header-at-point header t))))
 	    finally (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
 		      (reorg--find-leaf-location* leaf)
-		      (reorg--insert-header-at-point leaf)))))
+		      (reorg--insert-header-at-point leaf))))
+  (org-indent-refresh-maybe (point-min) (point-max) nil))
 
 (defun xxx-create-test-data ()
   (interactive)
