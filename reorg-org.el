@@ -277,6 +277,51 @@ the point and return nil."
 	    #'PARSER)))
 
 (reorg-create-data-type
+ :name ts-ts
+ :class org
+ :append t
+ :parse (when (alist-get 'ts-any data)
+	  (ts-parse-org (alist-get 'ts-any data))))
+
+(reorg-create-data-type
+ :name delegatee
+ :class org
+ :parse (org-entry-get (point) "DELEGATED"))
+
+(reorg-create-data-type
+ ;; this uses the already parsed ts-any 
+ :name ts-year
+ :class org
+ :append t
+ :parse (when-let ((ts (alist-get 'ts-ts data)))
+	  (number-to-string (ts-year ts))))
+
+(reorg-create-data-type
+ ;; this uses the already parsed ts-any 
+ :name ts-month
+ :class org
+ :append t
+ :parse (when-let ((ts (alist-get 'ts-ts data)))
+	  (ts-month-name ts)))
+
+(reorg-create-data-type
+ ;; this uses the already parsed ts-any 
+ :name ts-day
+ :class org
+ :append t
+ :parse (when-let ((ts (alist-get 'ts-ts data)))
+	  (ts-day ts)))
+
+(reorg-create-data-type
+ ;; this uses the already parsed ts-any 
+ :name ts-day-name
+ :class org
+ :append t
+ :parse (when-let ((ts (alist-get 'ts-ts data)))
+	  (ts-day-name ts)))
+
+
+(reorg-create-data-type
  :name tag-list
  :class org
  :parse (org-get-tags))
@@ -320,6 +365,7 @@ the point and return nil."
 
 
 (reorg-create-data-type
+ ;;TODO add :desc[ription] keyword 
  :name ts
  :class org
  :parse (or
@@ -343,6 +389,17 @@ the point and return nil."
 							"%a, %b %d, %Y"
 							"%a, %b %d, %Y at %-l:%M%p")))
 	    ""))
+
+(reorg-create-data-type
+ :name ts-any
+ :class org
+ :parse (or 
+	 (org-entry-get (point) "DEADLINE")
+	 (reorg--timestamp-parser) ;; active timestamp
+	 (org-no-properties (reorg--timestamp-parser nil t)) ;; active range
+	 (org-entry-get (point) "SCHEDULED")
+	 (org-no-properties (reorg--timestamp-parser t nil))
+	 (org-no-properties (reorg--timestamp-parser t t))))
 
 (reorg-create-data-type
  :name ts-type
@@ -697,6 +754,8 @@ the point and return nil."
  :name childrenp
  :class org
  :parse (org-sidebar--children-p))
+
+
 
 (provide 'reorg-org)
 

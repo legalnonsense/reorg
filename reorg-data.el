@@ -172,7 +172,8 @@ call from the template macro.
 				     parse
 				     set
 				     disable
-				     display)
+				     display
+				     append)
   ;; TODO add disabled key to remove data type
   ;; from the parser list 
 
@@ -197,9 +198,18 @@ text properties of any field displaying the data type.
        (if (not ,disable)
 	   (progn 
 	     (defun ,parsing-func (&optional data)
-	       ,parse)       
-	     (cl-pushnew (cons ',name #',parsing-func)
-			 (alist-get ',class reorg--parser-list))
+	       ,parse)
+	     (if ',append
+		 (progn 
+		   (setf (alist-get ',class reorg--parser-list)
+			 (remove (cons ',name #',parsing-func)
+				 (alist-get ',class reorg--parser-list)))
+		   (setf (alist-get ',class reorg--parser-list)
+			 (append (alist-get ',class reorg--parser-list)
+				 (list 
+				  (cons ',name #',parsing-func)))))
+	       (cl-pushnew (cons ',name #',parsing-func)
+			   (alist-get ',class reorg--parser-list)))
 	     (if ',display 
 		 (defun ,display-func (alist)
 		   ,display)
@@ -234,6 +244,30 @@ parser for that type."
 		     data))
     (cl-loop for (type . func) in (alist-get class reorg--parser-list)
 	     collect (cons type (funcall func data)))))
+
+(defun reorg--parser (data class &optional type)
+  "Call each parser in CLASS on DATA and return
+the result.  If TYPE is provided, only run the
+parser for that type."
+  (if type
+      (cons type 
+	    (funcall (alist-get
+		      type
+		      (alist-get class
+				 reorg--parser-list))
+		     data))
+    (cl-loop for (type . func) in (alist-get class reorg--parser-list)
+	     collect (cons type (funcall func (append data results)))
+	     into results
+	     finally return results)))
+
+(cl-loop for (a . b) in '((a . 2) ((lambda (data)
+				     (alist-get 'a data)) . 3) (c . 5))
+	 if (symbolp a)
+	 collect (cons a b) into xxx
+	 else if (functionp a)
+	 collect (funcall a xxx) into xxx
+	 finally return xxx)
 
 ;;; creating headline strings from parsed data 
 
