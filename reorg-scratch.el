@@ -518,17 +518,15 @@ point where the leaf should be inserted (ie, insert before)"
 (defun reorg--insert-new-heading* (data template)
   "insert an individual heading"
   (goto-char (point-min))
-  (setq xxx-data data)
-  (setq xxx-template template)
   (reorg--map-id (alist-get 'id data)
 		 (reorg-views--delete-leaf)
 		 (when (reorg--goto-parent)
 		   (reorg--delete-headers-maybe*)))
-  (cl-loop with header-groups = (prog1 (setq xxx-sorted (reorg--group-and-sort*
-							 (list data)
-							 template
-							 #'reorg--create-headline-string*))
-				  (debug nil xxx))
+  (cl-loop with header-groups = (reorg--group-and-sort*
+				 (list data)
+				 template
+				 #'reorg--create-headline-string*)
+
 	   for headers in header-groups
 	   do (goto-char (point-min))
 	   collect 
@@ -538,7 +536,6 @@ point where the leaf should be inserted (ie, insert before)"
 	    with leaf-props = (get-text-property 0 'reorg-data leaf)	    
 	    for header in (butlast headers)
 	    when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
-	    ;; headers is alist of the parent headers in order
 	    do (let* ((header-props (get-text-property 0 'reorg-data header))
 		      (group-id (alist-get 'group-id header-props))
 		      (id (alist-get 'id header-props)))
