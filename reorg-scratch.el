@@ -518,23 +518,27 @@ point where the leaf should be inserted (ie, insert before)"
 (defun reorg--insert-new-heading* (data template)
   "insert an individual heading"
   (goto-char (point-min))
+  (setq xxx-data data)
+  (setq xxx-template template)
   (reorg--map-id (alist-get 'id data)
 		 (reorg-views--delete-leaf)
 		 (when (reorg--goto-parent)
 		   (reorg--delete-headers-maybe*)))
-  (cl-loop with header-groups = (reorg--group-and-sort*
-				 (list data)
-				 template
-				 #'reorg--create-headline-string*)   
+  (cl-loop with header-groups = (prog1 (setq xxx-sorted (reorg--group-and-sort*
+							 (list data)
+							 template
+							 #'reorg--create-headline-string*))
+				  (debug nil xxx))
 	   for headers in header-groups
 	   do (goto-char (point-min))
- 	   collect 
+	   collect 
 	   (cl-loop
 	    with headers = (-flatten headers)    
 	    with leaf = (car (last headers))
-	    with leaf-props = (get-text-property 0 'reorg-data leaf)
+	    with leaf-props = (get-text-property 0 'reorg-data leaf)	    
 	    for header in (butlast headers)
-	    ;; headers is alist of the parent headers in order 
+	    when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+	    ;; headers is alist of the parent headers in order
 	    do (let* ((header-props (get-text-property 0 'reorg-data header))
 		      (group-id (alist-get 'group-id header-props))
 		      (id (alist-get 'id header-props)))
@@ -544,8 +548,9 @@ point where the leaf should be inserted (ie, insert before)"
 		       (unless (reorg--find-header-location-within-groups* header)
 			 (reorg--insert-header-at-point header))
 		     (reorg--insert-header-at-point header t))))
-	    finally (progn (reorg--find-leaf-location* leaf)
-			   (reorg--insert-header-at-point leaf)))))
+	    finally (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+		      (reorg--find-leaf-location* leaf)
+		      (reorg--insert-header-at-point leaf)))))
 
 (defun xxx-create-test-data ()
   (interactive)
@@ -607,9 +612,11 @@ point where the leaf should be inserted (ie, insert before)"
   (reorg--insert-new-heading* data xxx-template))
 
 (setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
-				  xxx-template)
+				  xxx-template
+				  #'reorg--create-headline-string*)
       xxx (-flatten (cl-loop for headers in xxx
 			     collect (cl-loop for header in (-flatten headers)
 					      collect headers)))
       xxx (car (last xxx)))
 
+(reorg--group-and-sort* (list yyy) qqq #'reorg--create-headline-string*)
