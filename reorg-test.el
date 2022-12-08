@@ -698,6 +698,6 @@
 
 
 
-;; (provide 'reorg-test)
+(provide 'reorg-test)
 
 
