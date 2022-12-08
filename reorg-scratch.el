@@ -328,21 +328,22 @@ that return nil."
    (seq-reverse sequence)
    nil))
 
+
 (defun reorg--walk-tree* (form func &optional data)
   "Why the hell doesn't dash or seq do this?
 Am I crazy?" 
   (cl-labels
       ((walk
-	(form)
+	(form d)
 	(cl-loop for each in form
 		 if (listp each)
-		 collect (walk each)
+		 collect (walk each d)
 		 else
-		 collect (if data
-			     (funcall func each data)
+		 collect (if d
+			     (funcall func each d)
 			   (funcall func each)))))
     (if (listp form)
-	(walk form)
+	(walk form data)
       (if data 
 	  (funcall func form data)
 	(funcall func form)))))
@@ -371,7 +372,6 @@ See `let-alist--deep-dot-search'."
     (reorg--at-dot-search* (cadr data)))
    (t (append (reorg--at-dot-search* (car data))
 	      (reorg--at-dot-search* (cdr data))))))
-
 
 (defun reorg--turn-dot-to-display-string* (elem data)
   "turn .symbol to a string using a display function."
@@ -506,7 +506,7 @@ point where the leaf should be inserted (ie, insert before)"
 		     while (reorg--goto-next-leaf-sibling*)
 		     finally (goto-char (line-beginning-position 2)))))
       (reorg--goto-next-heading))))
-      
+
 (defun reorg--get-next-group-id-change ()
   "get next group id change"
   (reorg--get-next-prop 'group-id
@@ -545,10 +545,59 @@ point where the leaf should be inserted (ie, insert before)"
 		       (unless (reorg--find-header-location-within-groups* header)
 			 (reorg--insert-header-at-point header))
 		     (reorg--insert-header-at-point header t))))
-	    finally (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
-		      (reorg--find-leaf-location* leaf)
-		      (reorg--insert-header-at-point leaf))))
+	    finally (progn (setq point (point))
+			   (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+			     (reorg--find-leaf-location* leaf)
+			     (reorg--insert-header-at-point leaf))
+			   (goto-char point)))))
   (org-indent-refresh-maybe (point-min) (point-max) nil))
+
+;; (defun reorg--insert-new-heading** (data template)
+;;   "insert an individual heading"
+;;   (goto-char (point-min))
+;;   (reorg--map-id (alist-get 'id data)
+;; 		 (reorg-views--delete-leaf)
+;; 		 (when (reorg--goto-parent)
+;; 		   (reorg--delete-headers-maybe*)))
+;;   (let ((groups (reorg--group-and-sort*
+;; 		 (list data)
+;; 		 template
+;; 		 #'reorg--create-headline-string*)))
+;;     (cl-labels ((leafp (entry)
+;; 		       (eq 'leaf
+;; 			   (alist-get 'reorg-field-type entry)))
+;; 		(find (entry (depth 1))
+;; 		      (let* ((props (get-text-property 0 'reorg-data entry))
+;; 			     (group-id (alist-get 'group-id props))
+;; 			     (id (alist-get 'id props)))
+
+;; 		      (if (leafp entry)
+;; 			  (progn (reorg--find-leaf-location* entry)
+;; 				 (reorg--insert-header-at-point entry))
+
+
+
+
+;; 			for headers in header-groups
+;; do (goto-char (point-min))
+;; collect 
+;; (cl-loop
+;;  with headers = (-flatten headers)    
+;;  with leaf = (car (last headers))
+;;  with leaf-props = (get-text-property 0 'reorg-data leaf)	    
+;;  for header in (butlast headers)
+;;  when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+;;  do (let* ((header-props (get-text-property 0 'reorg-data header))
+;; 	       (group-id (alist-get 'group-id header-props))
+;; 	       (id (alist-get 'id header-props)))
+;; 	  (unless (or (reorg--goto-id header-props)
+;; 		      (equal id (reorg--get-view-prop 'id)))		   
+;; 	    (if (reorg--find-first-header-group-member* header-props)
+;; 		(unless (reorg--find-header-location-within-groups* header)
+;; 		  (reorg--insert-header-at-point header))
+;; 	      (reorg--insert-header-at-point header t))))
+
+;; (org-indent-refresh-maybe (point-min) (point-max) nil))
 
 (defun xxx-create-test-data ()
   (interactive)
@@ -617,4 +666,4 @@ point where the leaf should be inserted (ie, insert before)"
 					      collect headers)))
       xxx (car (last xxx)))
 
-(reorg--group-and-sort* (list yyy) qqq #'reorg--create-headline-string*)
+

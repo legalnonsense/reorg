@@ -72,11 +72,6 @@
 							      .headline))))))))))
 
 
-
-
-
-
-
 ;; (defun reorg-user--test-new-grouper ()
 ;;   (interactive)
 ;;   (reorg-open-sidebar
