@@ -217,24 +217,25 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 				   (get-header-props header groups sorterz))
 			     nil
 			     level)
-			    (cl-loop
-			     with
-			     results = 
-			     (if sorterz
-				 (reorg--multi-sort* sorterz
-						     results)
-			       results)
-			     for result in results
-			     collect
-			     (funcall
-			      (or action
-				  reorg--grouper-action-function)
-			      (append result
-				      (list 
-				       (cons 'group-id
-					     (alist-get 'id pppz))))
-			      format-string
-			      (1+ level)))))))))))
+			    (list 
+			     (cl-loop
+			      with
+			      results = 
+			      (if sorterz
+				  (reorg--multi-sort* sorterz
+						      results)
+				results)
+			      for result in results
+			      collect
+			      (funcall
+			       (or action
+				   reorg--grouper-action-function)
+			       (append result
+				       (list 
+					(cons 'group-id
+					      (alist-get 'id pppz))))
+			       format-string
+			       (1+ level))))))))))))
 
 (defun reorg--create-headline-string* (data
 				       format-string
@@ -549,7 +550,7 @@ point where the leaf should be inserted (ie, insert before)"
 			   (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
 			     (reorg--find-leaf-location* leaf)
 			     (reorg--insert-header-at-point leaf))
-			   (goto-char point)))))
+			   (goto-char point))))
   (org-indent-refresh-maybe (point-min) (point-max) nil))
 
 ;; (defun reorg--insert-new-heading** (data template)
