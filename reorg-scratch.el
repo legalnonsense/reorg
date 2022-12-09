@@ -559,7 +559,8 @@ point where the leaf should be inserted (ie, insert before)"
 			     (reorg--find-leaf-location* leaf)
 			     (reorg--insert-header-at-point leaf))
 			   (goto-char point))))
-  (org-indent-refresh-maybe (point-min) (point-max) nil))
+  (org-indent-refresh-maybe (point-min) (point-max) nil)
+  (run-hooks 'reorg--navigation-hook))
 
 ;; (defun reorg--insert-new-heading** (data template)
 ;;   "insert an individual heading"
@@ -668,6 +669,19 @@ produces:
 				(6 (7 (- 8 9))
 				   (10 (- 11)))))
 			   (lambda (x) (eq x '-)))
-				      
+
 
 (reorg--walk-tree* xxx #'org-no-properties)
+
+
+
+;; (defun tree-path (tree)
+;;   (let (path)
+;;     (if (and (listp tree) (cdr tree))
+;; 	(cl-loop for child in (cdr tree)
+;; 		 do (append (list (car tree))
+;; 			    (tree-path child)))
+;;       (if (listp tree) (car tree)) tree)))
+
+
+;; (tree-path '(a (b c)))

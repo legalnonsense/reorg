@@ -56,9 +56,6 @@
     (tab-bar-switch-to-next-tab)
     (set-window-buffer nil "*REORG*")))
 
-(reorg--run-new-test xxx-data xxx-template)
-
-
 
 (defun reorg-user--test-main-view ()
   (interactive)
