@@ -661,10 +661,58 @@ point where the leaf should be inserted (ie, insert before)"
 
 (setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
 				  xxx-template
-				  #'reorg--create-headline-string*)
-      xxx (-flatten (cl-loop for headers in xxx
-			     collect (cl-loop for header in (-flatten headers)
-					      collect headers)))
-      xxx (car (last xxx)))
+				  #'reorg--create-headline-string*))
 
 
+
+
+(defun reorg--get-all-tree-paths (data leaf-func)
+  (let (aaa aaaa n)
+    (cl-labels ((n-manager (new nn)
+			   (if new
+			       (push nn n)
+			     (let ((val (+ (car n) nn)))
+			       (if (= val 0)
+				   (progn 
+				     (pop n)
+				     (when n
+				       (setq n 
+					     (n-manager nil -1))))
+				 (setcar n val))))
+			   n)
+		(nnn (data)
+		     (while data
+		       (pcase (pop data)
+			 ((and (pred listp)
+			       x
+			       (guard (funcall leaf-func (car x))))
+			  ;; (guard (eq '- (car x))))
+			  (mapc (lambda (y) (push y aaa)) x)
+			  (push (reverse aaa) aaaa)
+			  n
+			  (setq n (n-manager nil -1))
+			  (setq aaa (subseq aaa (- (length aaa) (length n)))))
+			 ((and (pred listp)
+			       x
+			       (guard (null (cdr x))))
+			  nil)
+			 ((and x (pred listp))
+			  (push (car x) aaa)
+			  (push (length (cdr x)) n)
+			  (nnn (cdr x)))
+			 (x (error "asdf"))))))
+      (nnn data)
+      (reverse aaaa))))
+
+(let ((tree '((_ (1
+		  (2 (- 3 4))
+		  (5 (- 99)))
+		 (7 (8 (- 9)))
+		 (10 (11 (- 12 13))
+		     (14 (- 15 16))
+		     (17 (18 (19 (- 20)))))))))
+  (reorg--get-all-tree-paths tree (lambda (x) (eq '- x))))
+
+(reorg--get-all-tree-paths xxx (lambda (x) (eq '- x)))
+
+(reorg--walk-tree* xxx #'org-no-properties)
