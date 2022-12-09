@@ -608,63 +608,20 @@ point where the leaf should be inserted (ie, insert before)"
 
 ;; (org-indent-refresh-maybe (point-min) (point-max) nil))
 
-(defun xxx-create-test-data ()
-  (interactive)
-  (cl-loop
-   for x below 100
-   collect
-   (cl-loop
-    for b in ;; '(a b c d e f g h i j k l m n o p)
-    '(a b c d)
-    collect (cons b (random 10)) into x
-    finally return (append x (list (cons 'id (org-id-new))
-				   (cons 'class 'org))))))
-
-(setq xxx-data (xxx-create-test-data))
-
-(setq xxx-template
-      '(	
-	:children
-	(( :group (lambda (x) (when (oddp (alist-get 'a x))
-				(concat "A: "
-					(number-to-string 
-					 (alist-get 'a x)))))
-	   :format-results (.stars (format " (%d %d %d %d)" .a .b .c .d))
-	   :sort-groups (lambda (a b)
-			  (string<
-			   a
-			   b))
-	   :sort-results ((.d . >))
-	   :children (( :sort-results ((.c . >))
-			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
-					       "B is even"
-					     "B is odd")))))
-	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
-				"B IS FIVE"))
-	   :sort-results ((.a . <))
-	   :format-results (.stars " " (format "a is %d, b is %d"
-					       .a
-					       .b))))))
-
-(defun reorg--run-new-test ()
-  "test"
-  (interactive)
-  (with-current-buffer (get-buffer-create "*REORG*")
-    (erase-buffer)
-    (reorg--group-and-sort* xxx-data xxx-template)
-    (goto-char (point-min))
-    (reorg-view-mode)
-    (olivetti-mode)    
-    (setq cursor-type 'box)
-    (reorg-dynamic-bullets-mode)
-    (org-visual-indent-mode))
-  (tab-bar-new-tab)
-  (unless (tab-bar-switch-to-tab "*REORG*")
-    (tab-bar-switch-to-next-tab)
-    (set-window-buffer nil "*REORG*")))
-
 
 (defun reorg--get-all-tree-paths (data leaf-func)
+  "get a list of all the paths in a tree.
+e.g.:
+(reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
+				(6 (7 (- 8 9))
+				   (10 (- 11)))))
+			   (lambda (x) (eq x '-)))
+produces:
+
+'((1 2 - 3 4 5)
+ (1 6 7 - 8 9)
+ (1 6 10 - 11))
+"
   (let (aaa aaaa n)
     (cl-labels ((n-manager (new nn)
 			   (if new
@@ -698,8 +655,19 @@ point where the leaf should be inserted (ie, insert before)"
 			  (push (car x) aaa)
 			  (push (length (cdr x)) n)
 			  (nnn (cdr x)))
-			 (x (error "asdf"))))))
+			 (x (error "someting went wrong"))))))
       (nnn data)
       (reverse aaaa))))
 
+(reorg--get-all-tree-paths xxx
+			   (lambda (x)
+			     (eq 'leaf (get-text-property 0 'reorg-field-type
+							  x))))
 
+(reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
+				(6 (7 (- 8 9))
+				   (10 (- 11)))))
+			   (lambda (x) (eq x '-)))
+				      
+
+(reorg--walk-tree* xxx #'org-no-properties)

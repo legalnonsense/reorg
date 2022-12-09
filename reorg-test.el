@@ -1,6 +1,65 @@
 ;; -*- lexical-binding: t; -*-
 
 
+(defun xxx-create-test-data ()
+  (interactive)
+  (cl-loop
+   for x below 100
+   collect
+   (cl-loop
+    for b in ;; '(a b c d e f g h i j k l m n o p)
+    '(a b c d)
+    collect (cons b (random 10)) into x
+    finally return (append x (list (cons 'id (org-id-new))
+				   (cons 'class 'org))))))
+
+(setq xxx-data (xxx-create-test-data))
+
+(setq xxx-template
+      '(	
+	:children
+	(( :group (lambda (x) (when (oddp (alist-get 'a x))
+				(concat "A: "
+					(number-to-string 
+					 (alist-get 'a x)))))
+	   :format-results (.stars (format " (%d %d %d %d)" .a .b .c .d))
+	   :sort-groups (lambda (a b)
+			  (string<
+			   a
+			   b))
+	   :sort-results ((.d . >))
+	   :children (( :sort-results ((.c . >))
+			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
+					       "B is even"
+					     "B is odd")))))
+	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
+				"B IS FIVE"))
+	   :sort-results ((.a . <))
+	   :format-results (.stars " " (format "a is %d, b is %d"
+					       .a
+					       .b))))))
+
+(defun reorg--run-new-test (data template)
+  "test"
+  (interactive)
+  (with-current-buffer (get-buffer-create "*REORG*")
+    (erase-buffer)
+    (reorg--group-and-sort* data template)
+    (goto-char (point-min))
+    (reorg-view-mode)
+    (olivetti-mode)    
+    (setq cursor-type 'box)
+    (reorg-dynamic-bullets-mode)
+    (org-visual-indent-mode))
+  (tab-bar-new-tab)
+  (unless (tab-bar-switch-to-tab "*REORG*")
+    (tab-bar-switch-to-next-tab)
+    (set-window-buffer nil "*REORG*")))
+
+(reorg--run-new-test xxx-data xxx-template)
+
+
+
 (defun reorg-user--test-main-view ()
   (interactive)
   (reorg-open-sidebar
