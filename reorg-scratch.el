@@ -19,6 +19,12 @@
 					   (insert h))
 					 h)))
 
+(defun reorg--map-all-branches (func)
+  "map all"
+  (save-excursion 
+    (goto-char (point-min))
+    (while (reorg--goto-next-branch)
+      (funcall func))))
 
 (defun reorg--delete-headers-maybe* ()
   "delete headers at point if it has no children.
@@ -523,16 +529,18 @@ point where the leaf should be inserted (ie, insert before)"
 		 (reorg-views--delete-leaf)
 		 (when (reorg--goto-parent)
 		   (reorg--delete-headers-maybe*)))
-  (cl-loop with header-groups = (reorg--group-and-sort*
-				 (list data)
-				 template
-				 #'reorg--create-headline-string*)
-
+  (cl-loop with header-groups = (reorg--get-all-tree-paths
+				 (reorg--group-and-sort*
+				  (list data)
+				  template
+				  #'reorg--create-headline-string*)
+				 (lambda (x)
+				   (eq 'leaf
+				       (get-text-property 0 'reorg-field-type x))))
 	   for headers in header-groups
 	   do (goto-char (point-min))
 	   collect 
 	   (cl-loop
-	    with headers = (-flatten headers)    
 	    with leaf = (car (last headers))
 	    with leaf-props = (get-text-property 0 'reorg-data leaf)	    
 	    for header in (butlast headers)
@@ -655,16 +663,6 @@ point where the leaf should be inserted (ie, insert before)"
     (tab-bar-switch-to-next-tab)
     (set-window-buffer nil "*REORG*")))
 
-(defun reorg--insertion-test (data)
-  (interactive)
-  (reorg--insert-new-heading* data xxx-template))
-
-(setq xxx (reorg--group-and-sort* (list '((a . 7) (b . 5) (c . 3) (d . 4) (id . "1234")))
-				  xxx-template
-				  #'reorg--create-headline-string*))
-
-
-
 
 (defun reorg--get-all-tree-paths (data leaf-func)
   (let (aaa aaaa n)
@@ -704,15 +702,4 @@ point where the leaf should be inserted (ie, insert before)"
       (nnn data)
       (reverse aaaa))))
 
-(let ((tree '((_ (1
-		  (2 (- 3 4))
-		  (5 (- 99)))
-		 (7 (8 (- 9)))
-		 (10 (11 (- 12 13))
-		     (14 (- 15 16))
-		     (17 (18 (19 (- 20)))))))))
-  (reorg--get-all-tree-paths tree (lambda (x) (eq '- x))))
 
-(reorg--get-all-tree-paths xxx (lambda (x) (eq '- x)))
-
-(reorg--walk-tree* xxx #'org-no-properties)
