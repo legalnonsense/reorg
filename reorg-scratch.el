@@ -671,34 +671,3 @@ produces:
 
 ;; (tree-path '(a (b c)))
 
-(defun reorg-org-capture-disable ()
-  "disable org capture"
-  (interactive)
-  (reorg-org-capture-enable t))
-
-(defun reorg-org-capture-enable (&optional disable)
-  "wrapper for org-capture"
-  (interactive "P")  
-  (if disable
-      (remove-hook 'org-capture-after-finalize-hook
-		   #'reorg-org-capture-hook)  
-    (add-hook 'org-capture-after-finalize-hook
-	      #'reorg-org-capture-hook)))
-
-(defun reorg-org-capture-hook ()
-  "org capture hook to put captured header
-into current reorg outline."
-  (let (data)
-    (reorg--select-main-window)
-    (org-with-wide-buffer 
-     (org-capture-goto-last-stored)
-     (setq data (reorg--parser nil 'org)))
-    (reorg--select-tree-window)
-    (when (member (cons
-		   (alist-get 'class data)
-		   (abbreviate-file-name
-		    (alist-get 'filename data)))
-		  reorg--current-sources) 	  
-      (reorg--insert-new-heading* data reorg--current-template))))
-
-
