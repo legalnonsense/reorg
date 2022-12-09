@@ -49,6 +49,9 @@
 (defvar-local reorg--current-template nil
   "the current template in this buffer")
 
+(defvar-local reorg--current-sources nil
+  "the current template in this buffer")
+
 (defvar reorg--navigation-hook nil
   "Post-navigation hook.")
 
@@ -127,6 +130,7 @@ switch to that buffer in the window."
     (org-visual-indent-mode)
     (toggle-truncate-lines 1)
     (setq reorg--current-template template)
+    (setq reorg--current-sources sources)
     (setq-local cursor-type 'box)
     (goto-char (point-min))))
 

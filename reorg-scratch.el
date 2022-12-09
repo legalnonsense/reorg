@@ -660,21 +660,6 @@ produces:
       (nnn data)
       (reverse aaaa))))
 
-(reorg--get-all-tree-paths xxx
-			   (lambda (x)
-			     (eq 'leaf (get-text-property 0 'reorg-field-type
-							  x))))
-
-(reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
-				(6 (7 (- 8 9))
-				   (10 (- 11)))))
-			   (lambda (x) (eq x '-)))
-
-
-(reorg--walk-tree* xxx #'org-no-properties)
-
-
-
 ;; (defun tree-path (tree)
 ;;   (let (path)
 ;;     (if (and (listp tree) (cdr tree))
@@ -685,3 +670,34 @@ produces:
 
 
 ;; (tree-path '(a (b c)))
+
+(defun reorg-org-capture-disable ()
+  "disable org capture"
+  (interactive)
+  (reorg-org-capture-enable t))
+
+(defun reorg-org-capture-enable (&optional disable)
+  "wrapper for org-capture"
+  (interactive "P")  
+  (if disable
+      (remove-hook 'org-capture-after-finalize-hook
+		   #'reorg-org-capture-hook)  
+    (add-hook 'org-capture-after-finalize-hook
+	      #'reorg-org-capture-hook)))
+
+(defun reorg-org-capture-hook ()
+  "org capture hook to put captured header
+into current reorg outline."
+  (let (data)
+    (reorg--select-main-window)
+    (org-with-wide-buffer 
+     (org-capture-goto-last-stored)
+     (setq data (reorg--parser nil 'org)))
+    (reorg--select-tree-window)
+    (when (member (cons
+		   (alist-get 'class data)
+		   (alist-get 'file data))
+		  reorg--current-sources) 	  
+      (reorg--insert-new-heading* data reorg--current-template))))
+  
+

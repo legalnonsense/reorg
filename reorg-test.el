@@ -63,7 +63,8 @@
    :sources '((org . "~/tmp/tmp.org"))
    :template '( :children
 		(( :group "By client"
-		   :children (( :group .category-inherited
+		   :children (( :group
+				.category-inherited
 				:sort-groups (lambda (a b)
 					       (string< (downcase a)
 							(downcase b)))			
