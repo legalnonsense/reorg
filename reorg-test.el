@@ -82,6 +82,7 @@
 							      " " .headline)
 					     :sort-results ((.priority . string<)
 							    (.headline . string<)))
+
 					   ( :group (when (and .ts
 							       (ts> .ts-ts (ts-now)))
 						      "Calendar")

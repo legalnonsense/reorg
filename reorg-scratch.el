@@ -696,8 +696,9 @@ into current reorg outline."
     (reorg--select-tree-window)
     (when (member (cons
 		   (alist-get 'class data)
-		   (alist-get 'file data))
+		   (abbreviate-file-name
+		    (alist-get 'filename data)))
 		  reorg--current-sources) 	  
       (reorg--insert-new-heading* data reorg--current-template))))
-  
+
 
