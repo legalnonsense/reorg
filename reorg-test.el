@@ -367,14 +367,29 @@
 ;; 					  "\t"
 ;; 					  .headline))))))
 
-;; (defun xxx-reorg-test-16 ()
-;;   (interactive)
-;;   (reorg-open-sidebar
-;;    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
-;;    :template
-;;    '( :group .@tag-list
-;;       :format-string (.stars " " .headline)
-;;       :children (( :group .@at-name )))))
+(defun xxx-reorg-test-15 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
+   :template
+   '( 
+     :format-string (.stars " " .headline)
+     :children (( :group .@at-name)))))
+
+(defun xxx-reorg-test-16 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
+   :template
+   '( 
+     :format-string (.stars " " .headline)
+     :children (( :group .@tag-list
+		  :sort-groups (lambda (a b)
+				 (string< (downcase a)
+					  (downcase b)))
+		  :children (( :group .@at-name )))))))
+
+
 
 ;; ;; group by cited file
 ;; (defun xxx-reorg-test-15 ()
