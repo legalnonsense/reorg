@@ -34,7 +34,6 @@ into current reorg outline."
 		  reorg--current-sources) 	  
       (reorg--insert-new-heading* data reorg--current-template))))
 
-
 (defmacro reorg--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
 update the heading at point."
