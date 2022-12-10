@@ -50,9 +50,6 @@ update the heading at point."
 	 (save-excursion
 	   (reorg--insert-new-heading* data reorg--current-template))))))
 
-
-
-
 (defun reorg--get-format-string ()
   "get format string at point"
   (save-excursion 
@@ -701,7 +698,7 @@ the point and return nil."
 
 (reorg-create-data-type :name filename
 			:class org
-			:parse (buffer-file-name))
+			:parse (abbreviate-file-name (buffer-file-name)))
 
 (reorg-create-data-type :name buffer-name
 			:class org
@@ -719,7 +716,6 @@ the point and return nil."
 			:class org
 			:parse (org-current-level))
 
-
 (reorg-create-data-type :name root
 			:class org
 			:parse (save-excursion (while (org-up-heading-safe))
@@ -734,7 +730,7 @@ the point and return nil."
 				 return (reorg--timestamp-parser t nil))))
 
 (reorg-create-data-type
- :name at-name
+ :name at-names
  :class org
  :parse (let ((headline (org-get-heading t t t t)))
 	  (cl-loop with start = 0
@@ -746,8 +742,6 @@ the point and return nil."
  :name childrenp
  :class org
  :parse (org-sidebar--children-p))
-
-
 
 (provide 'reorg-org)
 
