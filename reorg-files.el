@@ -15,11 +15,11 @@
 	  ("o" . (lambda () (interactive)
 		   (xdg-open (reorg--get-view-prop 'path))))))
 
-
 (reorg-create-data-type
  :name depth 
  :class files
  :parse (f-depth data))
+
 
 (reorg-create-data-type
  :name path

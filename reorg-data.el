@@ -372,7 +372,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
      )))
 
 (defun reorg--getter (sources)
-  "Get entries from SOURCES, which is an alist
+  "Get entries from SOURCES, whih is an alist
 in the form of (CLASS . SOURCE)."
   (cl-loop for (class . source) in sources
 	   append (funcall (car (alist-get class reorg--getter-list))

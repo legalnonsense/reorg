@@ -398,20 +398,19 @@
 ;;    :sources '(;;(files . "find ~/legal/Dropbox/hannah -type f")
 ;; 	      (org . "~/org/Hannah.org"))
 ;;    :template
-;;    '( :group "Olivia Hannah"
-;;       :children (( :group 
-;; 		   :format-string (" " .headline))))))
+;;    '( 
+;;      :children (( :group "Olivia Hannah"
+;; 		  :format-results (" " .headline))))))
 
-;; ;; sort by inactive timestamp in any ancestor node 
-;; (defun xxx-reorg-test-15 ()
-;;   (interactive)
-;;   (reorg-open-sidebar
-;;    :sources '((files . "find ~/legal/Dropbox/hannah -type f")
-;; 	      (org . "~/org/Hannah.org"))
-;;    :template
-;;    '( :group "Olivia Hannah"
-;;       :children (( :group (or .root-ts-inactive .timestamp-ia)
-;; 		   :format-string (.headline))))))
+;; sort by inactive timestamp in any ancestor node 
+(defun xxx-reorg-test-15 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((files . "find ~/legal/Dropbox/hannah -type f")
+	      (org . "~/org/Hannah.org"))
+   :template'( :children (( :group "Olivia Hannah"
+			    :children (( :group (or .root-ts-inactive .timestamp-ia)
+					 :format-results (.headline))))))))
 
 ;; (defun xxx-reorg-test-14 ()
 ;;   (interactive)
@@ -465,16 +464,23 @@
 ;; ;; 	 (concat " " .filename)))
 ;; ;; :sort-getter (lambda (x) (downcase x)))))))
 
-;; (defun xxx-reorg-test-12 ()
-;;   (interactive)
-;;   (reorg-open-sidebar
-;;    :sources '((files . "find ~/Desktop -type f"))
-;;    :template
-;;    '( :group "MEETING VIEW"
-;;       :children (( :group .extension
-;; 		   :sort string<
-;; 		   :format-string (concat " " .filename)
-;; 		   :sort-getter (lambda (x) (downcase x)))))))
+(defun xxx-reorg-test-12 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((files . "find ~/Desktop -type f"))
+   :template
+   '( 
+     :children (( :group "By extension"
+		  :children (( :group .extension
+			       :sort-groups (lambda (a b) (string< (downcase a)
+								   (downcase b)))
+			       :sort-results (((downcase .filename) . string<))
+			       :format-results (.filename))))
+		( :group "by parent"
+		  :children (( :group (when .depth (number-to-string .depth ))
+			       :sort-groups string<
+			       :format-results (.stars " " .fullname))))))))
+
 
 ;; (defun xxx-reorg-test-11 ()
 ;;   (interactive)
