@@ -371,10 +371,8 @@
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
-   :template
-   '( 
-     :format-string (.stars " " .headline)
-     :children (( :group .@at-name)))))
+   :template '( :format-string (.stars " " .headline)
+		:children (( :group .@at-names)))))
 
 (defun xxx-reorg-test-16 ()
   (interactive)
@@ -387,7 +385,7 @@
 		  :sort-groups (lambda (a b)
 				 (string< (downcase a)
 					  (downcase b)))
-		  :children (( :group .@at-name )))))))
+		  :children (( :group .@at-names )))))))
 
 
 
