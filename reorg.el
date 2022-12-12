@@ -21,9 +21,9 @@
 (require 'reorg-scratch)
 
 ;;; reorg data types 
-;; (require 'reorg-org)
+(require 'reorg-org)
 (require 'reorg-files)
-;; (require 'reorg-leo)
+(require 'reorg-leo)
 
 ;;; testing requires
 (require 'reorg-test)
@@ -32,18 +32,23 @@
 
 (defconst reorg--data-property-name 'reorg-data)
 ;;(defconst reorg--id-property-name 'reorg-id)
+
 (defconst reorg--field-property-name 'reorg-field-type)
 
 ;;; customs
 
 (defcustom reorg-parser-use-id-p t
   "use id or markers?")
+
 (defcustom reorg-buffer-name "*REORG*"
   "Default buffer name for tree view window.")
+
 (defcustom reorg-buffer-side 'left
   "Which side for the tree buffer?")
+
 (defcustom reorg-face-text-prop 'font-lock-face
   "When setting a face, use this text property.")
+
 (defcustom reorg-headline-format '(.stars " " .headline)
   "Default headline format.")
 
@@ -318,17 +323,17 @@ switch to that buffer in the window."
 
 ;;;;; reorg-map-branches
 
-(defmacro reorg--map-all-branches (&rest body)
-  "Move to the next clone of the current node."
-  `(save-restriction 
-     (save-excursion
-       (goto-char (point-min))
-       (while
-	   (text-property-search-backward 'reorg-field-type
-					  'branch
-					  nil
-					  'not-current)
-	 ,@body))))
+;; (defmacro reorg--map-all-branches (&rest body)
+;;   "Move to the next clone of the current node."
+;;   `(save-restriction 
+;;      (save-excursion
+;;        (goto-char (point-min))
+;;        (while
+;; 	   (text-property-search-backward 'reorg-field-type
+;; 					  'branch
+;; 					  nil
+;; 					  'not-current)
+;; 	 ,@body))))
 
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
@@ -726,6 +731,7 @@ will extract the single value prior to comparing to VAL."
     (doloop data template)))
 
 (defun reorg--goto-headline-start ()
+  "goto start of org headline"
   (save-match-data 
     (goto-char (org-entry-beginning-position))
     (re-search-forward "^\\*+[[:space:]]" nil t)
@@ -733,6 +739,7 @@ will extract the single value prior to comparing to VAL."
     (point)))
 
 (defun reorg--get-headline-start ()
+  "get the start of the headline"
   (save-excursion (reorg--goto-headline-start)))
 
 (provide 'reorg)

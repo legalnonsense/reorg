@@ -524,43 +524,44 @@ point where the leaf should be inserted (ie, insert before)"
 
 (defun reorg--insert-new-heading* (data template)
   "insert an individual heading"
-  (goto-char (point-min))
-  (reorg--map-id (alist-get 'id data)
-		 (reorg-views--delete-leaf)
-		 (when (reorg--goto-parent)
-		   (reorg--delete-headers-maybe*)))
-  (cl-loop with header-groups = (reorg--get-all-tree-paths
-				 (reorg--group-and-sort*
-				  (list data)
-				  template
-				  #'reorg--create-headline-string*)
-				 (lambda (x)
-				   (eq 'leaf
-				       (get-text-property 0 'reorg-field-type x))))
-	   for headers in header-groups
-	   do (goto-char (point-min))
-	   collect 
-	   (cl-loop
-	    with leaf = (car (last headers))
-	    with leaf-props = (get-text-property 0 'reorg-data leaf)	    
-	    for header in (butlast headers)
-	    when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
-	    do (let* ((header-props (get-text-property 0 'reorg-data header))
-		      (group-id (alist-get 'group-id header-props))
-		      (id (alist-get 'id header-props)))
-		 (unless (or (reorg--goto-id header-props)
-			     (equal id (reorg--get-view-prop 'id)))		   
-		   (if (reorg--find-first-header-group-member* header-props)
-		       (unless (reorg--find-header-location-within-groups* header)
-			 (reorg--insert-header-at-point header))
-		     (reorg--insert-header-at-point header t))))
-	    finally (progn (setq point (point))
-			   (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
-			     (reorg--find-leaf-location* leaf)
-			     (reorg--insert-header-at-point leaf))
-			   (goto-char point))))
-  (org-indent-refresh-maybe (point-min) (point-max) nil)
-  (run-hooks 'reorg--navigation-hook))
+  (save-excursion 
+    (goto-char (point-min))
+    (reorg--map-id (alist-get 'id data)
+		   (reorg-views--delete-leaf)
+		   (when (reorg--goto-parent)
+		     (reorg--delete-headers-maybe*)))
+    (cl-loop with header-groups = (reorg--get-all-tree-paths
+				   (reorg--group-and-sort*
+				    (list data)
+				    template
+				    #'reorg--create-headline-string*)
+				   (lambda (x)
+				     (eq 'leaf
+					 (get-text-property 0 'reorg-field-type x))))
+	     for headers in header-groups
+	     do (goto-char (point-min))
+	     collect 
+	     (cl-loop
+	      with leaf = (car (last headers))
+	      with leaf-props = (get-text-property 0 'reorg-data leaf)	    
+	      for header in (butlast headers)
+	      when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+	      do (let* ((header-props (get-text-property 0 'reorg-data header))
+			(group-id (alist-get 'group-id header-props))
+			(id (alist-get 'id header-props)))
+		   (unless (or (reorg--goto-id header-props)
+			       (equal id (reorg--get-view-prop 'id)))		   
+		     (if (reorg--find-first-header-group-member* header-props)
+			 (unless (reorg--find-header-location-within-groups* header)
+			   (reorg--insert-header-at-point header))
+		       (reorg--insert-header-at-point header t))))
+	      finally (progn (setq point (point))
+			     (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+			       (reorg--find-leaf-location* leaf)
+			       (reorg--insert-header-at-point leaf))
+			     (goto-char point))))
+    (org-indent-refresh-maybe (point-min) (point-max) nil)
+    (run-hooks 'reorg--navigation-hook)))
 
 ;; (defun reorg--insert-new-heading** (data template)
 ;;   "insert an individual heading"
@@ -621,8 +622,7 @@ produces:
 
 '((1 2 - 3 4 5)
  (1 6 7 - 8 9)
- (1 6 10 - 11))
-"
+ (1 6 10 - 11))"
   (let (aaa aaaa n)
     (cl-labels ((n-manager (new nn)
 			   (if new

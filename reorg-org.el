@@ -592,7 +592,6 @@ the point and return nil."
 			(cons 'link (match-string-no-properties 1))
 			(cons 'text (match-string-no-properties 2)))))))
 
-
 (reorg-create-data-type :name links
 			:class org
 			:parse (reorg-org--all-link-parser))
@@ -622,66 +621,16 @@ the point and return nil."
 			:class org
 			:parse (when (reorg--timestamp-parser t)
 				 (org-no-properties (reorg--timestamp-parser t))))
-;; :get (reorg--timestamp-parser t)
-;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
-;; 	 (when (search-forward old-val (org-entry-end-position) t)
-;; 	   (replace-match (concat val)))
-;;        (when val
-;; 	 (org-end-of-meta-data t)
-;; 	 (insert (concat val "\n"))
-;; 	 (delete-blank-lines)))
-;; :face org-date
-;; :field-keymap (("S-<up>" . org-timestamp-up)
-;; 		("S-<down>" . org-timestamp-down))
-;; :header-keymap (("C-c ." . org-time-stamp))
-;; :validate (with-temp-buffer
-;; 	     (insert val)
-;; 	     (beginning-of-buffer)
-;; 	     (org-timestamp-change 0 'day)
-;; 	     (buffer-string)))
 
 (reorg-create-data-type :name timestamp-ia-range
 			:class org
 			:parse (when (reorg--timestamp-parser t t)
 				 (org-no-properties (reorg--timestamp-parser t t))))
-;; :get (reorg--timestamp-parser t)
-;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
-;; 	 (when (search-forward old-val (org-entry-end-position) t)
-;; 	   (replace-match (concat val)))
-;;        (when val
-;; 	 (org-end-of-meta-data t)
-;; 	 (insert (concat val "\n"))
-;; 	 (delete-blank-lines)))
-;; :face org-date
-;; :keymap (("S-<up>" . org-timestamp-up)
-;; 	 ("S-<down>" . org-timestamp-down))
-;; :validate (with-temp-buffer
-;; 	    (insert val)
-;; 	    (beginning-of-buffer)
-;; 	    (org-timestamp-change 0 'day)
-;; 	    (buffer-string)))
 
 (reorg-create-data-type :name timestamp-range
 			:class org
 			:parse (when (reorg--timestamp-parser nil t)
 				 (org-no-properties (reorg--timestamp-parser nil t))))
-;; :get (reorg--timestamp-parser t)
-;; ;; :set (if-let* ((old-val (reorg--timestamp-parser t)))
-;; ;; 	 (when (search-forward old-val (org-entry-end-position) t)
-;; ;; 	   (replace-match (concat val)))
-;; ;;        (when val
-;; ;; 	 (org-end-of-meta-data t)
-;; ;; 	 (insert (concat val "\n"))
-;; ;; 	 (delete-blank-lines)))
-;; :face org-date
-;; :keymap (("S-<up>" . org-timestamp-up)
-;; 	 ("S-<down>" . org-timestamp-down))
-;; :validate (with-temp-buffer
-;; 	    (insert val)
-;; 	    (beginning-of-buffer)
-;; 	    (org-timestamp-change 0 'day)
-;; 	    (buffer-string))
-;; :disabled nil)
 
 (reorg-create-data-type :name id
 			:class org
@@ -694,7 +643,6 @@ the point and return nil."
 (reorg-create-data-type :name category
 			:class org
 			:parse (org-get-category))
-;; :set (org-set-property "CATEGORY" val))
 
 (reorg-create-data-type :name filename
 			:class org

@@ -1,134 +1,149 @@
 ;; -*- lexical-binding: t; -*-
 
+;; (defun xxx-create-test-data ()
+;;   (interactive)
+;;   (cl-loop
+;;    for x below 100
+;;    collect
+;;    (cl-loop
+;;     for b in ;; '(a b c d e f g h i j k l m n o p)
+;;     '(a b c d)
+;;     collect (cons b (random 10)) into x
+;;     finally return (append x (list (cons 'id (org-id-new))
+;; 				   (cons 'class 'org))))))
 
-(defun xxx-create-test-data ()
-  (interactive)
-  (cl-loop
-   for x below 100
-   collect
-   (cl-loop
-    for b in ;; '(a b c d e f g h i j k l m n o p)
-    '(a b c d)
-    collect (cons b (random 10)) into x
-    finally return (append x (list (cons 'id (org-id-new))
-				   (cons 'class 'org))))))
+;; (setq xxx-data (xxx-create-test-data))
 
-(setq xxx-data (xxx-create-test-data))
+;; (setq xxx-template
+;;       '(	
+;; 	:children
+;; 	(( :group (lambda (x) (when (oddp (alist-get 'a x))
+;; 				(concat "A: "
+;; 					(number-to-string 
+;; 					 (alist-get 'a x)))))
+;; 	   :format-results (.stars (format " (%d %d %d %d)" .a .b .c .d))
+;; 	   :sort-groups (lambda (a b)
+;; 			  (string<
+;; 			   a
+;; 			   b))
+;; 	   :sort-results ((.d . >))
+;; 	   :children (( :sort-results ((.c . >))
+;; 			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
+;; 					       "B is even"
+;; 					     "B is odd")))))
+;; 	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
+;; 				"B IS FIVE"))
+;; 	   :sort-results ((.a . <))
+;; 	   :format-results (.stars " " (format "a is %d, b is %d"
+;; 					       .a
+;; 					       .b))))))
 
-(setq xxx-template
-      '(	
-	:children
-	(( :group (lambda (x) (when (oddp (alist-get 'a x))
-				(concat "A: "
-					(number-to-string 
-					 (alist-get 'a x)))))
-	   :format-results (.stars (format " (%d %d %d %d)" .a .b .c .d))
-	   :sort-groups (lambda (a b)
-			  (string<
-			   a
-			   b))
-	   :sort-results ((.d . >))
-	   :children (( :sort-results ((.c . >))
-			:group (lambda (x) (if (= 0 (% (alist-get 'b x) 2))
-					       "B is even"
-					     "B is odd")))))
-	 ( :group (lambda (x) (when (= (alist-get 'b x) 5)
-				"B IS FIVE"))
-	   :sort-results ((.a . <))
-	   :format-results (.stars " " (format "a is %d, b is %d"
-					       .a
-					       .b))))))
-
-(defun reorg--run-new-test (data template)
-  "test"
-  (interactive)
-  (with-current-buffer (get-buffer-create "*REORG*")
-    (erase-buffer)
-    (reorg--group-and-sort* data template)
-    (goto-char (point-min))
-    (reorg-view-mode)
-    (olivetti-mode)    
-    (setq cursor-type 'box)
-    (reorg-dynamic-bullets-mode)
-    (org-visual-indent-mode))
-  (tab-bar-new-tab)
-  (unless (tab-bar-switch-to-tab "*REORG*")
-    (tab-bar-switch-to-next-tab)
-    (set-window-buffer nil "*REORG*")))
-
+;; (defun reorg--run-new-test (data template)
+;;   "test"
+;;   (interactive)
+;;   (with-current-buffer (get-buffer-create "*REORG*")
+;;     (erase-buffer)
+;;     (reorg--group-and-sort* data template)
+;;     (goto-char (point-min))
+;;     (reorg-view-mode)
+;;     (olivetti-mode)    
+;;     (setq cursor-type 'box)
+;;     (reorg-dynamic-bullets-mode)
+;;     (org-visual-indent-mode))
+;;   (tab-bar-new-tab)
+;;   (unless (tab-bar-switch-to-tab "*REORG*")
+;;     (tab-bar-switch-to-next-tab)
+;;     (set-window-buffer nil "*REORG*")))
 
 (defun reorg-user--test-main-view ()
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/tmp/tmp.org"))
-   :template '( :children
-		(( :group "By client"
-		   :children (( :group
-				.category-inherited
-				:sort-groups (lambda (a b)
-					       (string< (downcase a)
-							(downcase b)))			
-				:children (( :group (when
-							(and
-							 .todo
-							 (not (string= "DONE" .todo))
-							 (not (string= "EVENT" .todo))
-							 (not (string= "DEADLINE" .todo)))
-						      "Tasks")
-					     :sort-group string<
-					     :format-results (.priority
-							      " "
-							      (s-pad-right 15 " " .todo)
-							      " " .headline)
-					     :sort-results ((.priority . string<)
-							    (.headline . string<)))
-
-					   ( :group (when (and .ts
-							       (ts> .ts-ts (ts-now)))
-						      "Calendar")
-					     :format-results (.ts-type
-							      " "
-							      (s-pad-right 30 " " .ts)
-							      " " .headline)
-					     :sort-results (( .ts . string<)))))))
-		 ( :group "By delegatee"
-		   :children (( :group .delegatee
-				:sort-group (lambda (a b)
-					      (string< a b)))))		 
-		 ( :group "Calendar"
-		   :children (( :group .ts-year
-				:sort-groups (lambda (a b) (string< a b))
-				:children (( :group .ts-month
-					     :sort-groups (lambda (a b)
-							    (let ((seq '("January"
-									 "February"
-									 "March"
-									 "April"
-									 "May"
-									 "June"
-									 "July"
-									 "August"
-									 "September"
-									 "October"
-									 "November"
-									 "December")))
-							      (< (seq-position seq a 'string=)
-								 (seq-position seq b 'string=))))
-					     :sort-results ((.ts-day . <))
-					     :format-results (.stars
-							      " "
-							      (s-pad-left 2 " "
-									  (number-to-string
-									   .ts-day))
-							      " "
-							      (s-pad-right 12 " "
-									   .ts-day-name)
-							      (s-pad-right
-							       20
-							       " "
-							       .category-inherited)
-							      .headline))))))))))
-
+   :template
+   '( :children
+      (( :group "By client"
+	 :children
+	 (( :group
+	    .category-inherited
+	    :sort-groups
+	    (lambda (a b)
+	      (string< (downcase a)
+		       (downcase b)))			
+	    :children
+	    (( :group
+	       (when
+		   (and
+		    .todo
+		    (not (string= "DONE" .todo))
+		    (not (string= "EVENT" .todo))
+		    (not (string= "DEADLINE" .todo)))
+		 "Tasks")
+	       :sort-group
+	       string<
+	       :format-results
+	       (.priority
+		" "
+		(s-pad-right 15 " " .todo)
+		" " .headline)
+	       :sort-results
+	       ((.priority . string<)
+		(.headline . string<)))
+	     ( :group (when (and .ts-ts
+				 (ts> .ts-ts (ts-now)))
+			"Calendar")
+	       :format-results
+	       (.ts-type
+		" "
+		(s-pad-right 30 " " .ts)
+		" " .headline)
+	       :sort-results
+	       (( .ts . string<)))))))
+       ( :group "By delegatee"
+	 :children (( :group
+		      .delegatee
+		      :sort-group
+		      (lambda (a b)
+			(string< a b)))))		 
+       ( :group "Calendar"
+	 :children (( :group
+		      .ts-year
+		      :sort-groups
+		      (lambda (a b) (string< a b))
+		      :children
+		      (( :group
+			 .ts-month
+			 :sort-groups
+			 (lambda (a b)
+			   (let ((seq '("January"
+					"February"
+					"March"
+					"April"
+					"May"
+					"June"
+					"July"
+					"August"
+					"September"
+					"October"
+					"November"
+					"December")))
+			     (< (seq-position seq a 'string=)
+				(seq-position seq b 'string=))))
+			 :sort-results
+			 ((.ts-day . <))
+			 :format-results
+			 (.stars
+			  " "
+			  (s-pad-left 2 " "
+				      (number-to-string
+				       .ts-day))
+			  " "
+			  (s-pad-right 12 " "
+				       .ts-day-name)
+			  (s-pad-right
+			   20
+			   " "
+			   .category-inherited)
+			  .headline))))))))))
 
 ;; (defun reorg-user--test-new-grouper ()
 ;;   (interactive)
@@ -155,9 +170,6 @@
 ;; 				:sort-groups string<
 ;; 				:format-results (.stars " " .headline " " .deadline))))))))
 
-
-
-
 ;; (defun reorg-user--leo-2 ()
 ;;   (interactive)
 ;;   (reorg-open-sidebar
@@ -166,7 +178,6 @@
 ;; 		:format-string ((make-string (1+ (or .leo-level 1)) ?*) " " .headline)
 ;; 		:format-string-overrides ((reorg-branch . t)
 ;; 					  (reorg-level . .leo-level)))))
-
 
 ;; (defun reorg-user--leo ()
 ;;   (interactive)
@@ -194,9 +205,6 @@
 ;; 		:format-string (.stars " " .headline)
 ;; 		:sort <
 ;; 		:sort-getter .order)))
-
-
-
 
 ;; (defun reorg-user--test-files ()
 ;;   (interactive)
@@ -371,8 +379,10 @@
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
-   :template '( :format-string (.stars " " .headline)
-		:children (( :group .@at-names)))))
+   :template '( 
+	       :children (( :group .@at-names
+			    :format-results
+			    (.stars " " .headline))))))
 
 (defun xxx-reorg-test-16 ()
   (interactive)
@@ -386,8 +396,6 @@
 				 (string< (downcase a)
 					  (downcase b)))
 		  :children (( :group .@at-names )))))))
-
-
 
 ;; ;; group by cited file
 ;; (defun xxx-reorg-test-15 ()
@@ -461,7 +469,6 @@
 ;; ;; 	((eq .class 'files)
 ;; ;; 	 (concat " " .filename)))
 ;; ;; :sort-getter (lambda (x) (downcase x)))))))
-
 (defun xxx-reorg-test-12 ()
   (interactive)
   (reorg-open-sidebar
@@ -478,7 +485,6 @@
 		  :children (( :group (when .depth (number-to-string .depth ))
 			       :sort-groups string<
 			       :format-results (.stars " " .fullname))))))))
-
 
 ;; (defun xxx-reorg-test-11 ()
 ;;   (interactive)
@@ -771,9 +777,6 @@
 ;; 			     :format-string ((stars) (align-to 10) (deadline) (align-to 35) (timestamp) (align-to 70) (headline))
 ;; 			     :sort-results ((.deadline . string<)
 ;; 					    (.timestamp . string<)))))))
-
-
-
 
 (provide 'reorg-test)
 
