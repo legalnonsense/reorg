@@ -13,17 +13,20 @@
 (require 'org-visual-indent nil t)
 
 ;;; reorg requires 
+(require 'reorg-data)
 (require 'reorg-utils)
 (require 'reorg-find)
-(require 'reorg-data)
 (require 'reorg-sort)
 (require 'reorg-dynamic-bullets)
-(require 'reorg-test)
+(require 'reorg-scratch)
 
 ;;; reorg data types 
-(require 'reorg-org)
+;; (require 'reorg-org)
 (require 'reorg-files)
-(require 'reorg-leo)
+;; (require 'reorg-leo)
+
+;;; testing requires
+(require 'reorg-test)
 
 ;;; constants
 

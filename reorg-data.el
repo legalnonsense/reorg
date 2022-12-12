@@ -245,30 +245,6 @@ parser for that type."
     (cl-loop for (type . func) in (alist-get class reorg--parser-list)
 	     collect (cons type (funcall func data)))))
 
-(defun reorg--parser (data class &optional type)
-  "Call each parser in CLASS on DATA and return
-the result.  If TYPE is provided, only run the
-parser for that type."
-  (if type
-      (cons type 
-	    (funcall (alist-get
-		      type
-		      (alist-get class
-				 reorg--parser-list))
-		     data))
-    (cl-loop for (type . func) in (alist-get class reorg--parser-list)
-	     collect (cons type (funcall func (append data results)))
-	     into results
-	     finally return results)))
-
-(cl-loop for (a . b) in '((a . 2) ((lambda (data)
-				     (alist-get 'a data)) . 3) (c . 5))
-	 if (symbolp a)
-	 collect (cons a b) into xxx
-	 else if (functionp a)
-	 collect (funcall a xxx) into xxx
-	 finally return xxx)
-
 ;;; creating headline strings from parsed data 
 
 (defun reorg--walk-tree (form func &optional data)

@@ -671,3 +671,4 @@ produces:
 
 ;; (tree-path '(a (b c)))
 
+(provide 'reorg-scratch)

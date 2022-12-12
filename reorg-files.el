@@ -3,7 +3,8 @@
 (reorg-create-class-type
  :name files
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
-					     SOURCE))
+					     SOURCE)
+				       t)
 		  collect (PARSER each))
  :keymap (("x" . (lambda () (interactive) (message "adf")))
 	  ("e" . (lambda ()
@@ -14,6 +15,23 @@
 	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
 	  ("o" . (lambda () (interactive)
 		   (xdg-open (reorg--get-view-prop 'path))))))
+
+;; (defun reorg--files--get-from-source
+;;     (&rest sources) 
+;;   (cl-flet
+;;       ((PARSER
+;; 	(&optional d)
+;; 	(reorg--parser d 'files)))
+;;     ))
+
+;; (defun xxx-error (&rest sources)
+;;   (cl-loop for SOURCE in sources append
+;; 	   (cl-loop for each in
+;; 		    (s-split "\n"
+;; 			     (shell-command-to-string SOURCE)
+;; 			     t)
+;; 		    collect
+;; 		    (reorg--parser each 'files))))
 
 (reorg-create-data-type
  :name depth 
