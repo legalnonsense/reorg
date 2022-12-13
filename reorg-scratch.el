@@ -645,7 +645,6 @@ produces:
 			  ;; (guard (eq '- (car x))))
 			  (mapc (lambda (y) (push y aaa)) x)
 			  (push (reverse aaa) aaaa)
-			  n
 			  (setq n (n-manager nil -1))
 			  (setq aaa (subseq aaa (- (length aaa) (length n)))))
 			 ((and (pred listp)
