@@ -242,8 +242,12 @@ parser for that type."
 		      (alist-get class
 				 reorg--parser-list))
 		     data))
-    (cl-loop for (type . func) in (alist-get class reorg--parser-list)
-	     collect (cons type (funcall func data)))))
+    (if data
+	(cl-loop for (type . func) in (alist-get class reorg--parser-list)
+		 collect (cons type (funcall func data)))
+      (cl-loop for (type . func) in (alist-get class reorg--parser-list)
+	       collect (cons type (funcall func data)) into data
+	       finally return data))))
 
 ;;; creating headline strings from parsed data 
 

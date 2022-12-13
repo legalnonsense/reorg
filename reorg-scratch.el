@@ -5,19 +5,19 @@
 (defvar reorg--extra-prop-list nil "")
 (defvar reorg--grouper-action-function #'reorg--create-headline-string*
   "")
-(setq reorg--grouper-action-function (lambda (data
-					      format-string
-					      &optional
-					      level
-					      overrides)
-				       (let ((h (reorg--create-headline-string*
-						 data
-						 format-string
-						 level
-						 overrides)))
-					 (with-current-buffer (get-buffer-create "*REORG*")
-					   (insert h))
-					 h)))
+;; (setq reorg--grouper-action-function (lambda (data
+;; 					      format-string
+;; 					      &optional
+;; 					      level
+;; 					      overrides)
+;; 				       (let ((h (reorg--create-headline-string*
+;; 						 data
+;; 						 format-string
+;; 						 level
+;; 						 overrides)))
+;; 					 (with-current-buffer (get-buffer-create "*REORG*")
+;; 					   (insert h))
+;; 					 h)))
 
 (defun reorg--map-all-branches (func)
   "map all"
