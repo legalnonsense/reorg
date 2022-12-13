@@ -236,7 +236,7 @@ switch to that buffer in the window."
 (defvar reorg-edits--current-field-overlay
   (let ((overlay (make-overlay 1 2)))
     (overlay-put overlay 'face `( :box (:line-width -1)
-				  :foreground (foreground-color-at-point)))
+				  :foreground ,(face-foreground 'default)))
     (overlay-put overlay 'priority 1000)
     overlay)
   "Overlay for field at point.")
