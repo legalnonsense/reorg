@@ -24,6 +24,7 @@
 (require 'reorg-org)
 (require 'reorg-files)
 (require 'reorg-leo)
+(require 'reorg-email)
 
 ;;; testing requires
 (require 'reorg-test)
