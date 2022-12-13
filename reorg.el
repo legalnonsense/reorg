@@ -122,6 +122,26 @@ switch to that buffer in the window."
 ;; 		finally return (point))))))
 ;;; main
 
+(cl-defun reorg-open-main-window (&key sources template)
+  "Open this shit in the sidebar."
+  (interactive)
+  (let ((results (--> (reorg--getter sources)
+		      (reorg--group-and-sort* it template))))
+    
+    (set-window-buffer nil (get-buffer-create reorg-buffer-name))
+    (let ((inhibit-read-only t))
+      (erase-buffer))
+    (reorg--insert-org-headlines results)
+    (reorg-view-mode)
+    (reorg-dynamic-bullets-mode)
+    (org-visual-indent-mode)
+    (toggle-truncate-lines 1)
+    (setq reorg--current-template template)
+    (setq reorg--current-sources sources)
+    (setq-local cursor-type nil)
+    (reorg--map-all-branches #'reorg--delete-headers-maybe*)
+    (goto-char (point-min))))
+
 (cl-defun reorg-open-sidebar (&key sources template)
   "Open this shit in the sidebar."
   (interactive)
@@ -169,6 +189,18 @@ switch to that buffer in the window."
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
+(defun reorg--move-to-previous-entry-no-render ()
+  "move to previous entry"
+  (interactive)
+  (reorg--goto-previous-visible-heading)
+  (run-hooks 'reorg--navigation-hook))
+
+(defun reorg--move-to-next-entry-no-render ()
+  "next entry"
+  (interactive)
+  (reorg--goto-next-visible-heading)
+  (run-hooks 'reorg--navigation-hook))
+
 (defun reorg--move-to-previous-entry-no-follow ()
   "previous entry"
   (interactive)
@@ -192,6 +224,29 @@ switch to that buffer in the window."
 	(reorg--map-id id
 		       (reorg-view--update-view-headline)
 		       (reorg-dynamic-bullets--fontify-heading))))))
+
+(defvar reorg-main-mode-map 
+  (let ((map (make-keymap)))
+    (suppress-keymap map)
+    ;;    (define-key map [remap undo] #'org-agenda-undo)
+    (define-key map (kbd "RET") #'reorg--goto-source)
+    (define-key map (kbd "u") #'reorg--goto-parent)
+    (define-key map (kbd "g") #'reorg--update-this-heading)
+    (define-key map (kbd "G") (lambda () (interactive)
+				(save-excursion (reorg-user--main-view))))
+    (define-key map (kbd "c") #'reorg--goto-next-clone)
+    (define-key map (kbd "f") #'reorg--goto-next-sibling)
+    (define-key map (kbd "b") #'reorg--goto-previous-sibling)
+    (define-key map (kbd "C") #'reorg--goto-previous-clone)
+    (define-key map (kbd "U") #'reorg--goto-next-parent)
+    (define-key map (kbd "q") #'reorg--close-tree-buffer)
+    (define-key map (kbd "n") #'reorg--move-to-next-entry-no-render)
+    (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-render)
+    (define-key map (kbd "TAB") #'outline-cycle)
+    (define-key map (kbd "<backtab>") #'outline-cycle)
+    (define-key map (kbd "l") #'recenter-top-bottom)
+    map)
+  "keymap")
 
 (defvar reorg-view-mode-map 
   (let ((map (make-keymap)))
@@ -225,6 +280,15 @@ switch to that buffer in the window."
 	 (buffer (window-buffer window)))
     (delete-window window)
     (kill-buffer buffer)))
+
+(define-derived-mode reorg-main-mode
+  fundamental-mode
+  "Agenda style"
+  "Tree view of an Orgmode file. \{keymap}"
+  (setq cursor-type nil)
+  (use-local-map reorg-main-mode-map)
+  (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
+  (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
 (define-derived-mode reorg-view-mode
   fundamental-mode
