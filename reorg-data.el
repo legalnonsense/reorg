@@ -225,6 +225,8 @@ text properties of any field displaying the data type.
     (funcall func))
   (reorg--select-tree-window))
 
+
+
 (defun reorg--goto-source ()
   "Goto rendered source buffer."
   (interactive)

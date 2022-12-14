@@ -22,17 +22,16 @@
   "org capture hook to put captured header
 into current reorg outline."
   (let (data)
-    (reorg--select-main-window)
-    (org-with-wide-buffer 
-     (org-capture-goto-last-stored)
-     (setq data (reorg--parser nil 'org)))
-    (reorg--select-tree-window)
-    (when (member (cons
-		   (alist-get 'class data)
-		   (abbreviate-file-name
-		    (alist-get 'filename data)))
-		  reorg--current-sources) 	  
-      (reorg--insert-new-heading* data reorg--current-template))))
+    (org-capture-goto-last-stored)
+    (setq data (reorg--parser nil 'org))
+    (with-current-buffer reorg-buffer-name
+      (when (member (cons
+		     (alist-get 'class data)
+		     (abbreviate-file-name
+		      (alist-get 'filename data)))
+		    reorg--current-sources)
+	(reorg--insert-new-heading* data reorg--current-template)))
+    (set-window-buffer nil reorg-buffer-name)))
 
 (defmacro reorg--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
@@ -41,14 +40,16 @@ update the heading at point."
   `(progn
      (let (data)
        (org-with-remote-undo (reorg--get-view-prop 'buffer)
-	 (reorg--goto-source)
 	 (org-with-wide-buffer
+	  (reorg--goto-source)
 	  (org-back-to-heading)
 	  ,@body
 	  (setq data (reorg--parser nil 'org)))
-	 (reorg--select-tree-window)
-	 (save-excursion
-	   (reorg--insert-new-heading* data reorg--current-template))))))
+	 ;; (reorg--select-tree-window)
+	 (with-current-buffer reorg-buffer-name 
+	   (save-excursion
+	     (reorg--insert-new-heading* data reorg--current-template)))
+	 (set-window-buffer nil reorg-buffer-name)))))
 
 (defun reorg--get-format-string ()
   "get format string at point"
