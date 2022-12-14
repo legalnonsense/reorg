@@ -1,5 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
+;;     ﯍ ﬨ     
+
 (defvar reorg-default-result-sort nil "")
 (defvar reorg--field-property-name 'reorg-field-name "")
 (defvar reorg--extra-prop-list nil "")
@@ -623,6 +625,7 @@ produces:
 '((1 2 - 3 4 5)
  (1 6 7 - 8 9)
  (1 6 10 - 11))"
+  
   (let (aaa aaaa n)
     (cl-labels ((n-manager (new nn)
 			   (if new
