@@ -251,6 +251,7 @@ switch to that buffer in the window."
     (define-key map (kbd "b") #'reorg--goto-previous-sibling)
     (define-key map (kbd "C") #'reorg--goto-previous-clone)
     (define-key map (kbd "U") #'reorg--goto-next-parent)
+    (define-key map [remap undo] #'org-agenda-undo)
     (define-key map (kbd "q") #'bury-buffer)
     (define-key map (kbd "n") #'reorg--move-to-next-entry-no-render)
     (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-render)

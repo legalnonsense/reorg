@@ -38,18 +38,30 @@ into current reorg outline."
 update the heading at point."
   (declare (indent defun))
   `(progn
-     (let (data)
-       (org-with-remote-undo (reorg--get-view-prop 'buffer)
-	 (org-with-wide-buffer
-	  (reorg--goto-source)
-	  (org-back-to-heading)
-	  ,@body
-	  (setq data (reorg--parser nil 'org)))
+     (let ((data nil)
+	   (buffer (reorg--get-view-prop 'buffer))
+	   (id (reorg--get-view-prop 'id)))
+       (org-with-remote-undo buffer
+	 (with-current-buffer buffer 
+	   (let ((old-point (point))
+		 (search-invisible t))
+	     (widen)
+	     (ov-clear)
+	     (goto-char (point-min))
+	     (if (re-search-forward id nil t)
+		 (progn (goto-char (match-beginning 0))
+			(org-back-to-heading)
+			(reorg-view--source--narrow-to-heading))
+	       (goto-char old-point)))
+	   ,@body
+	   (setq data (reorg--parser nil 'org)))
 	 ;; (reorg--select-tree-window)
 	 (with-current-buffer reorg-buffer-name 
 	   (save-excursion
 	     (reorg--insert-new-heading* data reorg--current-template)))
 	 (set-window-buffer nil reorg-buffer-name)))))
+
+(reorg--with-source-and-sync nil)
 
 (defun reorg--get-format-string ()
   "get format string at point"
@@ -192,6 +204,25 @@ the point and return nil."
 		   (reorg-view--source--narrow-to-heading)))
 	(goto-char old-point)))
     (reorg--select-tree-window)))
+
+(defun reorg--org--goto-source (&optional buffer id no-narrow)
+  "Move to buffer and find heading with ID.  If NARROW is non-nil,
+then narrow to that heading and return t.  If no heading is found, don't move
+the point and return nil."
+  (let ((id (or id (reorg--get-view-prop 'id))))
+    (with-current-buffer (or buffer (reorg--get-view-prop 'buffer))
+      (let ((old-point (point))
+	    (search-invisible t))
+	(widen)
+	(ov-clear)
+	(goto-char (point-min))
+	(if (re-search-forward id nil t)
+	    (progn (goto-char (match-beginning 0))
+		   (org-back-to-heading)
+		   (when (not no-narrow)
+		     (reorg-view--source--narrow-to-heading)))
+	  (goto-char old-point))))))
+
 
 ;; TODO figure out where to use this after navigation
 ;; ie, what hook should call this? 

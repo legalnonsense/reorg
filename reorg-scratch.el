@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
-;;     ﯍ ﬨ     
+;;     ﯍    
 
 (defvar reorg-default-result-sort nil "")
 (defvar reorg--field-property-name 'reorg-field-name "")
