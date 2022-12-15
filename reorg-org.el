@@ -1,13 +1,11 @@
 ;; -*- lexical-binding: t; -*-
 
-
-
 ;;; syncing macro
 
 (defun reorg-org-capture-disable ()
   "disable org capture"
   (interactive)
-  (reorg-org-capture-enable t))
+  (reorg-org-capture-enable 'disable))
 
 (defun reorg-org-capture-enable (&optional disable)
   "wrapper for org-capture"
@@ -60,8 +58,6 @@ update the heading at point."
 	   (save-excursion
 	     (reorg--insert-new-heading* data reorg--current-template)))
 	 (set-window-buffer nil reorg-buffer-name)))))
-
-(reorg--with-source-and-sync nil)
 
 (defun reorg--get-format-string ()
   "get format string at point"
@@ -298,7 +294,6 @@ the point and return nil."
 	   (org-map-entries
 	    #'PARSER)))
 
-
 (reorg-create-data-type
  :name delegatee
  :class org
@@ -355,7 +350,8 @@ the point and return nil."
 	 (when (reorg--timestamp-parser)
 	   (org-no-properties (reorg--timestamp-parser)))
 	 (when (reorg--timestamp-parser nil t)
-	   (org-no-properties (reorg--timestamp-parser nil t))))
+	   (org-no-properties (reorg--timestamp-parser nil t)))
+	 (org-entry-get (point) "SCHEDULED"))
  :display (if-let ((ts (alist-get 'ts alist)))
 	      (if (=
 		   (string-to-number
