@@ -126,7 +126,7 @@ switch to that buffer in the window."
   "Open this shit in the sidebar."
   (interactive)
   (let ((results (--> (reorg--getter sources)
-		      (reorg--group-and-sort* it template))))
+		      (reorg--group-and-sort* it template 1))))
     (with-current-buffer (get-buffer-create reorg-buffer-name)
       (let ((inhibit-read-only t))
 	(erase-buffer))

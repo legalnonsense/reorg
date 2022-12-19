@@ -295,11 +295,14 @@
 			       :sort-groups (lambda (a b) (string< (downcase a)
 								   (downcase b)))
 			       :sort-results (((downcase .filename) . string<))
-			       :format-results (.filename))))
+			       :format-results (.filename)))
 		( :group "by parent"
 		  :children (( :group (when .depth (number-to-string .depth ))
 			       :sort-groups string<
 			       :format-results (.stars " " .fullname))))))))
 
+
+
+  
 (provide 'reorg-test)
 

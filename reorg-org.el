@@ -59,13 +59,13 @@ update the heading at point."
 	     (reorg--insert-new-heading* data reorg--current-template)))
 	 (set-window-buffer nil reorg-buffer-name)))))
 
-(defun reorg--get-format-string ()
-  "get format string at point"
-  (save-excursion 
-    (cl-loop until (or (reorg--get-view-prop 'format-string)
-		       (not (reorg--goto-parent t)))
-	     finally return (or (reorg--get-view-prop 'format-string)
-				reorg-headline-format))))
+;; (defun reorg--get-format-string ()
+;;   "get format string at point"
+;;   (save-excursion 
+;;     (cl-loop until (or (reorg--get-view-prop 'format-string)
+;; 		       (not (reorg--goto-parent t)))
+;; 	     finally return (or (reorg--get-view-prop 'format-string)
+;; 				reorg-headline-format))))
 
 ;;; parsing functions 
 

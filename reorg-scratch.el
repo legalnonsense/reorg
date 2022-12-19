@@ -55,195 +55,366 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			      (funcall `(lambda (b) (let-alist b ,form)) b))))
    sequence))
 
+;; (defun reorg--group-and-sort* (data
+;; 			       template
+;; 			       &optional
+;; 			       action
+;; 			       sorters
+;; 			       format-string
+;; 			       level
+;; 			       parent-id
+;; 			       parent-header
+;; 			       bullet
+;; 			       face)
+;;   "group and sort and run action on the results"
+;;   (cl-flet ((get-header-props
+;; 	     (header groups sss bullet)
+;; 	     (reorg--thread-as*
+;; 	       (props (list 
+;; 		       (cons 'branch-name header)
+;; 		       (cons 'headline header)
+;; 		       (cons 'reorg-branch t)
+;; 		       (cons 'branch-type 'branch)
+;; 		       (cons 'grouper-list
+;; 			     `(lambda (x)
+;; 				(let-alist x
+;; 				  ,(plist-get groups :group))))
+;; 		       (cons 'branch-predicate
+;; 			     `(lambda (x)
+;; 				(let-alist x
+;; 				  ,(plist-get groups :group))))
+;; 		       (cons 'branch-result header)
+;; 		       (cons 'grouper-list-results header)
+;; 		       (cons 'format-string format-string)
+;; 		       (cons 'result-sorters sss)
+;; 		       (cons 'template template)
+;; 		       (cons 'sort-groups (plist-get groups :sort-groups))
+;; 		       (cons 'children (plist-get groups :children))
+;; 		       (cons 'branch-sorter ;; heading-sorter
+;; 			     nil)
+;; 		       (cons 'branch-sort-getter ;; heading-sort-getter
+;; 			     nil)
+;; 		       (cons 'bullet bullet)
+;; 		       (cons 'reorg-level level)))
+;; 	       (append props
+;; 		       `((group-id . ,(md5 (with-temp-buffer
+;; 					     (insert (pp parent-id))
+;; 					     (insert (pp parent-header))
+;; 					     (insert (pp groups))
+;; 					     (buffer-string))))
+;; 			 (id . ,(org-id-new)))))))
+;;     (let (pppz)
+;;       ;; inheritance
+;;       (setq format-string
+;; 	    (or format-string
+;; 		(plist-get template :format-results)
+;; 		reorg-headline-format))
+;;       ;; sorters
+;;       ;; (or sorters
+;;       ;; 	(plist-get template :sort-results)
+;;       ;; 	reorg-default-result-sort))
+
+;;       ;; for each child...
+;;       (cl-loop
+;;        with sorterz = sorters
+;;        for groups in (plist-get template :children)
+;;        ;; inheritence for
+;;        do (setq format-string (or (plist-get groups :format-results)
+;; 				  format-string
+;; 				  reorg-headline-format)
+;; 		sorterz (append sorters (plist-get groups :sort-results))
+;; 		bullet (or bullet (plist-get groups :bullet))
+;; 		level (or level 1))
+;;        append (reorg--thread-as* data
+;; 		(pcase (plist-get groups :group)
+;; 		  ((pred functionp)
+;; 		   ;; easy.
+;; 		   (reorg--seq-group-by* (plist-get groups :group)
+;; 					 data))
+;; 		  ((pred stringp)
+;; 		   ;; easy. 
+;; 		   (list (cons (plist-get groups :group)
+;; 			       data)))
+;; 		  (_
+;; 		   ;; assume dot and at-dot notation.
+;; 		   ;; not so easy.
+;; 		   (when-let ((at-dots (seq-uniq 
+;; 					(reorg--at-dot-search* (plist-get groups :group)))))
+;; 		     ;; if it has an at-dot, then make a copy of each entry in DATA
+;; 		     ;; if its value is a list.
+;; 		     ;; For example, if the grouping form was:
+;; 		     ;;
+;; 		     ;; (if (evenp .@b)
+;; 		     ;;     "B is even"
+;; 		     ;;   "B is odd")
+;; 		     ;;
+;; 		     ;; and an entry in DATA had the value:
+;; 		     ;; 
+;; 		     ;; '((a . 1) (b . 2 3 4))
+;; 		     ;;
+;; 		     ;; Then, being being processed by the parser,
+;; 		     ;; the entry is replaced by three separate entries:
+;; 		     ;; 
+;; 		     ;; '((a . 1) (b . 2))
+;; 		     ;; '((a . 1) (b . 3))
+;; 		     ;; '((a . 1) (b . 4))
+;; 		     (setq
+;; 		      data
+;; 		      (cl-loop
+;; 		       for d in data 
+;; 		       append
+;; 		       (cl-loop
+;; 			for at-dot in at-dots
+;; 			if (progn
+;; 			     (listp (alist-get at-dot d)))
+;; 			return (cl-loop for x in (alist-get at-dot d)
+;; 					collect (let ((ppp (copy-alist d)))
+;; 						  (setf (alist-get at-dot ppp) x)
+;; 						  ppp))
+;; 			finally return data))))
+;; 		   (reorg--seq-group-by*
+;; 		    ;; convert any at-dots to dots (yes, this could be part
+;; 		    ;; of the conditional above, but I wanted to avoid it for
+;; 		    ;; some reason. 
+;; 		    (reorg--walk-tree* (plist-get groups :group)
+;; 				       #'reorg--turn-at-dot-to-dot
+;; 				       data)
+;; 		    data)))
+;; 		;; If there is a group sorter, sort the headers
+;; 		;;TODO add the header meta data before the sorter 
+;; 		(if-let ((sort (plist-get groups :sort-groups)))
+;; 		    (cond ((functionp sort)
+;; 			   (seq-sort-by #'car
+;; 					sort
+;; 					data))
+;; 			  (t (seq-sort-by #'car
+;; 					  `(lambda (x)
+;; 					     (let-alist x
+;; 					       ,sort))
+;; 					  data)))
+;; 		  data)
+;; 		;; If there are children, recurse 
+;; 		(if (plist-get groups :children)
+;; 		    (cl-loop
+;; 		     for (header . results) in data
+;; 		     collect
+;; 		     (cons
+;; 		      (funcall
+;; 		       (or action
+;; 			   reorg--grouper-action-function)
+;; 		       (setq pppz
+;; 			     (get-header-props header groups sorterz bullet))
+;; 		       nil
+;; 		       level)
+;; 		      (reorg--group-and-sort*			  
+;; 		       results
+;; 		       groups
+;; 		       action
+;; 		       sorterz
+;; 		       format-string
+;; 		       (1+ level)
+;; 		       header
+;; 		       bullet
+;; 		       face)))
+;; 		  ;; if there aren't children,
+;; 		  ;; sort the results if necessary
+;; 		  ;; then convert each batch of results
+;; 		  ;; into to headline strings
+;; 		  (cl-loop for (header . results) in data
+;; 			   collect
+;; 			   (cons				
+;; 			    (funcall
+;; 			     (or action
+;; 				 reorg--grouper-action-function)
+;; 			     (setq pppz
+;; 				   (get-header-props header groups sorterz bullet))
+;; 			     nil
+;; 			     level)
+;; 			    (list 
+;; 			     (cl-loop
+;; 			      with
+;; 			      results = 
+;; 			      (if sorterz
+;; 				  (reorg--multi-sort* sorterz
+;; 						      results)
+;; 				results)
+;; 			      for result in results
+;; 			      collect
+;; 			      (funcall
+;; 			       (or action
+;; 				   reorg--grouper-action-function)
+;; 			       (append result
+;; 				       (list 
+;; 					(cons 'group-id
+;; 					      (alist-get 'id pppz))))
+;; 			       format-string
+;; 			       (1+ level))))))))))))
+(defvar reorg-default-bullet  "->" "")
+(defvar reorg-default-face 'default "")
 (defun reorg--group-and-sort* (data
 			       template
-			       &optional
-			       action
-			       sorters
-			       format-string
 			       level
-			       parent-id
-			       parent-header)
-  "group and sort and run action on the results"
-  (cl-flet ((get-header-props
-	     (header groups sss)
-	     (reorg--thread-as*
-	       (props (list 
-		       (cons 'branch-name header)
-		       (cons 'headline header)
-		       (cons 'reorg-branch t)
-		       (cons 'branch-type 'branch)
-		       (cons 'grouper-list
-			     `(lambda (x)
-				(let-alist x
-				  ,(plist-get groups :group))))
-		       (cons 'branch-predicate
-			     `(lambda (x)
-				(let-alist x
-				  ,(plist-get groups :group))))
-		       (cons 'branch-result header)
-		       (cons 'grouper-list-results header)
-		       (cons 'format-string format-string)
-		       (cons 'result-sorters sss)
-		       (cons 'template template)
-		       (cons 'sort-groups (plist-get groups :sort-groups))
-		       (cons 'children (plist-get groups :children))
-		       (cons 'branch-sorter ;; heading-sorter
-			     nil)
-		       (cons 'branch-sort-getter ;; heading-sort-getter
-			     nil)
-		       (cons 'reorg-level level)))
-	       (append props
-		       `((group-id . ,(md5 (with-temp-buffer
-					     (insert (pp parent-id))
-					     (insert (pp parent-header))
-					     (insert (pp groups))
-					     (buffer-string))))
-			 (id . ,(org-id-new)))))))
-    (let (pppz)
-      ;; inheritance
-      (setq format-string
-	    (or format-string
-		(plist-get template :format-results)
-		reorg-headline-format))
-      
-      ;; sorters
-      ;; (or sorters
-      ;; 	(plist-get template :sort-results)
-      ;; 	reorg-default-result-sort))
+			       &rest
+			       ;; inherited template properties 
+			       props)
+  (cl-flet ((get-header-metadata
+	     (header groups sortz bullet)
+	     (list
+	      (cons 'branch-name header)
+	      (cons 'reorg-branch t)
+	      (cons 'branch-type 'branch)
+	      (cons 'result-sorters sortz)
+	      (cons 'bullet bullet)
+	      (cons 'reorg-level level)
+	      (cons 'group-id
+		    (md5 (with-temp-buffer
+			   (insert (pp (plist-get props :parent-id))
+				   (pp (plist-get props :parent-header))
+				   (pp groups))
+			   (buffer-string))))
+	      (cons 'id (org-id-new)))))
 
-      ;; for each child...
+    "group and sort and run action on the results"
+    (let ((format-results (or (plist-get props :format-results)
+			      (plist-get template :format-results)
+			      reorg-headline-format))
+	  (result-sorters (or (plist-get props :sort-results)
+			      (plist-get template :sort-results)
+			      reorg-default-result-sort))
+	  (action-function (or (plist-get props :action-function)
+			       reorg--grouper-action-function))
+	  (bullet (or (plist-get props :bullet)
+		      (plist-get template :bullet)
+		      reorg-default-bullet))
+	  (face (or (plist-get props :face)
+		    (plist-get template :face)
+		    reorg-default-face))
+	  (group nil))
+
       (cl-loop
-       with sorterz = sorters
        for groups in (plist-get template :children)
-       ;; inheritence for
-       do (setq format-string (or (plist-get groups :format-results)
-				  format-string
-				  reorg-headline-format)
-		sorterz (append sorters (plist-get groups :sort-results))
-		level (or level 1))
-       append (reorg--thread-as* data
-		(pcase (plist-get groups :group)
-		  ((pred functionp)
-		   ;; easy.
-		   (reorg--seq-group-by* (plist-get groups :group)
-					 data))
-		  ((pred stringp)
-		   ;; easy. 
-		   (list (cons (plist-get groups :group)
-			       data)))
-		  (_
-		   ;; assume dot and at-dot notation.
-		   ;; not so easy.
-		   (when-let ((at-dots (seq-uniq 
-					(reorg--at-dot-search* (plist-get groups :group)))))
-		     ;; if it has an at-dot, then make a copy of each entry in DATA
-		     ;; if its value is a list.
-		     ;; For example, if the grouping form was:
-		     ;;
-		     ;; (if (evenp .@b)
-		     ;;     "B is even"
-		     ;;   "B is odd")
-		     ;;
-		     ;; and an entry in DATA had the value:
-		     ;; 
-		     ;; '((a . 1) (b . 2 3 4))
-		     ;;
-		     ;; Then, being being processed by the parser,
-		     ;; the entry is replaced by three separate entries:
-		     ;; 
-		     ;; '((a . 1) (b . 2))
-		     ;; '((a . 1) (b . 3))
-		     ;; '((a . 1) (b . 4))
-		     (setq
-		      data
-		      (cl-loop
-		       for d in data 
-		       append
-		       (cl-loop
-			for at-dot in at-dots
-			if (progn
-			     (listp (alist-get at-dot d)))
-			return (cl-loop for x in (alist-get at-dot d)
-					collect (let ((ppp (copy-alist d)))
-						  (setf (alist-get at-dot ppp) x)
-						  ppp))
-			finally return data))))
-		   (reorg--seq-group-by*
-		    ;; convert any at-dots to dots (yes, this could be part
-		    ;; of the conditional above, but I wanted to avoid it for
-		    ;; some reason. 
-		    (reorg--walk-tree* (plist-get groups :group)
-				       #'reorg--turn-at-dot-to-dot
-				       data)
-		    data)))
-		;; If there is a group sorter, sort the headers
-		;;TODO add the header meta data before the sorter 
-		(if-let ((sort (plist-get groups :sort-groups)))
-		    (cond ((functionp sort)
-			   (seq-sort-by #'car
-					sort
-					data))
-			  (t (seq-sort-by #'car
-					  `(lambda (x)
-					     (let-alist x
-					       ,sort))
-					  data)))
-		  data)
+       do (setq format-results (or (plist-get groups :format-results)
+				   format-results
+				   reorg-default-headline-format)
+		result-sorters (append
+				result-sorters
+				(or (plist-get groups :sort-results)
+				    result-sorters))
+		header-sort (plist-get groups :sort-groups)
+		action-function (or (plist-get groups :action-function)
+				    action-function
+				    reorg--grouper-action-function)
+		bullet (or (plist-get groups :bullet)
+			   bullet
+			   reorg-default-bullet)
+		face (or (plist-get groups :face)
+			 face
+			 reorg-default-face)
+		level (or level 1)
+		group (plist-get groups :group))
+       append (let (results
+		    metadata)
+		(setq
+		 results
+		 (pcase groups
+		   ((pred functionp)
+		    (reorg--seq-group-by* group data))
+		   ((pred stringp)
+		    (list (cons group data)))
+		   (_
+		    (when-let ((at-dots (seq-uniq 
+					 (reorg--at-dot-search*
+					  (plist-get groups :group)))))
+		      (setq data (cl-loop
+				  for d in data 
+				  append
+				  (cl-loop
+				   for at-dot in at-dots
+				   if (listp (alist-get at-dot d))
+				   return (cl-loop for x in (alist-get at-dot d)
+						   collect (let ((ppp (copy-alist d)))
+							     (setf (alist-get at-dot ppp) x)
+							     ppp))
+				   finally return data))))
+		    
+		    (reorg--seq-group-by*
+		     (reorg--walk-tree* group
+					#'reorg--turn-at-dot-to-dot
+					data)
+		     data))))
+		(when header-sort
+		  (setq results 
+			(cond ((functionp header-sort)
+			       (seq-sort-by #'car
+					    header-sort
+					    results))
+			      (t (seq-sort-by #'car
+					      `(lambda (x)
+						 (let-alist x
+						   ,header-sort))
+					      results)))))
+
 		;; If there are children, recurse 
 		(if (plist-get groups :children)
 		    (cl-loop
-		     for (header . results) in data
+		     for (header . children) in results
 		     collect
 		     (cons
-		      (funcall
-		       (or action
-			   reorg--grouper-action-function)
-		       (setq pppz 
-			     (get-header-props header groups sorterz))
-		       nil
-		       level)
+		      (funcall action-function
+			       (setq metadata
+				     (get-header-metadata header
+							  groups
+							  result-sorters
+							  bullet))
+			       nil
+			       level
+			       (list 
+				(cons 'header header)
+				(cons 'bullet bullet)
+				(cons 'reorg-face face)))
 		      (reorg--group-and-sort*			  
-		       results
+		       children
 		       groups
-		       action
-		       sorterz
-		       format-string
 		       (1+ level)
-		       header)))
-		  ;; if there aren't children,
-		  ;; sort the results if necessary
-		  ;; then convert each batch of results
-		  ;; into to headline strings
-		  (cl-loop for (header . results) in data
-			   collect
-			   (cons				
+		       (list :header header
+			     :bullet bullet
+			     :face face)))))
+		;; if there aren't children,
+		;; sort the results if necessary
+		;; then convert each batch of results
+		;; into to headline strings
+		(cl-loop for (header . children) in results
+			 collect
+			 (cons				
+			  (funcall
+			   action-function
+			   (setq metadata
+				 (get-header-metadata header
+						      groups
+						      result-sorters
+						      bullet))
+			   nil
+			   level
+			   nil)
+			  (list 
+			   (cl-loop
+			    with
+			    children = 
+			    (if result-sorters
+				(reorg--multi-sort* result-sorters
+						    children)
+			      children)
+			    for result in children
+			    collect
 			    (funcall
-			     (or action
-				 reorg--grouper-action-function)
-			     (setq pppz 
-				   (get-header-props header groups sorterz))
-			     nil
-			     level)
-			    (list 
-			     (cl-loop
-			      with
-			      results = 
-			      (if sorterz
-				  (reorg--multi-sort* sorterz
-						      results)
-				results)
-			      for result in results
-			      collect
-			      (funcall
-			       (or action
-				   reorg--grouper-action-function)
-			       (append result
-				       (list 
-					(cons 'group-id
-					      (alist-get 'id pppz))))
-			       format-string
-			       (1+ level))))))))))))
+			     action-function
+			     (append result
+				     (list 
+				      (cons 'group-id
+					    (alist-get 'id metadata))))
+			     format-results
+			     (1+ level)
+			     nil))))))))))
 
 (defun reorg--create-headline-string* (data
 				       format-string
@@ -259,13 +430,14 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					 num)
 				       ?*)))
     ;; update the DATA that will be stored in
-    ;; `reorg-data'
+    ;; `reorg-data'    
     (push (cons 'reorg-level level) data)
     (cl-loop for (prop . val) in overrides
 	     do (setf (alist-get prop data)
-		      (funcall `(lambda ()
-				  (let-alist data 
-				    ,val)))))
+		      val))
+    ;; (funcall `(lambda ()
+    ;; 		(let-alist data 
+    ;; 		  ,val)))))
     (let (headline-text)
       (apply
        #'propertize

@@ -21,7 +21,8 @@
 			  (s-pad-right 20 " " .category-inherited)
 			  .headline
 			  (propertize " " 'display (cons 'space '(:align-to 20)))
-			  ))              
+			  )
+	 :bullet "asdf")
        ( :group (when (and .ts-ts
 			   (or .deadline
 			       .scheduled
@@ -51,7 +52,8 @@
 						  (cons 'space
 							'(:align-to center))))
 			      'font-lock-face
-			      '((t (:family "ET Bembo" :underline t :height 1.4)))))	 
+			      '((t (:family "ET Bembo" :underline t :height 1.4)))))
+	 :bullet "DOES IT WORK"
 	 :children
 	 (( :group
 	    (propertize (concat .category-inherited
@@ -65,7 +67,8 @@
 	    :sort-groups
 	    (lambda (a b)
 	      (string< (downcase a)
-		       (downcase b)))			
+		       (downcase b)))
+	    :bullet "zzz"
 	    :children
 	    (( :group
 	       (when

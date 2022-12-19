@@ -15,9 +15,9 @@
   "Bullet face"
   :group 'reorg-dynamic-bullets)
 
-(defface reorg-dynamic-bullets-clone-face '((t (:foreground "red")))
-  "Clone face"
-  :group 'reorg-dynamic-bullets)
+;; (defface reorg-dynamic-bullets-clone-face '((t (:foreground "red")))
+;;   "Clone face"
+;;   :group 'reorg-dynamic-bullets)
 
 ;;;; Customization
 
@@ -157,22 +157,35 @@ to be refreshed. Two options are:
 (defun reorg-dynamic-bullets--create-heading-bullet ()
   "Create a string to be displayed in lieu of the headings' leading stars."
   (let (;;(branch (reorg--get-view-prop 'reorg-branch))
-	(branch (reorg--get-next-child))
+	(branch (reorg--get-view-prop 'reorg-branch))
 	(folded (reorg-dynamic-bullets--heading-folded-p))
-	(body (reorg--get-view-prop 'body)))
+	(body nil))
+    ;; (body (reorg--get-view-prop 'body)))
     (propertize 
      (cond ((and branch folded body)
-	    reorg-dynamic-bullets-folded-body-text-bullet)
+	    (or (reorg--get-view-prop 'folded-bullet)
+		(reorg--get-view-prop 'bullet)
+		reorg-dynamic-bullets-folded-body-text-bullet))
 	   ((and branch folded)
-	    reorg-dynamic-bullets-folded-no-body-text-bullet)
+	    (or (reorg--get-view-prop 'folded-bullet)
+		(reorg--get-view-prop 'bullet)
+		reorg-dynamic-bullets-folded-no-body-text-bullet))
 	   ((and branch body)
-	    reorg-dynamic-bullets-unfolded-body-text-bullet)
+	    (or (reorg--get-view-prop 'unfolded-bullet)
+		(reorg--get-view-prop 'bullet)
+		reorg-dynamic-bullets-unfolded-no-body-text-bullet))
 	   (branch
-	    reorg-dynamic-bullets-unfolded-no-body-text-bullet)
+	    (or (reorg--get-view-prop 'unfolded-bullet)
+		(reorg--get-view-prop 'bullet)
+		reorg-dynamic-bullets-unfolded-no-body-text-bullet))
 	   (body
-	    reorg-dynamic-bullets-leaf-body-text-bullet)
+	    (or (reorg--get-view-prop 'leaf-bullet)
+		(reorg--get-view-prop 'bullet)
+		reorg-dynamic-bullets-leaf-body-text-bullet))
 	   (t
-	    reorg-dynamic-bullets-leaf-no-body-text-bullet))
+	    (or (reorg--get-view-prop 'leaf-bullet)
+		(reorg--get-view-prop 'bullet)
+		reorg-dynamic-bullets-leaf-no-body-text-bullet)))
      'face
      'reorg-dynamic-bullets-face)))
 
