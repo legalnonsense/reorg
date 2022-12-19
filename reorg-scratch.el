@@ -258,12 +258,12 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			       ;; inherited template properties 
 			       props)
   (cl-flet ((get-header-metadata
-	     (header groups sortz bullet)
+	     (header groups sorts bullet)
 	     (list
 	      (cons 'branch-name header)
 	      (cons 'reorg-branch t)
 	      (cons 'branch-type 'branch)
-	      (cons 'result-sorters sortz)
+	      (cons 'result-sorters sorts)
 	      (cons 'bullet bullet)
 	      (cons 'reorg-level level)
 	      (cons 'group-id
