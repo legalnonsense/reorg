@@ -225,41 +225,41 @@
 			   .category-inherited)
 			  .headline))))))))))
 
-   (defun reorg-user--leo-2 ()
-     (interactive)
-     (reorg-open-sidebar
-      :sources '((leo . "~/.leo/workbook.leo"))
-      :template '( :group "workbook.leo"
-		   :format-string ((make-string (1+ (or .leo-level 1)) ?*) " " .headline)
-		   :format-string-overrides ((reorg-branch . t)
-					     (reorg-level . .leo-level)))))
+(defun reorg-user--leo-2 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((leo . "~/.leo/workbook.leo"))
+   :template '( :group "workbook.leo"
+		:format-string ((make-string (1+ (or .leo-level 1)) ?*) " " .headline)
+		:format-string-overrides ((reorg-branch . t)
+					  (reorg-level . .leo-level)))))
 
-   (defun reorg-user--leo ()
-     (interactive)
-     (reorg-open-sidebar
-      :sources '((leo . "~/.leo/workbook.leo"))
-      :template '( :group "workbook.leo"
-		   :format-string (.stars " " .headline))))
+(defun reorg-user--leo ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((leo . "~/.leo/workbook.leo"))
+   :template '( :group "workbook.leo"
+		:format-string (.stars " " .headline))))
 
-   (defun reorg-user--clone-file-2 ()
-     (interactive)
-     (reorg-open-sidebar
-      :sources '((org . "~/tmp/tmp.org"))
-      :template '( :group "tmp.org"
-		   :format-string ((make-string (1+ (or .org-level 1)) ?*) " " .headline)
-		   :format-string-overrides ((reorg-branch . t)
-					     (reorg-level . .org-level)))))
-   ;; :sort <
-   ;; :sort-getter .order)))
+(defun reorg-user--clone-file-2 ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/tmp/tmp.org"))
+   :template '( :group "tmp.org"
+		:format-string ((make-string (1+ (or .org-level 1)) ?*) " " .headline)
+		:format-string-overrides ((reorg-branch . t)
+					  (reorg-level . .org-level)))))
+;; :sort <
+;; :sort-getter .order)))
 
-   (defun reorg-user--clone-file ()
-     (interactive)
-     (reorg-open-sidebar
-      :sources '((org . "~/tmp/tmp.org"))
-      :template '( :group "tmp.org"
-		   :format-string (.stars " " .headline)
-		   :sort <
-		   :sort-getter .order)))
+(defun reorg-user--clone-file ()
+  (interactive)
+  (reorg-open-sidebar
+   :sources '((org . "~/tmp/tmp.org"))
+   :template '( :group "tmp.org"
+		:format-string (.stars " " .headline)
+		:sort <
+		:sort-getter .order)))
 
 
 (defun xxx-reorg-test-15 ()
@@ -296,10 +296,10 @@
 								   (downcase b)))
 			       :sort-results (((downcase .filename) . string<))
 			       :format-results (.filename)))
-		( :group "by parent"
-		  :children (( :group (when .depth (number-to-string .depth ))
-			       :sort-groups string<
-			       :format-results (.stars " " .fullname))))))))
+		  ( :group "by parent"
+		    :children (( :group (when .depth (number-to-string .depth ))
+				 :sort-groups string<
+				 :format-results (.stars " " .fullname)))))))))
 
 
 
