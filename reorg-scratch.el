@@ -322,32 +322,32 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 		data))))
       (if (null results)
 	  (cl-loop for child in (plist-get template :children)
-		   collect (reorg--group-and-sort* data child (1+ level)
-						   (list :header nil
-							 :bullet bullet
-							 :face face)))
-	(when header-sort
+		   collect (reorg--group-and-sort* data child level
+		                                   (list :header nil
+			                                 :bullet bullet
+			                                 :face face)))
+        (when header-sort
 	  (setq results 
-		(cond ((functionp header-sort)
+	        (cond ((functionp header-sort)
 		       (seq-sort-by #'car
 				    header-sort
 				    results))
 		      (t (seq-sort-by #'car
 				      `(lambda (x)
-					 (let-alist x
+				         (let-alist x
 					   ,header-sort))
 				      results)))))
 
-	;; If there are children, recurse 
-	(cond ((and (plist-get template :children)
+        ;; If there are children, recurse 
+        (cond ((and (plist-get template :children)
 		    results)
 	       (cl-loop
-		for (header . children) in results
-		collect
-		(cons
-		 (funcall action-function
+	        for (header . children) in results
+	        collect
+	        (cons
+	         (funcall action-function
 			  (setq metadata
-				(get-header-metadata header
+			        (get-header-metadata header
 						     group
 						     result-sorters
 						     bullet))
@@ -357,41 +357,41 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			   (cons 'header header)
 			   (cons 'bullet bullet)
 			   (cons 'reorg-face face)))
-		 (cl-loop for child in (plist-get template :children)
+	         (cl-loop for child in (plist-get template :children)
 			  collect 
 			  (reorg--group-and-sort*			  
 			   children
 			   child
 			   (1+ level)
 			   (list :header header
-				 :bullet bullet
-				 :face face))))))
+			         :bullet bullet
+			         :face face))))))
 	      ((plist-get template :children)
 	       (cl-loop for child in (plist-get template :children)
-			collect
-			(reorg--group-and-sort*
-			 data
-			 child
-			 (1+ level)
-			 (setq metadata (get-header-metadata nil
+		        collect
+		        (reorg--group-and-sort*
+		         data
+		         child
+		         (1+ level)
+		         (setq metadata (get-header-metadata nil
 							     group
 							     result-sorters
 							     bullet)))))
 	      (t 
 	       (cl-loop for (header . children) in results
-			collect
-			(cons				
-			 (funcall
+		        collect
+		        (cons				
+		         (funcall
 			  action-function
 			  (setq metadata
-				(get-header-metadata header
+			        (get-header-metadata header
 						     group
 						     result-sorters
 						     bullet))
 			  nil
 			  level
 			  nil)
-			 (list 
+		         (list 
 			  (cl-loop
 			   with
 			   children = 
