@@ -341,24 +341,24 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 	;; If there are children, recurse 
 	(cond ((and (plist-get template :children)
 		    results)
-	       (cl-loop for child in (plist-get template :children)
-			collect 
-			(cl-loop
-			 for (header . children) in results
-			 collect
-			 (cons
-			  (funcall action-function
-				   (setq metadata
-					 (get-header-metadata header
-							      group
-							      result-sorters
-							      bullet))
-				   nil
-				   level
-				   (list 
-				    (cons 'header header)
-				    (cons 'bullet bullet)
-				    (cons 'reorg-face face)))
+	       (cl-loop
+		for (header . children) in results
+		collect
+		(cons
+		 (funcall action-function
+			  (setq metadata
+				(get-header-metadata header
+						     group
+						     result-sorters
+						     bullet))
+			  nil
+			  level
+			  (list 
+			   (cons 'header header)
+			   (cons 'bullet bullet)
+			   (cons 'reorg-face face)))
+		 (cl-loop for child in (plist-get template :children)
+			  collect 
 			  (reorg--group-and-sort*			  
 			   children
 			   child
@@ -367,13 +367,16 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 				 :bullet bullet
 				 :face face))))))
 	      ((plist-get template :children)
-	       (reorg--group-and-sort* data
-				       (plist-get template :children)
-				       level
-				       (setq metadata (get-header-metadata nil
-									   group
-									   result-sorters
-									   bullet))))
+	       (cl-loop for child in (plist-get template :children)
+			collect
+			(reorg--group-and-sort*
+			 data
+			 child
+			 (1+ level)
+			 (setq metadata (get-header-metadata nil
+							     group
+							     result-sorters
+							     bullet)))))
 	      (t 
 	       (cl-loop for (header . children) in results
 			collect
