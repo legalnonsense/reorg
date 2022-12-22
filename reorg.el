@@ -126,7 +126,7 @@ switch to that buffer in the window."
   "Open this shit in the sidebar."
   (interactive)
   (let ((results (--> (reorg--getter sources)
-		      (reorg--group-and-sort* it template 0))))
+		      (reorg--group-and-sort* it template 1))))
     (with-current-buffer (get-buffer-create reorg-buffer-name)
       (let ((inhibit-read-only t))
 	(erase-buffer))
@@ -144,7 +144,7 @@ switch to that buffer in the window."
       (setq reorg--current-template template)
       (setq reorg--current-sources sources)
       (setq-local cursor-type nil)
-      (reorg--map-all-branches #'reorg--delete-headers-maybe*)
+      ;; (reorg--map-all-branches #'reorg--delete-headers-maybe*)
       (goto-char (point-min))
       (set-window-buffer nil reorg-buffer-name)))) 
 

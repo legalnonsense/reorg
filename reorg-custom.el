@@ -20,8 +20,7 @@
 			  " "
 			  (s-pad-right 20 " " .category-inherited)
 			  .headline
-			  (propertize " " 'display (cons 'space '(:align-to 20)))
-			  )
+			  (propertize " " 'display (cons 'space '(:align-to 20))))
 	 :bullet "asdf")
        ( :group (when (and .ts-ts
 			   (or .deadline

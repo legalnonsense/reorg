@@ -32,11 +32,11 @@
 			   (libxml-parse-xml-region (point-min)
 						    (point-max))))	   
 		   (vnodes (cddar (cdddr (cdddar (cdddr data))))))
-	      (cl-labels ((zzz (d level n)
+	      (cl-labels ((zzz (d l n)
 			       (cl-loop for each in d
 					collect
 					(list
-					 (cons 'leo-level level)
+					 (cons 'leo-level l)
 					 (cons 'body (car
 						      (last
 						       (car
@@ -47,8 +47,8 @@
 					 (cons 'buffer buffer)
 					 (cons 'order (cl-incf n)))
 					append (when (subseq each 3)
-						 (zzz (subseq each 3) (1+ level) n)))))
-		(zzz vnodes level 0))))
+						 (zzz (subseq each 3) (1+ l) n)))))
+		(zzz vnodes level 1))))
 	  collect (PARSER each))
  :render-func reorg-leo--render-func)
 

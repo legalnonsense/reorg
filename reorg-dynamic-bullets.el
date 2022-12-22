@@ -61,7 +61,7 @@ below."
   :group 'reorg-dynamic-bullets)
 
 (defcustom reorg-dynamic-bullets-refresh-func
-  #'reorg-dynamic-bullets--refresh-with-compose-region
+  #'reorg-dynamic-bullets--refresh-with-text-props
   "Function to refresh bullets.  Must take
 two arguments: BEG and END representing the region
 to be refreshed. Two options are:
@@ -157,7 +157,8 @@ to be refreshed. Two options are:
 (defun reorg-dynamic-bullets--create-heading-bullet ()
   "Create a string to be displayed in lieu of the headings' leading stars."
   (let (;;(branch (reorg--get-view-prop 'reorg-branch))
-	(branch (reorg--get-view-prop 'reorg-branch))
+	(branch (and (reorg--get-view-prop 'reorg-branch)
+		     (reorg--get-next-child)))
 	(folded (reorg-dynamic-bullets--heading-folded-p))
 	(body nil))
     ;; (body (reorg--get-view-prop 'body)))

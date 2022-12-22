@@ -227,12 +227,13 @@
 
 (defun reorg-user--leo-2 ()
   (interactive)
-  (reorg-open-sidebar
+  (reorg-open-main-window
    :sources '((leo . "~/.leo/workbook.leo"))
    :template '( :group "workbook.leo"
-		:format-string ((make-string (1+ (or .leo-level 1)) ?*) " " .headline)
-		:format-string-overrides ((reorg-branch . t)
-					  (reorg-level . .leo-level)))))
+		:format-results (.stars " " .headline)
+		:overrides (
+			    (reorg-level . (1+ (or .leo-level 0))))
+		:post-overrides ((reorg-branch . t)))))
 
 (defun reorg-user--leo ()
   (interactive)
