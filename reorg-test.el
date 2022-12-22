@@ -225,7 +225,7 @@
 			   .category-inherited)
 			  .headline))))))))))
 
-(defun reorg-user--leo-2 ()
+(defun reorg-user--leo ()
   (interactive)
   (reorg-open-main-window
    :sources '((leo . "~/.leo/workbook.leo"))
@@ -235,44 +235,25 @@
 			    (reorg-level . (1+ (or .leo-level 0))))
 		:post-overrides ((reorg-branch . t)))))
 
-(defun reorg-user--leo ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((leo . "~/.leo/workbook.leo"))
-   :template '( :group "workbook.leo"
-		:format-string (.stars " " .headline))))
-
-(defun reorg-user--clone-file-2 ()
-  (interactive)
-  (reorg-open-sidebar
-   :sources '((org . "~/tmp/tmp.org"))
-   :template '( :group "tmp.org"
-		:format-string ((make-string (1+ (or .org-level 1)) ?*) " " .headline)
-		:format-string-overrides ((reorg-branch . t)
-					  (reorg-level . .org-level)))))
-;; :sort <
-;; :sort-getter .order)))
-
 (defun reorg-user--clone-file ()
   (interactive)
-  (reorg-open-sidebar
+  (reorg-open-main-window
    :sources '((org . "~/tmp/tmp.org"))
    :template '( :group "tmp.org"
-		:format-string (.stars " " .headline)
-		:sort <
-		:sort-getter .order)))
+		:overrides ((reorg-level . (or .org-level 1)))
+		:format-results (.stars " " .headline)
+		:post-overrides ((reorg-branch . t)))))
 
-
-(defun xxx-reorg-test-15 ()
+(defun reorg-test--at-names ()
   (interactive)
-  (reorg-open-sidebar
+  (reorg-open-main-window
    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
    :template '( 
 	       :children (( :group .@at-names
 			    :format-results
 			    (.stars " " .headline))))))
 
-(defun xxx-reorg-test-16 ()
+(defun reorg-test--tag-list ()
   (interactive)
   (reorg-open-sidebar
    :sources '((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
@@ -285,9 +266,9 @@
 					  (downcase b)))
 		  :children (( :group .@at-names )))))))
 
-(defun reorg-test--test-file-view ()
+(defun reorg-test--file-view ()
   (interactive)
-  (reorg-open-sidebar
+  (reorg-open-main-window
    :sources '((files . "find ~/Desktop -type f"))
    :template
    '( 
