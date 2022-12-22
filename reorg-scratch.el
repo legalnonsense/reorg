@@ -717,10 +717,7 @@ point where the leaf should be inserted (ie, insert before)"
     (setq xxx-template template)
     (cl-loop with header-groups = (reorg--get-all-tree-paths
 				   (reorg--group-and-sort*
-				    (list data)
-				    template
-				    ;; #'reorg--create-headline-string*
-				    1)
+				    (list data) template 1)
 				   (lambda (x)
 				     (eq 'leaf
 					 (get-text-property 0 'reorg-field-type x))))
