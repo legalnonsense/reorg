@@ -289,10 +289,7 @@ the point and return nil."
 		     (funcall-interactively #'org-priority arg))))
 	  ("g" . (lambda (&optional arg) (interactive)
 		   (reorg--with-source-and-sync))))
- :getter (with-current-buffer (find-file-noselect SOURCE)
-	   (widen)
-	   (org-map-entries
-	    #'PARSER)))
+ :getter (org-ql-select SOURCE nil :action #'PARSER))
 
 (reorg-create-data-type
  :name delegatee

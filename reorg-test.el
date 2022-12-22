@@ -2,8 +2,8 @@
 
 (defun reorg-user--test-main-view ()
   (interactive)
-  (reorg-open-sidebar
-   :sources '((org . "~/org/taskmaster.org"))
+  (reorg-open-main-window
+   :sources '((org . "~/tmp/tmp.org"))
    :template
    '( :children
       (( :group "By client"

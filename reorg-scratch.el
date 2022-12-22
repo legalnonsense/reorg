@@ -713,11 +713,14 @@ point where the leaf should be inserted (ie, insert before)"
 		   (reorg-views--delete-leaf)
 		   (when (reorg--goto-parent)
 		     (reorg--delete-headers-maybe*)))
+    (setq xxx-data data)
+    (setq xxx-template template)
     (cl-loop with header-groups = (reorg--get-all-tree-paths
 				   (reorg--group-and-sort*
 				    (list data)
 				    template
-				    #'reorg--create-headline-string*)
+				    ;; #'reorg--create-headline-string*
+				    1)
 				   (lambda (x)
 				     (eq 'leaf
 					 (get-text-property 0 'reorg-field-type x))))
@@ -826,7 +829,6 @@ produces:
 			 ((and (pred listp)
 			       x
 			       (guard (funcall leaf-func (car x))))
-			  ;; (guard (eq '- (car x))))
 			  (mapc (lambda (y) (push y aaa)) x)
 			  (push (reverse aaa) aaaa)
 			  (setq n (n-manager nil -1))
@@ -839,7 +841,7 @@ produces:
 			  (push (car x) aaa)
 			  (push (length (cdr x)) n)
 			  (nnn (cdr x)))
-			 (x (error "someting went wrong"))))))
+			 (_ (error "someting went wrong"))))))
       (nnn data)
       (reverse aaaa))))
 
