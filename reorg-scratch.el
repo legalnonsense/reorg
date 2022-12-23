@@ -343,7 +343,7 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 		    results)
 	       (cl-loop
 	        for (header . children) in results
-	        collect
+	        append
 	        (cons
 	         (funcall action-function
 			  (setq metadata
@@ -380,7 +380,7 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 							     bullet)))))
 	      (t 
 	       (cl-loop for (header . children) in results
-		        collect
+		        append
 		        (cons				
 		         (funcall
 			  action-function
@@ -838,7 +838,7 @@ produces:
 			  (push (car x) aaa)
 			  (push (length (cdr x)) n)
 			  (nnn (cdr x)))
-			 (_ (error "someting went wrong"))))))
+			 (x (error "someting went wrong" x))))))
       (nnn data)
       (reverse aaaa))))
 
