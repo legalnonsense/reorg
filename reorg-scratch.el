@@ -719,8 +719,9 @@ point where the leaf should be inserted (ie, insert before)"
 				   (reorg--group-and-sort*
 				    (list data) template 1)
 				   (lambda (x)
-				     (eq 'leaf
-					 (get-text-property 0 'reorg-field-type x))))
+				     (when x
+				       (eq 'leaf
+					   (get-text-property 0 'reorg-field-type x)))))
 	     for headers in header-groups
 	     do (goto-char (point-min))
 	     collect 
