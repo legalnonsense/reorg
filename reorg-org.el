@@ -155,8 +155,8 @@ RANGE is non-nil, only look for timestamp ranges."
 
 (defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
   "Execute BODY with point at the heading with ID at point."
-  `(when-let ((id (or ,id (reorg--get-view-prop :id))))
-     (with-current-buffer (or ,buffer (reorg--get-view-prop :buffer))
+  `(when-let ((id (or ,id (reorg--get-view-prop 'id))))
+     (with-current-buffer (or ,buffer (reorg--get-view-prop 'buffer))
        (reorg--with-restore-state
 	(goto-char (point-min))
 	;; NOTE: Can't use `org-id-goto' here or it will keep the
