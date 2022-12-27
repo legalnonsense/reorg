@@ -795,63 +795,79 @@ point where the leaf should be inserted (ie, insert before)"
 ;; (org-indent-refresh-maybe (point-min) (point-max) nil))
 
 
-(defun reorg--get-all-tree-paths (data leaf-func)
-  "get a list of all the paths in a tree.
-e.g.:
-(reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
-				(6 (7 (- 8 9))
-				   (10 (- 11)))))
-			   (lambda (x) (eq x '-)))
-produces:
+(defun reorg--get-all-tree-paths (tree leaf-func)
+  (let (paths)
+    (cl-labels ((doloop (tree &optional path)
+			(cond ((funcall leaf-func tree)
+			       (push (append (reverse path) tree) paths))
+			      ((or (stringp (car tree))
+				   (numberp (car tree))
+				   (symbolp (car tree)))
+			       (push (car tree) path)
+			       (cl-loop for child in (cdr tree)
+					do (doloop child path)))
+			      (tree (cl-loop for child in tree
+					     do (doloop child path))))))
+      (doloop tree)
+      (reverse paths))))
 
-'((1 2 - 3 4 5)
- (1 6 7 - 8 9)
- (1 6 10 - 11))"
-  
-  (let (aaa aaaa n)
-    (cl-labels ((n-manager (new nn)
-			   (if new
-			       (push nn n)
-			     (let ((val (+ (car n) nn)))
-			       (if (= val 0)
-				   (progn 
-				     (pop n)
-				     (when n
-				       (setq n 
-					     (n-manager nil -1))))
-				 (setcar n val))))
-			   n)
-		(nnn (data)
-		     (while data
-		       (pcase (pop data)
-			 ((and (pred listp)
-			       x
-			       (guard (funcall leaf-func (car x))))
-			  (mapc (lambda (y) (push y aaa)) x)
-			  (push (reverse aaa) aaaa)
-			  (setq n (n-manager nil -1))
-			  (setq aaa (subseq aaa (- (length aaa) (length n)))))
-			 ((and (pred listp)
-			       x
-			       (guard (null (cdr x))))
-			  nil)
-			 ((and x (pred listp))
-			  (push (car x) aaa)
-			  (push (length (cdr x)) n)
-			  (nnn (cdr x)))
-			 (x (error "someting went wrong" x))))))
-      (nnn data)
-      (reverse aaaa))))
+;; (defun reorg--get-all-tree-paths (data leaf-func)
+;;   "get a list of all the paths in a tree.
+;; e.g.:
+;; (reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
+;; 				(6 (7 (- 8 9))
+;; 				   (10 (- 11)))))
+;; 			   (lambda (x) (eq x '-)))
+;; produces:
 
-		   ;; (defun tree-path (tree)
-		   ;;   (let (path)
-		   ;;     (if (and (listp tree) (cdr tree))
-		   ;; 	(cl-loop for child in (cdr tree)
-		   ;; 		 do (append (list (car tree))
-		   ;; 			    (tree-path child)))
-		   ;;       (if (listp tree) (car tree)) tree)))
+;; '((1 2 - 3 4 5)
+;;  (1 6 7 - 8 9)
+;;  (1 6 10 - 11))"
+
+;;   (let (aaa aaaa n)
+;;     (cl-labels ((n-manager (new nn)
+;; 			   (if new
+;; 			       (push nn n)
+;; 			     (let ((val (+ (car n) nn)))
+;; 			       (if (= val 0)
+;; 				   (progn 
+;; 				     (pop n)
+;; 				     (when n
+;; 				       (setq n 
+;; 					     (n-manager nil -1))))
+;; 				 (setcar n val))))
+;; 			   n)
+;; 		(nnn (data)
+;; 		     (while data
+;; 		       (pcase (pop data)
+;; 			 ((and (pred listp)
+;; 			       x
+;; 			       (guard (funcall leaf-func (car x))))
+;; 			  (mapc (lambda (y) (push y aaa)) x)
+;; 			  (push (reverse aaa) aaaa)
+;; 			  (setq n (n-manager nil -1))
+;; 			  (setq aaa (subseq aaa (- (length aaa) (length n)))))
+;; 			 ((and (pred listp)
+;; 			       x
+;; 			       (guard (null (cdr x))))
+;; 			  nil)
+;; 			 ((and x (pred listp))
+;; 			  (push (car x) aaa)
+;; 			  (push (length (cdr x)) n)
+;; 			  (nnn (cdr x)))
+;; 			 (x (error "someting went wrong" x))))))
+;;       (nnn data)
+;;       (reverse aaaa))))
+
+;; (defun tree-path (tree)
+;;   (let (path)
+;;     (if (and (listp tree) (cdr tree))
+;; 	(cl-loop for child in (cdr tree)
+;; 		 do (append (list (car tree))
+;; 			    (tree-path child)))
+;;       (if (listp tree) (car tree)) tree)))
 
 
-		   ;; (tree-path '(a (b c)))
+;; (tree-path '(a (b c)))
 
-		   (provide 'reorg-scratch)
+(provide 'reorg-scratch)
