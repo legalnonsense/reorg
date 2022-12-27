@@ -114,6 +114,31 @@ switch to that buffer in the window."
 
 ;;; main
 
+(cl-defun reorg-open-main-window* (template)
+  "Open this shit in the sidebar."
+  (interactive)
+  (let ((results ;; (--> (reorg--getter sources)
+	 (reorg--get-group-and-sort* nil template 1)))
+    (with-current-buffer (get-buffer-create reorg-buffer-name)
+      (let ((inhibit-read-only t))
+	(erase-buffer))
+      (reorg--insert-org-headlines results)
+      (reorg-main-mode)
+      (reorg-dynamic-bullets-mode)
+      (org-visual-indent-mode)
+      (toggle-truncate-lines 1)
+      (setq reorg-edits--current-field-overlay
+	    (let ((overlay (make-overlay 1 2)))
+	      (overlay-put overlay 'face `( :box (:line-width -1)
+					    :foreground ,(face-foreground 'default)))
+	      (overlay-put overlay 'priority 1000)
+	      overlay))
+      (setq reorg--current-template template)
+      (setq-local cursor-type nil)
+      ;; (reorg--map-all-branches #'reorg--delete-headers-maybe*)
+      (goto-char (point-min))
+      (set-window-buffer nil reorg-buffer-name))))
+
 (cl-defun reorg-open-main-window (&key sources template)
   "Open this shit in the sidebar."
   (interactive)
