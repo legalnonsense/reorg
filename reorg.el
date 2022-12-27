@@ -205,19 +205,19 @@ switch to that buffer in the window."
 
 ;;;; updating the tree
 
-;; (defun reorg--update-this-heading-all ()
-;;   "Update heading at point and all clones."
-;;   (let ((data 
-;; 	 (reorg--with-point-at-orig-entry (reorg--get-view-prop 'id)
-;; 					  (reorg--get-view-prop 'buffer)
-;; 					  (reorg--parser nil 'org)))
-;; 	(id (reorg--get-view-prop 'id)))
-;;     (reorg--select-tree-window)
-;;     (save-restriction
-;;       (save-excursion    
-;; 	(reorg--map-id id
-;; 		       (reorg-view--update-view-headline)
-;; 		       (reorg-dynamic-bullets--fontify-heading))))))
+(defun reorg--update-this-heading-all ()
+  "Update heading at point and all clones."
+  (let ((data 
+	 (reorg--with-point-at-orig-entry (reorg--get-view-prop 'id)
+					  (reorg--get-view-prop 'buffer)
+					  (reorg--parser nil 'org)))
+	(id (reorg--get-view-prop 'id)))
+    (reorg--select-tree-window)
+    (save-restriction
+      (save-excursion    
+	(reorg--map-id id
+		       (reorg-view--update-view-headline)
+		       (reorg-dynamic-bullets--fontify-heading))))))
 
 (defvar reorg-main-mode-map 
   (let ((map (make-keymap)))
