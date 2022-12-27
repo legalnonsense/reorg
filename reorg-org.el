@@ -192,6 +192,7 @@ the point and return nil."
     (let ((old-point (point))
 	  (search-invisible t))
       (widen)
+      (org-show-all)
       (goto-char (point-min))
       (if (re-search-forward id nil t)
 	  (progn (goto-char (match-beginning 0))
