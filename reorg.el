@@ -53,6 +53,10 @@
 (defcustom reorg-headline-format '(.stars " " .headline)
   "Default headline format.")
 
+(defcustom reorg-default-bullet  "->" "")
+
+(defcustom reorg-default-face 'default "")
+
 ;;; variables 
 
 (defvar-local reorg--current-template nil
@@ -98,28 +102,6 @@ switch to that buffer in the window."
      (frame-focus)
      reorg-buffer-side))))
 
-;;; view buffer
-
-;; (defun reorg--get-field-at-point (&optional point)
-;;   "Get the reorg-field-type at point."
-;;   (get-text-property (or point (point)) reorg--field-property-name))
-
-;; (defun reorg--get-field-bounds ()
-;;   "Get the bounds of the field at point."
-;;   (when-let ((field (reorg--get-field-at-point)))
-;;     (cons
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg--get-field-at-point)
-;; 				  field)
-;; 			   (not (bobp)))
-;; 		do (forward-char -1)
-;; 		finally return (1+ (point))))
-;;      (save-excursion 
-;;        (cl-loop while (and (equal (reorg--get-field-at-point)
-;; 				  field)
-;; 			   (not (eobp)))
-;; 		do (forward-char 1)
-;; 		finally return (point))))))
 ;;; main
 
 (cl-defun reorg-open-main-window (&key sources template)
@@ -223,19 +205,19 @@ switch to that buffer in the window."
 
 ;;;; updating the tree
 
-(defun reorg--update-this-heading-all ()
-  "Update heading at point and all clones."
-  (let ((data 
-	 (reorg--with-point-at-orig-entry (reorg--get-view-prop 'id)
-					  (reorg--get-view-prop 'buffer)
-					  (reorg--parser nil 'org)))
-	(id (reorg--get-view-prop 'id)))
-    (reorg--select-tree-window)
-    (save-restriction
-      (save-excursion    
-	(reorg--map-id id
-		       (reorg-view--update-view-headline)
-		       (reorg-dynamic-bullets--fontify-heading))))))
+;; (defun reorg--update-this-heading-all ()
+;;   "Update heading at point and all clones."
+;;   (let ((data 
+;; 	 (reorg--with-point-at-orig-entry (reorg--get-view-prop 'id)
+;; 					  (reorg--get-view-prop 'buffer)
+;; 					  (reorg--parser nil 'org)))
+;; 	(id (reorg--get-view-prop 'id)))
+;;     (reorg--select-tree-window)
+;;     (save-restriction
+;;       (save-excursion    
+;; 	(reorg--map-id id
+;; 		       (reorg-view--update-view-headline)
+;; 		       (reorg-dynamic-bullets--fontify-heading))))))
 
 (defvar reorg-main-mode-map 
   (let ((map (make-keymap)))

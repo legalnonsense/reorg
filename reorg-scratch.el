@@ -55,203 +55,6 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			      (funcall `(lambda (b) (let-alist b ,form)) b))))
    sequence))
 
-;; (defun reorg--group-and-sort* (data
-;; 			       template
-;; 			       &optional
-;; 			       action
-;; 			       sorters
-;; 			       format-string
-;; 			       level
-;; 			       parent-id
-;; 			       parent-header
-;; 			       bullet
-;; 			       face)
-;;   "group and sort and run action on the results"
-;;   (cl-flet ((get-header-props
-;; 	     (header groups sss bullet)
-;; 	     (reorg--thread-as*
-;; 	       (props (list 
-;; 		       (cons 'branch-name header)
-;; 		       (cons 'headline header)
-;; 		       (cons 'reorg-branch t)
-;; 		       (cons 'branch-type 'branch)
-;; 		       (cons 'grouper-list
-;; 			     `(lambda (x)
-;; 				(let-alist x
-;; 				  ,(plist-get groups :group))))
-;; 		       (cons 'branch-predicate
-;; 			     `(lambda (x)
-;; 				(let-alist x
-;; 				  ,(plist-get groups :group))))
-;; 		       (cons 'branch-result header)
-;; 		       (cons 'grouper-list-results header)
-;; 		       (cons 'format-string format-string)
-;; 		       (cons 'result-sorters sss)
-;; 		       (cons 'template template)
-;; 		       (cons 'sort-groups (plist-get groups :sort-groups))
-;; 		       (cons 'children (plist-get groups :children))
-;; 		       (cons 'branch-sorter ;; heading-sorter
-;; 			     nil)
-;; 		       (cons 'branch-sort-getter ;; heading-sort-getter
-;; 			     nil)
-;; 		       (cons 'bullet bullet)
-;; 		       (cons 'reorg-level level)))
-;; 	       (append props
-;; 		       `((group-id . ,(md5 (with-temp-buffer
-;; 					     (insert (pp parent-id))
-;; 					     (insert (pp parent-header))
-;; 					     (insert (pp groups))
-;; 					     (buffer-string))))
-;; 			 (id . ,(org-id-new)))))))
-;;     (let (pppz)
-;;       ;; inheritance
-;;       (setq format-string
-;; 	    (or format-string
-;; 		(plist-get template :format-results)
-;; 		reorg-headline-format))
-;;       ;; sorters
-;;       ;; (or sorters
-;;       ;; 	(plist-get template :sort-results)
-;;       ;; 	reorg-default-result-sort))
-
-;;       ;; for each child...
-;;       (cl-loop
-;;        with sorterz = sorters
-;;        for groups in (plist-get template :children)
-;;        ;; inheritence for
-;;        do (setq format-string (or (plist-get groups :format-results)
-;; 				  format-string
-;; 				  reorg-headline-format)
-;; 		sorterz (append sorters (plist-get groups :sort-results))
-;; 		bullet (or bullet (plist-get groups :bullet))
-;; 		level (or level 1))
-;;        append (reorg--thread-as* data
-;; 		(pcase (plist-get groups :group)
-;; 		  ((pred functionp)
-;; 		   ;; easy.
-;; 		   (reorg--seq-group-by* (plist-get groups :group)
-;; 					 data))
-;; 		  ((pred stringp)
-;; 		   ;; easy. 
-;; 		   (list (cons (plist-get groups :group)
-;; 			       data)))
-;; 		  (_
-;; 		   ;; assume dot and at-dot notation.
-;; 		   ;; not so easy.
-;; 		   (when-let ((at-dots (seq-uniq 
-;; 					(reorg--at-dot-search* (plist-get groups :group)))))
-;; 		     ;; if it has an at-dot, then make a copy of each entry in DATA
-;; 		     ;; if its value is a list.
-;; 		     ;; For example, if the grouping form was:
-;; 		     ;;
-;; 		     ;; (if (evenp .@b)
-;; 		     ;;     "B is even"
-;; 		     ;;   "B is odd")
-;; 		     ;;
-;; 		     ;; and an entry in DATA had the value:
-;; 		     ;; 
-;; 		     ;; '((a . 1) (b . 2 3 4))
-;; 		     ;;
-;; 		     ;; Then, being being processed by the parser,
-;; 		     ;; the entry is replaced by three separate entries:
-;; 		     ;; 
-;; 		     ;; '((a . 1) (b . 2))
-;; 		     ;; '((a . 1) (b . 3))
-;; 		     ;; '((a . 1) (b . 4))
-;; 		     (setq
-;; 		      data
-;; 		      (cl-loop
-;; 		       for d in data 
-;; 		       append
-;; 		       (cl-loop
-;; 			for at-dot in at-dots
-;; 			if (progn
-;; 			     (listp (alist-get at-dot d)))
-;; 			return (cl-loop for x in (alist-get at-dot d)
-;; 					collect (let ((ppp (copy-alist d)))
-;; 						  (setf (alist-get at-dot ppp) x)
-;; 						  ppp))
-;; 			finally return data))))
-;; 		   (reorg--seq-group-by*
-;; 		    ;; convert any at-dots to dots (yes, this could be part
-;; 		    ;; of the conditional above, but I wanted to avoid it for
-;; 		    ;; some reason. 
-;; 		    (reorg--walk-tree* (plist-get groups :group)
-;; 				       #'reorg--turn-at-dot-to-dot
-;; 				       data)
-;; 		    data)))
-;; 		;; If there is a group sorter, sort the headers
-;; 		;;TODO add the header meta data before the sorter 
-;; 		(if-let ((sort (plist-get groups :sort-groups)))
-;; 		    (cond ((functionp sort)
-;; 			   (seq-sort-by #'car
-;; 					sort
-;; 					data))
-;; 			  (t (seq-sort-by #'car
-;; 					  `(lambda (x)
-;; 					     (let-alist x
-;; 					       ,sort))
-;; 					  data)))
-;; 		  data)
-;; 		;; If there are children, recurse 
-;; 		(if (plist-get groups :children)
-;; 		    (cl-loop
-;; 		     for (header . results) in data
-;; 		     collect
-;; 		     (cons
-;; 		      (funcall
-;; 		       (or action
-;; 			   reorg--grouper-action-function)
-;; 		       (setq pppz
-;; 			     (get-header-props header groups sorterz bullet))
-;; 		       nil
-;; 		       level)
-;; 		      (reorg--group-and-sort*			  
-;; 		       results
-;; 		       groups
-;; 		       action
-;; 		       sorterz
-;; 		       format-string
-;; 		       (1+ level)
-;; 		       header
-;; 		       bullet
-;; 		       face)))
-;; 		  ;; if there aren't children,
-;; 		  ;; sort the results if necessary
-;; 		  ;; then convert each batch of results
-;; 		  ;; into to headline strings
-;; 		  (cl-loop for (header . results) in data
-;; 			   collect
-;; 			   (cons				
-;; 			    (funcall
-;; 			     (or action
-;; 				 reorg--grouper-action-function)
-;; 			     (setq pppz
-;; 				   (get-header-props header groups sorterz bullet))
-;; 			     nil
-;; 			     level)
-;; 			    (list 
-;; 			     (cl-loop
-;; 			      with
-;; 			      results = 
-;; 			      (if sorterz
-;; 				  (reorg--multi-sort* sorterz
-;; 						      results)
-;; 				results)
-;; 			      for result in results
-;; 			      collect
-;; 			      (funcall
-;; 			       (or action
-;; 				   reorg--grouper-action-function)
-;; 			       (append result
-;; 				       (list 
-;; 					(cons 'group-id
-;; 					      (alist-get 'id pppz))))
-;; 			       format-string
-;; 			       (1+ level))))))))))))
-(defvar reorg-default-bullet  "->" "")
-(defvar reorg-default-face 'default "")
-
 (defun reorg--group-and-sort* (data
 			       template
 			       level
@@ -752,55 +555,25 @@ point where the leaf should be inserted (ie, insert before)"
     (org-indent-refresh-maybe (point-min) (point-max) nil))
   (run-hooks 'reorg--navigation-hook))
 
-;; (defun reorg--insert-new-heading** (data template)
-;;   "insert an individual heading"
-;;   (goto-char (point-min))
-;;   (reorg--map-id (alist-get 'id data)
-;; 		 (reorg-views--delete-leaf)
-;; 		 (when (reorg--goto-parent)
-;; 		   (reorg--delete-headers-maybe*)))
-;;   (let ((groups (reorg--group-and-sort*
-;; 		 (list data)
-;; 		 template
-;; 		 #'reorg--create-headline-string*)))
-;;     (cl-labels ((leafp (entry)
-;; 		       (eq 'leaf
-;; 			   (alist-get 'reorg-field-type entry)))
-;; 		(find (entry (depth 1))
-;; 		      (let* ((props (get-text-property 0 'reorg-data entry))
-;; 			     (group-id (alist-get 'group-id props))
-;; 			     (id (alist-get 'id props)))
-
-;; 		      (if (leafp entry)
-;; 			  (progn (reorg--find-leaf-location* entry)
-;; 				 (reorg--insert-header-at-point entry))
-
-
-
-
-;; 			for headers in header-groups
-;; do (goto-char (point-min))
-;; collect 
-;; (cl-loop
-;;  with headers = (-flatten headers)    
-;;  with leaf = (car (last headers))
-;;  with leaf-props = (get-text-property 0 'reorg-data leaf)	    
-;;  for header in (butlast headers)
-;;  when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
-;;  do (let* ((header-props (get-text-property 0 'reorg-data header))
-;; 	       (group-id (alist-get 'group-id header-props))
-;; 	       (id (alist-get 'id header-props)))
-;; 	  (unless (or (reorg--goto-id header-props)
-;; 		      (equal id (reorg--get-view-prop 'id)))		   
-;; 	    (if (reorg--find-first-header-group-member* header-props)
-;; 		(unless (reorg--find-header-location-within-groups* header)
-;; 		  (reorg--insert-header-at-point header))
-;; 	      (reorg--insert-header-at-point header t))))
-
-;; (org-indent-refresh-maybe (point-min) (point-max) nil))
-
-
 (defun reorg--get-all-tree-paths (tree leaf-func)
+  "Get a list of all paths in tree.
+LEAF-FUNC is a function run on each member to determine
+whether it terminates the branch.
+
+For example:
+
+(reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
+				(6 (7 (- 8 9))
+				   (10 (- 11)
+                                        (- 12)))))
+			   (lambda (x) (eq '- (car x))))
+returns:
+
+((1 2 - 3 4 5)
+ (1 6 7 - 8 9)
+ (1 6 10 - 11)
+ (1 6 10 - 12))
+"  
   (let (paths)
     (cl-labels ((doloop (tree &optional path)
 			(cond ((funcall leaf-func tree)
@@ -815,64 +588,5 @@ point where the leaf should be inserted (ie, insert before)"
 					     do (doloop child path))))))
       (doloop tree)
       (reverse paths))))
-
-;; (defun reorg--get-all-tree-paths (data leaf-func)
-;;   "get a list of all the paths in a tree.
-;; e.g.:
-;; (reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
-;; 				(6 (7 (- 8 9))
-;; 				   (10 (- 11)))))
-;; 			   (lambda (x) (eq x '-)))
-;; produces:
-
-;; '((1 2 - 3 4 5)
-;;  (1 6 7 - 8 9)
-;;  (1 6 10 - 11))"
-
-;;   (let (aaa aaaa n)
-;;     (cl-labels ((n-manager (new nn)
-;; 			   (if new
-;; 			       (push nn n)
-;; 			     (let ((val (+ (car n) nn)))
-;; 			       (if (= val 0)
-;; 				   (progn 
-;; 				     (pop n)
-;; 				     (when n
-;; 				       (setq n 
-;; 					     (n-manager nil -1))))
-;; 				 (setcar n val))))
-;; 			   n)
-;; 		(nnn (data)
-;; 		     (while data
-;; 		       (pcase (pop data)
-;; 			 ((and (pred listp)
-;; 			       x
-;; 			       (guard (funcall leaf-func (car x))))
-;; 			  (mapc (lambda (y) (push y aaa)) x)
-;; 			  (push (reverse aaa) aaaa)
-;; 			  (setq n (n-manager nil -1))
-;; 			  (setq aaa (subseq aaa (- (length aaa) (length n)))))
-;; 			 ((and (pred listp)
-;; 			       x
-;; 			       (guard (null (cdr x))))
-;; 			  nil)
-;; 			 ((and x (pred listp))
-;; 			  (push (car x) aaa)
-;; 			  (push (length (cdr x)) n)
-;; 			  (nnn (cdr x)))
-;; 			 (x (error "someting went wrong" x))))))
-;;       (nnn data)
-;;       (reverse aaaa))))
-
-;; (defun tree-path (tree)
-;;   (let (path)
-;;     (if (and (listp tree) (cdr tree))
-;; 	(cl-loop for child in (cdr tree)
-;; 		 do (append (list (car tree))
-;; 			    (tree-path child)))
-;;       (if (listp tree) (car tree)) tree)))
-
-
-;; (tree-path '(a (b c)))
 
 (provide 'reorg-scratch)
