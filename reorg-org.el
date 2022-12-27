@@ -283,7 +283,7 @@ the point and return nil."
 		     (funcall-interactively #'org-schedule arg))))
 	  ("r" . (lambda (&optional arg) (interactive )
 		   (reorg--with-source-and-sync
-		     (funcall-interactively #'org-set-property))))
+		     (funcall-interactively #'org-set-property nil nil))))
 	  ("i" . (lambda (&optional arg) (interactive "P")
 		   (reorg--with-source-and-sync
 		     (funcall-interactively #'org-priority arg))))

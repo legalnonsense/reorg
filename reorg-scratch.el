@@ -713,15 +713,20 @@ point where the leaf should be inserted (ie, insert before)"
 		   (reorg-views--delete-leaf)
 		   (when (reorg--goto-parent)
 		     (reorg--delete-headers-maybe*)))
-    (setq xxx-data data)
-    (setq xxx-template template)
+    ;; (setq xxx-data data)
+    ;; (setq xxx-template template)
     (cl-loop with header-groups = (reorg--get-all-tree-paths
 				   (reorg--group-and-sort*
 				    (list data) template 1)
 				   (lambda (x)
-				     (when x
-				       (eq 'leaf
-					   (get-text-property 0 'reorg-field-type x)))))
+				     (and (listp x)
+					  (stringp (car x))
+					  (eq
+					   'leaf
+					   (get-text-property
+					    0
+					    'reorg-field-type
+					    (car x))))))
 	     for headers in header-groups
 	     do (goto-char (point-min))
 	     collect 
@@ -744,8 +749,8 @@ point where the leaf should be inserted (ie, insert before)"
 			       (reorg--find-leaf-location* leaf)
 			       (reorg--insert-header-at-point leaf))
 			     (goto-char point))))
-    (org-indent-refresh-maybe (point-min) (point-max) nil)
-    (run-hooks 'reorg--navigation-hook)))
+    (org-indent-refresh-maybe (point-min) (point-max) nil))
+  (run-hooks 'reorg--navigation-hook))
 
 ;; (defun reorg--insert-new-heading** (data template)
 ;;   "insert an individual heading"
