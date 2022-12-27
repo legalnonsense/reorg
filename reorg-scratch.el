@@ -70,11 +70,11 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 	      (cons 'bullet bullet)
 	      (cons 'reorg-level level)
 	      (cons 'group-id
-		    (md5 (with-temp-buffer
-			   (insert (pp (plist-get inherited-props :parent-id))
-				   (pp (plist-get inherited-props :parent-header))
-				   (pp groups))
-			   (buffer-string))))
+		    (md5 
+		     (concat (pp-to-string (plist-get inherited-props :parent-id))
+			     (pp-to-string (plist-get inherited-props :parent-header))
+			     (pp-to-string groups))))
+
 	      (cons 'id (org-id-new)))))
 
     "group and sort and run action on the results"
@@ -114,7 +114,7 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			      return
                               (cl-loop for x in (alist-get at-dot d)
 				       collect
-                                       (let ((ppp (copy-alist d)))
+				       (let ((ppp (copy-alist d)))
 					 (setf (alist-get at-dot ppp) x)
 					 ppp))
 			      finally return data))))
@@ -127,30 +127,30 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 	  (cl-loop for child in (plist-get template :children)
 		   collect (reorg--group-and-sort* data child level
 		                                   (list :header nil
-			                                 :bullet bullet
-			                                 :face face)))
-        (when header-sort
+							 :bullet bullet
+							 :face face)))
+	(when header-sort
 	  (setq results 
-	        (cond ((functionp header-sort)
+		(cond ((functionp header-sort)
 		       (seq-sort-by #'car
 				    header-sort
 				    results))
 		      (t (seq-sort-by #'car
 				      `(lambda (x)
-				         (let-alist x
+					 (let-alist x
 					   ,header-sort))
 				      results)))))
 
-        ;; If there are children, recurse 
-        (cond ((and (plist-get template :children)
+	;; If there are children, recurse 
+	(cond ((and (plist-get template :children)
 		    results)
 	       (cl-loop
-	        for (header . children) in results
-	        append
-	        (cons
-	         (funcall action-function
+		for (header . children) in results
+		append
+		(cons
+		 (funcall action-function
 			  (setq metadata
-			        (get-header-metadata header
+				(get-header-metadata header
 						     group
 						     result-sorters
 						     bullet))
@@ -161,34 +161,34 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			   (cons 'bullet bullet)
 			   (cons 'reorg-face face)))
 
-	         (cl-loop for child in (plist-get template :children)
+		 (cl-loop for child in (plist-get template :children)
 			  collect 
 			  (reorg--group-and-sort*			  
 			   children
 			   child
 			   (1+ level)
 			   (list :header header
-			         :bullet bullet
-			         :face face))))))
+				 :bullet bullet
+				 :face face))))))
 	      ((plist-get template :children)
 	       (cl-loop for child in (plist-get template :children)
-		        collect
-		        (reorg--group-and-sort*
-		         data
-		         child
-		         (1+ level)
-		         (setq metadata (get-header-metadata nil
+			collect
+			(reorg--group-and-sort*
+			 data
+			 child
+			 (1+ level)
+			 (setq metadata (get-header-metadata nil
 							     group
 							     result-sorters
 							     bullet)))))
 	      (t 
 	       (cl-loop for (header . children) in results
-		        append
-		        (cons				
-		         (funcall
+			append
+			(cons				
+			 (funcall
 			  action-function
 			  (setq metadata
-			        (get-header-metadata header
+				(get-header-metadata header
 						     group
 						     result-sorters
 						     bullet))
@@ -197,7 +197,7 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			  (plist-get template :overrides)
 			  (plist-get template :post-overrides)
 			  )
-		         (list 
+			 (list 
 			  (cl-loop
 			   with
 			   children = 
@@ -436,7 +436,7 @@ See `let-alist--deep-dot-search'."
 
 (defun reorg--find-header-location-within-groups* (header-string)
   "assume the point is on the first header in the group"
-  (let-alist (get-text-property 0 'reorg-data header-string)    
+  (let-alist (get-text-property 0 'reorg-data header-string)
     (if .sort-groups
 	(cl-loop with point = (point)
 		 if (equal .branch-name
@@ -508,6 +508,13 @@ point where the leaf should be inserted (ie, insert before)"
 			(lambda (a b)
 			  (not (equal a b)))))
 
+(defun reorg--update-heading-at-point ()
+  "update the current heading"
+  (interactive)
+  (reorg--insert-new-heading*
+   (reorg--with-point-at-orig-entry nil nil (reorg--parser nil 'org))
+   reorg--current-template))
+
 (defun reorg--insert-new-heading* (data template)
   "insert an individual heading"
   (save-excursion 
@@ -516,8 +523,6 @@ point where the leaf should be inserted (ie, insert before)"
 		   (reorg-views--delete-leaf)
 		   (when (reorg--goto-parent)
 		     (reorg--delete-headers-maybe*)))
-    ;; (setq xxx-data data)
-    ;; (setq xxx-template template)
     (cl-loop with header-groups = (reorg--get-all-tree-paths
 				   (reorg--group-and-sort*
 				    (list data) template 1)
@@ -532,10 +537,10 @@ point where the leaf should be inserted (ie, insert before)"
 					    (car x))))))
 	     for headers in header-groups
 	     do (goto-char (point-min))
-	     collect 
+	     collect
 	     (cl-loop
 	      with leaf = (car (last headers))
-	      with leaf-props = (get-text-property 0 'reorg-data leaf)	    
+	      with leaf-props = (get-text-property 0 'reorg-data leaf)
 	      for header in (butlast headers)
 	      when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
 	      do (let* ((header-props (get-text-property 0 'reorg-data header))
@@ -590,3 +595,4 @@ returns:
       (reverse paths))))
 
 (provide 'reorg-scratch)
+
