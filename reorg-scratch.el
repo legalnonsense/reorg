@@ -2,25 +2,6 @@
 
 ;;     ﯍    
 
-(defvar reorg-default-result-sort nil "")
-(defvar reorg--field-property-name 'reorg-field-name "")
-(defvar reorg--extra-prop-list nil "")
-(defvar reorg--grouper-action-function #'reorg--create-headline-string*
-  "")
-;; (setq reorg--grouper-action-function (lambda (data
-;; 					      format-string
-;; 					      &optional
-;; 					      level
-;; 					      overrides)
-;; 				       (let ((h (reorg--create-headline-string*
-;; 						 data
-;; 						 format-string
-;; 						 level
-;; 						 overrides)))
-;; 					 (with-current-buffer (get-buffer-create "*REORG*")
-;; 					   (insert h))
-;; 					 h)))
-
 (defun reorg--map-all-branches (func)
   "map all"
   (save-excursion 
@@ -43,8 +24,9 @@ assume the point is at a branch."
 
 (defun reorg--multi-sort* (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
-It uses the FUNCTION and PREDICATE arguments useable by `seq-sort-by'.
-SEQUENCE is a sequence to sort. USES LET-ALIST"
+
+FUNCTIONS should not be functions.  Use a form that can contain dotted symbols
+as used by `let-alist'."
   (seq-sort 
    (lambda (a b)
      (cl-loop for (form . pred) in functions-and-predicates	      
@@ -195,8 +177,7 @@ SEQUENCE is a sequence to sort. USES LET-ALIST"
 			  nil
 			  level
 			  (plist-get template :overrides)
-			  (plist-get template :post-overrides)
-			  )
+			  (plist-get template :post-overrides))
 			 (list 
 			  (cl-loop
 			   with
@@ -275,30 +256,11 @@ template.  Use LEVEL number of leading stars.  Add text properties
 		       do (setf (alist-get prop data)
 				(alist-get prop post-overrides)))
 	      data)
-       ;; (funcall `(lambda ()
-       ;; 		   (let-alist ',new-data 
-       ;; 		     ,val)))))
-
        reorg--field-property-name ;; property2
        (if (alist-get 'reorg-branch data)
 	   'branch 'leaf)
        (alist-get (alist-get 'class data) ;; extra props 
 		  reorg--extra-prop-list)))))
-
-;; (defmacro reorg--thread-as* (name &rest form)
-;;   "I didn't know `-as->' existed..."
-;;   (declare (indent defun))  
-;;   (if (listp name)
-;;       (append 
-;;        `(let* ,(append `((,(car name) ,(cadr name)))
-;; 		       (cl-loop for each in form
-;; 				collect `(,(car name) ,each))))
-;;        (list (car name)))
-;;     (append `(let*
-;; 		 ,(append `((,name ,(car form)))
-;; 			  (cl-loop for each in (cdr form)
-;; 				   collect `(,name ,each))))
-;; 	    (list name))))
 
 (defun reorg--seq-group-by* (func sequence)
   "Apply FUNCTION to each element of SEQUENCE.
@@ -321,25 +283,23 @@ that return nil."
    (seq-reverse sequence)
    nil))
 
-
-(defun reorg--walk-tree* (form func &optional data)
-  "Why the hell doesn't dash or seq do this?
-Am I crazy?" 
+(defun reorg--walk-tree* (tree func &optional data)
+  "apply func to each element of tree and return the results" 
   (cl-labels
       ((walk
-	(form d)
-	(cl-loop for each in form
+	(tree d)
+	(cl-loop for each in tree
 		 if (listp each)
 		 collect (walk each d)
 		 else
 		 collect (if d
 			     (funcall func each d)
 			   (funcall func each)))))
-    (if (listp form)
-	(walk form data)
+    (if (listp tree)
+	(walk tree data)
       (if data 
-	  (funcall func form data)
-	(funcall func form)))))
+	  (funcall func tree data)
+	(funcall func tree)))))
 
 (defun reorg--at-dot-search* (data)
   "Return alist of symbols inside DATA that start with a `.@'.
@@ -512,7 +472,11 @@ point where the leaf should be inserted (ie, insert before)"
   "update the current heading"
   (interactive)
   (reorg--insert-new-heading*
-   (reorg--with-point-at-orig-entry nil nil (reorg--parser nil 'org))
+   (reorg--with-point-at-orig-entry nil
+				    nil
+				    (reorg--parser
+				     nil
+				     (reorg--get-view-prop 'class)))
    reorg--current-template))
 
 (defun reorg--insert-new-heading* (data template)

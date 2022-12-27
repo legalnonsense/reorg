@@ -57,7 +57,17 @@
 
 (defcustom reorg-default-face 'default "")
 
+(defcustom reorg-default-result-sort nil "")
+
 ;;; variables 
+
+(defvar reorg--field-property-name 'reorg-field-name "")
+
+(defvar reorg--extra-prop-list nil "")
+
+(defvar reorg--grouper-action-function
+  #'reorg--create-headline-string*
+  "")
 
 (defvar-local reorg--current-template nil
   "the current template in this buffer")
