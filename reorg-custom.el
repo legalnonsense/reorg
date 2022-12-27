@@ -62,7 +62,8 @@
 						  '(:align-to center))))
 			'font-lock-face
 			'((t (:height 1.4 :family "ET Bembo"
-				      :background "grey"))))
+				      :background "grey"
+				      :foreground "black"))))
 	    :sort-groups
 	    (lambda (a b)
 	      (string< (downcase a)
@@ -85,7 +86,8 @@
 					    '(:align-to center))))
 		  'font-lock-face
 		  '((t ( :underline t
-			 :background "light grey")))))
+			 :background "light grey"
+			 :foreground "black")))))
 
 	       :sort-group
 	       string<
@@ -112,7 +114,8 @@
 							      '(:align-to center))))
 				    'font-lock-face
 				    '((t ( :underline t
-					   :background "light grey")))))
+					   :background "light grey"
+					   :foreground "black")))))
 	       :format-results
 	       (.ts-type
 		" "
