@@ -120,7 +120,7 @@ switch to that buffer in the window."
   (interactive)
   (with-current-buffer (get-buffer-create reorg-buffer-name)
     (erase-buffer)
-    (setq reorg--current-sources nil)
+    ;; (setq reorg--current-sources nil)
     (reorg--insert-org-headlines
      (reorg--get-group-and-sort* nil template 1))
     (reorg-main-mode)
@@ -128,6 +128,7 @@ switch to that buffer in the window."
     (org-visual-indent-mode)
     (toggle-truncate-lines 1)
     (setq reorg--current-template template)
+    (setq reorg--current-sources 
     (setq-local cursor-type nil)
     ;; (reorg--map-all-branches #'reorg--delete-headers-maybe*)
     (goto-char (point-min))
