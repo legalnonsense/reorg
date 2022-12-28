@@ -2,8 +2,8 @@
 
 ;;; syncing macro
 
-(defun reorg-org--open-agenda-day ()
-  (interactive)
+(defun reorg-org--open-agenda-day (&optional arg)
+  (interactive "P")
   (when (reorg--get-view-prop 'ts)
     (let ((date (list (reorg--get-view-prop 'ts-month-num)
 		      (reorg--get-view-prop 'ts-day)
@@ -274,7 +274,8 @@ the point and return nil."
 (reorg-create-class-type
  :name org
  :render-func reorg--org--render-source
- :keymap (("h" . (lambda (&optional arg)					   
+ :keymap (("SPC" . reorg-org--open-agenda-day)
+	  ("h" . (lambda (&optional arg)					   
 		   (interactive)
 		   (reorg--with-source-and-sync 
 		     (org-edit-headline (read-string "New headline: "
