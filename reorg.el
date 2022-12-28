@@ -84,7 +84,9 @@
   "Open a side window to display the tree."
   (display-buffer-in-side-window (get-buffer-create reorg-buffer-name)
 				 `((side . ,reorg-buffer-side)
-				   (slot . nil)))
+				   (dedicated . t)
+				   (slot . nil)
+				   (window-parameters . ((reorg . t)))))
   (balance-windows))
 
 (defun reorg--select-main-window (&optional buffer)
@@ -133,7 +135,7 @@ switch to that buffer in the window."
       (run-hooks 'reorg--navigation-hook)
       (set-window-buffer nil reorg-buffer-name))))
 
-(cl-defun reorg-open-sidebar (&key sources template)
+(cl-defun reorg-open-sidebar (template)
   "Open this shit in the sidebar."
   (interactive)
   (when (get-buffer reorg-buffer-name)
@@ -143,7 +145,7 @@ switch to that buffer in the window."
   (let ((inhibit-read-only t))
     (erase-buffer))
   (reorg--insert-org-headlines
-   (reorg--get-group-and-sort* it template 1))
+   (reorg--get-group-and-sort* nil template 1))
   (reorg-view-mode)
   (reorg-dynamic-bullets-mode)
   (org-visual-indent-mode)
@@ -271,21 +273,30 @@ switch to that buffer in the window."
 (defun reorg--close-tree-buffer ()
   "Close the tree buffer."
   (interactive)
-  (let* ((window (select-window
-		  (car 
-		   (window-at-side-list nil reorg-buffer-side))))
+  (let* ((window (--first 
+		  (window-parameter it 'reorg)
+		  (window-at-side-list nil reorg-buffer-side)))
 	 (buffer (window-buffer window)))
-    (delete-window window)
-    (kill-buffer buffer)))
+    (mapc #'delete-window (--select (window-parameter it 'reorg)
+                                    (window-at-side-list nil reorg-buffer-side)))))
 
-(define-derived-mode reorg-main-mode
-  fundamental-mode
-  "Agenda style"
-  "Tree view of an Orgmode file. \{keymap}"
-  (setq cursor-type nil)
-  (use-local-map reorg-main-mode-map)
-  (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
-  (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
+(defun reorg--toggle-tree-buffer ()
+  "toggle tree buffer"
+  (interactive)
+  (if (--first 
+       (window-parameter it 'reorg)
+       (window-at-side-list nil reorg-buffer-side))
+      (reorg--close-tree-buffer)
+    (reorg--open-side-window)))
+
+  (define-derived-mode reorg-main-mode
+    fundamental-mode
+    "Agenda style"
+    "Tree view of an Orgmode file. \{keymap}"
+    (setq cursor-type nil)
+    (use-local-map reorg-main-mode-map)
+    (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
+    (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
 (define-derived-mode reorg-view-mode
   fundamental-mode
