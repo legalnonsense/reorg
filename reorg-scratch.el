@@ -78,7 +78,6 @@ as used by `let-alist'."
 	  (header-sort (plist-get template :sort-groups))
 	  (level (or level 0))
 	  results metadata)
-
       (when sources
 	(setq data (append data (reorg--getter sources))))
       (setq results

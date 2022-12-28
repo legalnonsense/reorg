@@ -2,10 +2,19 @@
 
 ;;; syncing macro
 
-(defun reorg-org-capture-disable ()
-  "disable org capture"
+(defun reorg-org--open-agenda-day ()
   (interactive)
-  (reorg-org-capture-enable 'disable))
+  (when (reorg--get-view-prop 'ts)
+    (let ((date (list (reorg--get-view-prop 'ts-month-num)
+		      (reorg--get-view-prop 'ts-day)
+		      (string-to-number
+		       (reorg--get-view-prop 'ts-year)))))
+      (org-agenda-list nil (calendar-absolute-from-gregorian date) 'day))))
+
+  (defun reorg-org-capture-disable ()
+    "disable org capture"
+    (interactive)
+    (reorg-org-capture-enable 'disable))
 
 (defun reorg-org-capture-enable (&optional disable)
   "wrapper for org-capture"
@@ -665,7 +674,13 @@ the point and return nil."
  :name ts-month
  :class org
  :parse (when-let ((ts (alist-get 'ts-ts data)))
-	  (ts-month-name ts)))
+	  q	  (ts-month-name ts)))
+
+(reorg-create-data-type
+ :name ts-month-num
+ :class org
+ :parse (when-let ((ts (alist-get 'ts-ts data)))
+	  (ts-month ts)))
 
 (reorg-create-data-type
  ;; this uses the already parsed ts-any 
