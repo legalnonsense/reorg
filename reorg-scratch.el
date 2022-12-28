@@ -79,6 +79,8 @@ as used by `let-alist'."
 	  (level (or level 0))
 	  results metadata)
       (when sources
+	(cl-loop for each in sources
+		 do (push each reorg--current-sources))
 	(setq data (append data (reorg--getter sources))))
       (setq results
 	    (pcase group 
