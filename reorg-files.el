@@ -9,8 +9,10 @@
  :keymap (("x" . (lambda () (interactive) (message "adf")))
 	  ("e" . (lambda ()
 		   (interactive)
-		   (find-file-other-window
-		    (reorg--get-view-prop 'fullname))))
+		   (let ((file (reorg--get-view-prop 'fullname)))
+		     (reorg--select-main-window)
+		     (find-file file))))
+
 	  ("y" . (lambda () (interactive) (message "yyyy")))
 	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
 	  ("o" . (lambda () (interactive)
