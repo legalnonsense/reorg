@@ -674,7 +674,7 @@ the point and return nil."
  :name ts-month
  :class org
  :parse (when-let ((ts (alist-get 'ts-ts data)))
-	  q	  (ts-month-name ts)))
+	  (ts-month-name ts)))
 
 (reorg-create-data-type
  :name ts-month-num
