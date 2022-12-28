@@ -37,6 +37,7 @@
     (sorted t)
     (no-cache t)))
 
+;;;###autoload 
 (defun reorg-company-enable ()
   "Add reorg company backend to the current buffer"
   (interactive)
