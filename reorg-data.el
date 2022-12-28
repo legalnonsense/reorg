@@ -221,7 +221,9 @@ text properties of any field displaying the data type.
 
 (defun reorg--render-source ()
   "Render the heading at point."
-  (when-let ((func (alist-get (reorg--get-view-prop 'class) reorg--render-func-list)))
+  (when-let ((func (alist-get
+		    (reorg--get-view-prop 'class)
+		    reorg--render-func-list)))
     (funcall func))
   (reorg--select-tree-window))
 
