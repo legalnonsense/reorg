@@ -78,16 +78,6 @@
 (defvar reorg--navigation-hook nil
   "Post-navigation hook.")
 
-(defun reorg--insert-org-headlines (data)
-  "Insert grouped and sorted data into outline."
-  (let (results)
-    (cl-labels ((recurse (data)
-			 (cond ((stringp data)
-				(insert data))
-			       (data (cl-loop for entry in data
-					      do (recurse entry))))))
-      (recurse data))))
-
 ;;; window control
 
 (defun reorg--open-side-window ()
@@ -113,6 +103,16 @@ switch to that buffer in the window."
      reorg-buffer-side))))
 
 ;;; main
+
+(defun reorg--insert-org-headlines (data)
+  "Insert grouped and sorted data into outline."
+  (let (results)
+    (cl-labels ((recurse (data)
+			 (cond ((stringp data)
+				(insert data))
+			       (data (cl-loop for entry in data
+					      do (recurse entry))))))
+      (recurse data))))
 
 (cl-defun reorg-open-main-window (template)
   "Open this shit in the sidebar."
@@ -225,7 +225,8 @@ switch to that buffer in the window."
     (define-key map (kbd "<left>") #'reorg--goto-parent)
     (define-key map (kbd "g") #'reorg--update-this-heading)
     (define-key map (kbd "G") (lambda () (interactive)
-				(save-excursion (reorg-user--main-view))))
+				(save-excursion (reorg-open-main-window
+						 reorg--current-template))))
     (define-key map (kbd "c") #'reorg--goto-next-clone)
     (define-key map (kbd "f") #'reorg--goto-next-sibling)
     (define-key map (kbd "b") #'reorg--goto-previous-sibling)
@@ -251,7 +252,8 @@ switch to that buffer in the window."
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "g") #'reorg--update-this-heading)
     (define-key map (kbd "G") (lambda () (interactive)
-				(save-excursion (reorg-user--main-view))))
+				(save-excursion (reorg-open-main-window
+						 reorg--current-template))))
     (define-key map (kbd "c") #'reorg--goto-next-clone)
     (define-key map (kbd "f") #'reorg--goto-next-sibling)
     (define-key map (kbd "b") #'reorg--goto-previous-sibling)
