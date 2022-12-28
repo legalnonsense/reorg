@@ -2,7 +2,7 @@
 
 (defun reorg-user--test-all ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '( :sources ((org . "~/tmp/tmp.org"))
       :children
       (( :group "By client"
@@ -111,7 +111,7 @@
 
 (defun reorg-user--test-main-view ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '( :sources ((org . "~/tmp/tmp.org"))
       :children
       (( :group "By client"
@@ -200,7 +200,7 @@
 
 (defun reorg-user--test-email ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '( :sources ((email . "subject:allums"))
       :children (( :group "Allums emails"
 		   :children (( :group (when (eq .class 'email)
@@ -213,7 +213,7 @@
 
 (defun reorg-user--test-allums-view ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '( :sources ((org . "~/org/Allums.org")
 		(org . "~/tmp/tmp.org")
 		(email . "subject:allums")
@@ -244,7 +244,7 @@
 
 (defun reorg-user--leo ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '( :sources ((leo . "~/.leo/workbook.leo"))
       :group "workbook.leo"
       :format-results (.stars " " .headline)
@@ -254,7 +254,7 @@
 
 (defun reorg-user--clone-file ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '( :group "tmp.org"
       :sources ((org . "~/tmp/tmp.org"))
       :overrides ((reorg-level . (or .org-level 1)))
@@ -263,7 +263,7 @@
 
 (defun reorg-test--at-names ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '( :sources ((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
       :children (( :group .@at-names
 		   :format-results
@@ -271,7 +271,7 @@
 
 (defun reorg-test--tag-list ()
   (interactive)
-  (reorg-open-main-window*
+  (reorg-open-main-window
    '(
      :sources ((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
      :format-string (.stars " " .headline)
