@@ -11,10 +11,10 @@
 		       (reorg--get-view-prop 'ts-year)))))
       (org-agenda-list nil (calendar-absolute-from-gregorian date) 'day))))
 
-  (defun reorg-org-capture-disable ()
-    "disable org capture"
-    (interactive)
-    (reorg-org-capture-enable 'disable))
+(defun reorg-org-capture-disable ()
+  "disable org capture"
+  (interactive)
+  (reorg-org-capture-enable 'disable))
 
 (defun reorg-org-capture-enable (&optional disable)
   "wrapper for org-capture"
