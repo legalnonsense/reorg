@@ -202,12 +202,16 @@ switch to that buffer in the window."
 
 (defun reorg--select-window-run-func-maybe (window &optional func switch-back)
   "WINDOW is either 'main or 'tree. FUNC is a function with no args."
-  (when-let ((win (--first 
-		   (window-parameter it 'reorg)
-		   (window-at-side-list nil reorg-buffer-side))))
+  (when-let ((win
+	      (seq-find
+	       (lambda (x)
+		 (window-parameter x 'reorg))
+	       (window-at-side-list nil reorg-buffer-side))))
     (pcase window
       ('tree (progn (reorg--select-tree-window)
-		    (funcall func)))
+		    (funcall func)
+		    (when switch-back
+		      (reorg--select-main-window))))
       ('main (progn (funcall func)
 		    (when switch-back
 		      (reorg--select-tree-window)))))))
@@ -238,19 +242,19 @@ switch to that buffer in the window."
 
 ;;;; updating the tree
 
-(defun reorg--update-this-heading-all ()
-  "Update heading at point and all clones."
-  (let ((data 
-	 (reorg--with-point-at-orig-entry (reorg--get-view-prop 'id)
-					  (reorg--get-view-prop 'buffer)
-					  (reorg--parser nil 'org)))
-	(id (reorg--get-view-prop 'id)))
-    (reorg--select-tree-window)
-    (save-restriction
-      (save-excursion    
-	(reorg--map-id id
-		       (reorg-view--update-view-headline)
-		       (reorg-dynamic-bullets--fontify-heading))))))
+;; (defun reorg--update-this-heading-all ()
+;;   "Update heading at point and all clones."
+;;   (let ((data 
+;; 	 (reorg--with-point-at-orig-entry (reorg--get-view-prop 'id)
+;; 					  (reorg--get-view-prop 'buffer)
+;; 					  (reorg--parser nil 'org)))
+;; 	(id (reorg--get-view-prop 'id)))
+;;     (reorg--select-tree-window)
+;;     (save-restriction
+;;       (save-excursion    
+;; 	(reorg--map-id id
+;; 		       (reorg-view--update-view-headline)
+;; 		       (reorg-dynamic-bullets--fontify-heading))))))
 
 (defvar reorg-main-mode-map 
   (let ((map (make-keymap)))
@@ -306,18 +310,20 @@ switch to that buffer in the window."
 (defun reorg--close-tree-buffer ()
   "Close the tree buffer."
   (interactive)
-  (let* ((window (--first 
-		  (window-parameter it 'reorg)
+  (let* ((window (seq-find
+		  (lambda (x)
+		    (window-parameter x 'reorg))
 		  (window-at-side-list nil reorg-buffer-side)))
 	 (buffer (window-buffer window)))
-    (mapc #'delete-window (--select (window-parameter it 'reorg)
-                                    (window-at-side-list nil reorg-buffer-side)))))
+    (mapc #'delete-window (seq-filter (lambda (x) (window-parameter x 'reorg))
+				      (window-at-side-list nil reorg-buffer-side)))))
 
 (defun reorg--toggle-tree-buffer ()
   "toggle tree buffer"
   (interactive)
-  (if (--first 
-       (window-parameter it 'reorg)
+  (if (seq-find
+       (lambda (x)
+	 (window-parameter x 'reorg))
        (window-at-side-list nil reorg-buffer-side))
       (reorg--close-tree-buffer)
     (reorg--open-side-window)))
@@ -335,9 +341,10 @@ switch to that buffer in the window."
   (toggle-truncate-lines 1)
   (setq-local cursor-type nil)
   ;; (reorg--map-all-branches #'reorg--delete-headers-maybe*)  
-  (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
+  ;; (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
-  ;; (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
+  (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
+  (goto-char (point-min))
   (run-hooks 'reorg--navigation-hook))
 
 ;; (define-derived-mode reorg-view-mode
