@@ -658,7 +658,7 @@ point where the leaf should be inserted (ie, insert before)"
 		     (reorg--delete-headers-maybe*)))
     (cl-loop with header-groups = (reorg--get-all-tree-paths
 				   (reorg--get-group-and-sort*
-				    (list data) template 1 ignore-sources)
+				    (list data) template 1 t)
 				   (lambda (x)
 				     (and (listp x)
 					  (stringp (car x))
