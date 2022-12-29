@@ -183,13 +183,20 @@ switch to that buffer in the window."
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--move-to-previous-entry-no-render ()
+(defun reorg--buffer-in-side-window-p ()
+  "Is the reorg buffer in a side window?"
+  (--first 
+   (window-parameter it 'reorg)
+   (window-at-side-list nil reorg-buffer-side)))
+
+
+(defun reorg--move-to-previous-entry ()
   "move to previous entry"
   (interactive)
   (reorg--goto-previous-visible-heading)
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--move-to-next-entry-no-render ()
+(defun reorg--move-to-next-entry ()
   "next entry"
   (interactive)
   (reorg--goto-next-visible-heading)
@@ -222,7 +229,6 @@ switch to that buffer in the window."
 (defvar reorg-main-mode-map 
   (let ((map (make-keymap)))
     (suppress-keymap map)
-    (define-key map [remap undo] #'org-agenda-undo)
     (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "<left>") #'reorg--goto-parent)
@@ -237,39 +243,39 @@ switch to that buffer in the window."
     (define-key map (kbd "U") #'reorg--goto-next-parent)
     (define-key map [remap undo] #'org-agenda-undo)
     (define-key map (kbd "q") #'bury-buffer)
-    (define-key map (kbd "n") #'reorg--move-to-next-entry-no-render)
-    (define-key map (kbd "<down>") #'reorg--move-to-next-entry-no-render)
-    (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-render)
-    (define-key map (kbd "<up>") #'reorg--move-to-previous-entry-no-render)
+    (define-key map (kbd "n") #'reorg--move-to-next-entry)
+    (define-key map (kbd "<down>") #'reorg--move-to-next-entry)
+    (define-key map (kbd "p") #'reorg--move-to-previous-entry)
+    (define-key map (kbd "<up>") #'reorg--move-to-previous-entry)
     (define-key map (kbd "TAB") #'outline-cycle)
     (define-key map (kbd "<backtab>") #'outline-cycle-buffer)
     (define-key map (kbd "l") #'recenter-top-bottom)
     map)
   "keymap")
 
-(defvar reorg-view-mode-map 
-  (let ((map (make-keymap)))
-    (suppress-keymap map)
-    (define-key map [remap undo] #'org-agenda-undo)
-    (define-key map (kbd "RET") #'reorg--goto-source)
-    (define-key map (kbd "u") #'reorg--goto-parent)
-    (define-key map (kbd "g") #'reorg--update-this-heading)
-    (define-key map (kbd "G") (lambda () (interactive)
-				(save-excursion (reorg-open-main-window
-						 reorg--current-template))))
-    (define-key map (kbd "c") #'reorg--goto-next-clone)
-    (define-key map (kbd "f") #'reorg--goto-next-sibling)
-    (define-key map (kbd "b") #'reorg--goto-previous-sibling)
-    (define-key map (kbd "C") #'reorg--goto-previous-clone)
-    (define-key map (kbd "U") #'reorg--goto-next-parent)
-    (define-key map (kbd "q") #'reorg--close-tree-buffer)
-    (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
-    (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-follow)
-    (define-key map (kbd "TAB") #'outline-cycle)
-    (define-key map (kbd "<backtab>") #'outline-cycle-buffer)
-    (define-key map (kbd "l") #'recenter-top-bottom)
-    map)
-  "keymap")
+;; (defvar reorg-view-mode-map 
+;;   (let ((map (make-keymap)))
+;;     (suppress-keymap map)
+;;     (define-key map [remap undo] #'org-agenda-undo)
+;;     (define-key map (kbd "RET") #'reorg--goto-source)
+;;     (define-key map (kbd "u") #'reorg--goto-parent)
+;;     (define-key map (kbd "g") #'reorg--update-this-heading)
+;;     (define-key map (kbd "G") (lambda () (interactive)
+;; 				(save-excursion (reorg-open-main-window
+;; 						 reorg--current-template))))
+;;     (define-key map (kbd "c") #'reorg--goto-next-clone)
+;;     (define-key map (kbd "f") #'reorg--goto-next-sibling)
+;;     (define-key map (kbd "b") #'reorg--goto-previous-sibling)
+;;     (define-key map (kbd "C") #'reorg--goto-previous-clone)
+;;     (define-key map (kbd "U") #'reorg--goto-next-parent)
+;;     (define-key map (kbd "q") #'reorg--close-tree-buffer)
+;;     (define-key map (kbd "n") #'reorg--move-to-next-entry-no-follow)
+;;     (define-key map (kbd "p") #'reorg--move-to-previous-entry-no-follow)
+;;     (define-key map (kbd "TAB") #'outline-cycle)
+;;     (define-key map (kbd "<backtab>") #'outline-cycle-buffer)
+;;     (define-key map (kbd "l") #'recenter-top-bottom)
+;;     map)
+;;   "keymap")
 
 (defun reorg--close-tree-buffer ()
   "Close the tree buffer."
