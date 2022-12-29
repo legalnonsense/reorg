@@ -264,6 +264,8 @@ switch to that buffer in the window."
     (define-key map (kbd "<left>") #'reorg--goto-parent)
     (define-key map (kbd "g") #'reorg--update-this-heading)
     (define-key map (kbd "G") (lambda () (interactive)
+				(reorg--close-tree-buffer)
+				(kill-buffer reorg-buffer-name)
 				(save-excursion (reorg-open-main-window
 						 reorg--current-template))))
     (define-key map (kbd "c") #'reorg--goto-next-clone)
