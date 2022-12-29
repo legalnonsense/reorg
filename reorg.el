@@ -97,11 +97,11 @@ switch to that buffer in the window."
     (switch-to-buffer buffer)))
 
 (defun reorg--select-tree-window ()
-  "Select the tree window." 
-  (select-window
-   (--first 
-    (window-parameter it 'reorg)
-    (window-at-side-list nil reorg-buffer-side))))
+  "Select the tree window."
+  (when-let ((window (--first 
+		      (window-parameter it 'reorg)
+		      (window-at-side-list nil reorg-buffer-side))))
+    (select-window window)))
 
 ;;; main
 
@@ -183,18 +183,37 @@ switch to that buffer in the window."
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
+
+
+;;;; NEW WINDOW SELECTOR
+;; write selector that only renders when it is in a tree buffer
+
 (defun reorg--buffer-in-side-window-p ()
   "Is the reorg buffer in a side window?"
   (--first 
    (window-parameter it 'reorg)
    (window-at-side-list nil reorg-buffer-side)))
 
+(defun reorg--select-window-run-func-maybe (window &optional func)
+  "WINDOW is either 'main or 'tree. FUNC is a function with no args."
+  (when-let ((win (--first 
+		   (window-parameter it 'reorg)
+		   (window-at-side-list nil reorg-buffer-side))))
+    (pcase window
+      ('tree (progn (reorg--select-tree-window)
+		    (funcall func)))
+      ('main (progn (reorg--select-main-window)
+		    (funcall func))))))
 
-(defun reorg--move-to-previous-entry ()
-  "move to previous entry"
-  (interactive)
-  (reorg--goto-previous-visible-heading)
-  (run-hooks 'reorg--navigation-hook))
+(defun reorg--render-maybe ()
+  "maybe render if we are in a tree window."
+  (reorg--select-window-run-func-maybe 'main #'reorg--render-source))
+
+  (defun reorg--move-to-previous-entry ()
+    "move to previous entry"
+    (interactive)
+    (reorg--goto-previous-visible-heading)
+    (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--move-to-next-entry ()
   "next entry"
@@ -296,23 +315,24 @@ switch to that buffer in the window."
       (reorg--close-tree-buffer)
     (reorg--open-side-window)))
 
-  (define-derived-mode reorg-main-mode
-    fundamental-mode
-    "Agenda style"
-    "Tree view of an Orgmode file. \{keymap}"
-    (setq cursor-type nil)
-    (use-local-map reorg-main-mode-map)
-    (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
-    (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
-
-(define-derived-mode reorg-view-mode
+(define-derived-mode reorg-main-mode
   fundamental-mode
-  "Org tree view"
+  "Agenda style"
   "Tree view of an Orgmode file. \{keymap}"
   (setq cursor-type nil)
-  (use-local-map reorg-view-mode-map)
-  (add-hook 'reorg--navigation-hook #'org-show-context nil t)
-  (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
+  (use-local-map reorg-main-mode-map)
+  (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
+  (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
+  (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t))
+
+;; (define-derived-mode reorg-view-mode
+;;   fundamental-mode
+;;   "Org tree view"
+;;   "Tree view of an Orgmode file. \{keymap}"
+;;   (setq cursor-type nil)
+;;   (use-local-map reorg-view-mode-map)
+;;   (add-hook 'reorg--navigation-hook #'org-show-context nil t)
+;;   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t))
 
 (defvar reorg-edits--current-field-overlay
   (let ((overlay (make-overlay 1 2)))
