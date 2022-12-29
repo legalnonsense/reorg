@@ -224,16 +224,16 @@ text properties of any field displaying the data type.
   (when-let ((func (alist-get
 		    (reorg--get-view-prop 'class)
 		    reorg--render-func-list)))
-    (funcall func)))
-;; (when (reorg--buffer-in-side-window-p)
-;;   (reorg--select-tree-window)))
+    (funcall func)
+    (when (reorg--buffer-in-side-window-p)
+      (reorg--select-tree-window))))
 
-(defun reorg--goto-source ()
-  "Goto rendered source buffer."
-  (interactive)
-  (reorg--render-source)
-  (when (reorg--buffer-in-side-window-p)
-    (reorg--select-main-window)))
+  (defun reorg--goto-source ()
+    "Goto rendered source buffer."
+    (interactive)
+    (reorg--render-source)
+    (when (reorg--buffer-in-side-window-p)
+      (reorg--select-main-window)))
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return

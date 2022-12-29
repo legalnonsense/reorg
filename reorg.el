@@ -69,10 +69,10 @@
   #'reorg--create-headline-string*
   "")
 
-(defvar-local reorg--current-template nil
+(defvar reorg--current-template nil
   "the current template in this buffer")
 
-(defvar-local reorg--current-sources nil
+(defvar reorg--current-sources nil
   "the current template in this buffer")
 
 (defvar reorg--navigation-hook nil
@@ -115,22 +115,28 @@ switch to that buffer in the window."
 					      do (recurse entry))))))
       (recurse data))))
 
+(defun reorg--get-all-sources-from-template (template)
+  "the function name says it all"
+  (cl-labels ((get-sources (template)
+			   (append (cl-loop for each in template
+					    when (plist-get each :sources)
+					    append (plist-get each :sources)
+					    append (get-sources (plist-get template :children)))
+				   (plist-get template :sources))))
+    (-uniq (get-sources template))))
+
 (cl-defun reorg-open-main-window (template)
   "Open this shit in the sidebar."
   (interactive)
   (with-current-buffer (get-buffer-create reorg-buffer-name)
     (erase-buffer)
-    ;; (setq reorg--current-sources nil)
     (reorg--insert-org-headlines
-     (reorg--get-group-and-sort* nil template 1))
+     (reorg--get-group-and-sort* nil template 1 nil))
+    (setq reorg--current-sources
+	  (reorg--get-all-sources-from-template template)
+	  reorg--current-template
+	  template)
     (reorg-main-mode)
-    (reorg-dynamic-bullets-mode)
-    (org-visual-indent-mode)
-    (toggle-truncate-lines 1)
-    (setq reorg--current-template template)
-    (setq reorg--current-sources 
-    (setq-local cursor-type nil)
-    ;; (reorg--map-all-branches #'reorg--delete-headers-maybe*)
     (goto-char (point-min))
     (run-hooks 'reorg--navigation-hook)
     (set-window-buffer nil reorg-buffer-name)))
@@ -155,7 +161,7 @@ switch to that buffer in the window."
   (setq-local cursor-type nil)
   (goto-char (point-min))
   (run-hooks 'reorg--navigation-hook))
-	     
+
 
 ;;;; view buffer functions
 
@@ -194,7 +200,7 @@ switch to that buffer in the window."
    (window-parameter it 'reorg)
    (window-at-side-list nil reorg-buffer-side)))
 
-(defun reorg--select-window-run-func-maybe (window &optional func)
+(defun reorg--select-window-run-func-maybe (window &optional func switch-back)
   "WINDOW is either 'main or 'tree. FUNC is a function with no args."
   (when-let ((win (--first 
 		   (window-parameter it 'reorg)
@@ -202,18 +208,19 @@ switch to that buffer in the window."
     (pcase window
       ('tree (progn (reorg--select-tree-window)
 		    (funcall func)))
-      ('main (progn (reorg--select-main-window)
-		    (funcall func))))))
+      ('main (progn (funcall func)
+		    (when switch-back
+		      (reorg--select-tree-window)))))))
 
 (defun reorg--render-maybe ()
   "maybe render if we are in a tree window."
-  (reorg--select-window-run-func-maybe 'main #'reorg--render-source))
+  (reorg--select-window-run-func-maybe 'main #'reorg--render-source t))
 
-  (defun reorg--move-to-previous-entry ()
-    "move to previous entry"
-    (interactive)
-    (reorg--goto-previous-visible-heading)
-    (run-hooks 'reorg--navigation-hook))
+(defun reorg--move-to-previous-entry ()
+  "move to previous entry"
+  (interactive)
+  (reorg--goto-previous-visible-heading)
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--move-to-next-entry ()
   "next entry"
@@ -317,13 +324,21 @@ switch to that buffer in the window."
 
 (define-derived-mode reorg-main-mode
   fundamental-mode
-  "Agenda style"
-  "Tree view of an Orgmode file. \{keymap}"
+  "Reorg"
+  "Reorganize your life. \{keymap}"
   (setq cursor-type nil)
   (use-local-map reorg-main-mode-map)
+  (reorg-dynamic-bullets-mode)
+  (if (fboundp #'org-visual-indent-mode)
+      (org-visual-indent-mode)
+    (org-indent-mode))
+  (toggle-truncate-lines 1)
+  (setq-local cursor-type nil)
+  ;; (reorg--map-all-branches #'reorg--delete-headers-maybe*)  
   (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
-  (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t))
+  ;; (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
+  (run-hooks 'reorg--navigation-hook))
 
 ;; (define-derived-mode reorg-view-mode
 ;;   fundamental-mode

@@ -40,6 +40,7 @@ as used by `let-alist'."
 (defun reorg--get-group-and-sort* (data
 				   template
 				   level
+				   ignore-sources
 				   &rest
 				   inherited-props)
   (cl-flet ((get-header-metadata
@@ -78,7 +79,7 @@ as used by `let-alist'."
 	  (header-sort (plist-get template :sort-groups))
 	  (level (or level 0))
 	  results metadata)
-      (when sources
+      (when (and sources (not ignore-sources))
 	(cl-loop for each in sources
 		 do (push each reorg--current-sources))
 	(setq data (append data (reorg--getter sources))))
@@ -112,7 +113,7 @@ as used by `let-alist'."
 		                     data))))
       (if (null results)
 	  (cl-loop for child in (plist-get template :children)
-		   collect (reorg--get-group-and-sort* data child level
+		   collect (reorg--get-group-and-sort* data child level ignore-sources
 		                                       (list :header nil
 							     :bullet bullet
 							     :face face)))
@@ -154,6 +155,7 @@ as used by `let-alist'."
 			   children
 			   child
 			   (1+ level)
+			   ignore-sources
 			   (list :header header
 				 :bullet bullet
 				 :face face))))))
@@ -164,6 +166,7 @@ as used by `let-alist'."
 			 data
 			 child
 			 (1+ level)
+			 ignore-sources
 			 (setq metadata (get-header-metadata nil
 							     group
 							     result-sorters
@@ -655,8 +658,8 @@ point where the leaf should be inserted (ie, insert before)"
 		   (when (reorg--goto-parent)
 		     (reorg--delete-headers-maybe*)))
     (cl-loop with header-groups = (reorg--get-all-tree-paths
-				   (reorg--group-and-sort*
-				    (list data) template 1)
+				   (reorg--get-group-and-sort*
+				    (list data) template 1 ignore-sources)
 				   (lambda (x)
 				     (and (listp x)
 					  (stringp (car x))
