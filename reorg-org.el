@@ -16,9 +16,39 @@
   (interactive)
   (reorg-org-capture-enable 'disable))
 
+(defun reorg-org-capture (&optional goto keys)
+  "asfd"
+  (interactive "P")
+  (let ((in-side-p (reorg--buffer-in-side-window-p)))
+    (when in-side-p
+      (reorg--toggle-tree-buffer))
+    (org-capture goto keys)))
+
+(defun reorg--org-capture-goto-last-stored ()
+  "Go to the location where the last capture note was stored."
+  (interactive)
+  (reorg--org-goto-marker-or-bmk org-capture-last-stored-marker
+				 (plist-get org-bookmark-names-plist
+					    :last-capture)))
+
+
+(defun reorg--org-goto-marker-or-bmk (marker &optional bookmark)
+  "Go to MARKER, widen if necessary.  When marker is not live, try BOOKMARK."
+  (if (and marker (marker-buffer marker)
+	   (buffer-live-p (marker-buffer marker)))
+      (progn
+	(with-current-buffer (marker-buffer marker))
+	(when (or (> marker (point-max)) (< marker (point-min)))
+	  (widen))
+	(goto-char marker)
+	(org-show-context 'org-goto))
+    (if bookmark
+	(bookmark-jump bookmark)
+      (error "Cannot find location"))))
+
 (defun reorg-org-capture-enable (&optional disable)
   "wrapper for org-capture"
-  (interactive "P")  
+  (interactive "P")
   (if disable
       (remove-hook 'org-capture-after-finalize-hook
 		   #'reorg-org-capture-hook)  
@@ -29,7 +59,7 @@
   "org capture hook to put captured header
 into current reorg outline."
   (let (data)
-    (org-capture-goto-last-stored)
+    (reorg--org-capture-goto-last-stored)
     (setq data (reorg--parser nil 'org))
     (with-current-buffer reorg-buffer-name
       (when (member (cons
@@ -37,8 +67,8 @@ into current reorg outline."
 		     (abbreviate-file-name
 		      (alist-get 'filename data)))
 		    reorg--current-sources)
-	(reorg--insert-new-heading* data reorg--current-template)))
-    (set-window-buffer nil reorg-buffer-name)))
+	(reorg--insert-new-heading* data reorg--current-template)))))
+
 
 (defmacro reorg--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
@@ -62,11 +92,9 @@ update the heading at point."
 	       (goto-char old-point)))
 	   ,@body
 	   (setq data (reorg--parser nil 'org)))
-	 ;; (reorg--select-tree-window)
 	 (with-current-buffer reorg-buffer-name 
 	   (save-excursion
-	     (reorg--insert-new-heading* data reorg--current-template)))
-	 (set-window-buffer nil reorg-buffer-name)))))
+	     (reorg--insert-new-heading* data reorg--current-template)))))))
 
 ;; (defun reorg--get-format-string ()
 ;;   "get format string at point"
