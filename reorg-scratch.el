@@ -47,19 +47,20 @@ as used by `let-alist'."
 data to be inserted into buffer."
   (cl-flet ((get-header-metadata
 	     (header groups sorts bullet)
-	     (list
-	      (cons 'branch-name header)
-	      (cons 'reorg-branch t)
-	      (cons 'branch-type 'branch)
-	      (cons 'result-sorters sorts)
-	      (cons 'bullet bullet)
-	      (cons 'reorg-level level)
-	      (cons 'group-id
-		    (md5 
-		     (concat (pp-to-string (plist-get inherited-props :parent-id))
-			     (pp-to-string (plist-get inherited-props :parent-header))
-			     (pp-to-string groups))))
-	      (cons 'id (org-id-new)))))
+	     (let ((id (org-id-new)))
+	       (list
+		(cons 'branch-name header)
+		(cons 'reorg-branch t)
+		(cons 'branch-type 'branch)
+		(cons 'result-sorters sorts)
+		(cons 'bullet bullet)
+		(cons 'reorg-level level)
+		(cons 'group-id
+		      (md5
+		       (concat 
+			(pp-to-string (plist-get inherited-props :parent-template))
+			(pp-to-string (plist-get inherited-props :header)))))
+		(cons 'id id)))))
     (let ((format-results (or (plist-get template :format-results)
 			      (plist-get inherited-props :format-results)
 			      reorg-headline-format))
@@ -78,6 +79,7 @@ data to be inserted into buffer."
 	  (header-sort (plist-get template :sort-groups))
 	  (level (or level 0))
 	  results metadata)
+      (setq inherited-props (car inherited-props))
       (when (and sources (not ignore-sources))
 	(cl-loop for each in sources
 		 do (push each reorg--current-sources))
@@ -114,6 +116,7 @@ data to be inserted into buffer."
 	  (cl-loop for child in (plist-get template :children)
 		   collect (reorg--get-group-and-sort* data child level ignore-sources
 		                                       (list :header nil
+							     :parent-template template
 							     :bullet bullet
 							     :face face)))
 	(when header-sort
@@ -156,6 +159,7 @@ data to be inserted into buffer."
 			   (1+ level)
 			   ignore-sources
 			   (list :header header
+				 :parent-template template
 				 :bullet bullet
 				 :face face))))))
 	      ((plist-get template :children)
@@ -596,7 +600,8 @@ See `let-alist--deep-dot-search'."
 	(point)
       (if (reorg--goto-next-prop 'group-id
 				 (alist-get 'group-id header-data)
-				 (reorg--get-next-sibling))
+				 (or (reorg--get-next-parent)
+				     (point-max)))
 	  (point)
 	(goto-char point)
 	nil))))
