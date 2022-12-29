@@ -326,7 +326,8 @@ switch to that buffer in the window."
 	 (window-parameter x 'reorg))
        (window-at-side-list nil reorg-buffer-side))
       (reorg--close-tree-buffer)
-    (reorg--open-side-window)))
+    (reorg--open-side-window)
+    (reorg--select-tree-window)))
 
 (define-derived-mode reorg-main-mode
   fundamental-mode
