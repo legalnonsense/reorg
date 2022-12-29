@@ -137,31 +137,6 @@ call from the template macro.
      (when ',render-func
        (setf (alist-get ',name reorg--render-func-list)
 	     ',render-func))))
-;; (when ',render-func
-;;   (setf (alist-get ',name reorg--extra-prop-list)
-;; 	     (append (alist-get ',name reorg--extra-prop-list)
-;; 		     (list 
-;; 	     	      'render-func
-;; 		      ',render-func))))))
-
-;; all that is needed for a type is:
-;; class
-;; name
-;; parse
-;; set
-;; &rest extra-props
-;; and only do: 1. create a named function for the parser-list
-;;
-;; the getter is the one that tags everything with its class, so that
-;; an object's class is part of the original data
-;;
-;; after that, the parser functions only run if they are of the same class
-;; the the parser list is a list of parser lists 
-;; instead of separate lists
-;;
-
-
-
 
 ;;; data macro
 

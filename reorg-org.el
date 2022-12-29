@@ -189,8 +189,6 @@ RANGE is non-nil, only look for timestamp ranges."
 	 ,@body))))
 
 ;;; moving from outline to orgmode 
-;; TODO fix tree to source orgmode functions; figure out how to generalize
-;; TODO delete unused files
 
 (defun reorg--org--render-source (&optional buffer id no-narrow)
   "Move to buffer and find heading with ID.  If NARROW is non-nil,

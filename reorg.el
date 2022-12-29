@@ -409,9 +409,10 @@ switch to that buffer in the window."
   (reorg--with-restore-state
    (end-of-line)
    (insert "\n")
-   (let ((string (reorg--create-headline-string data
-						(or format-string reorg-headline-format)
-						(or level (reorg--get-view-prop 'reorg-level)))))
+   (let ((string (reorg--create-headline-string
+		  data
+		  (or format-string reorg-headline-format)
+		  (or level (reorg--get-view-prop 'reorg-level)))))
      (insert string)
      (reorg-dynamic-bullets--fontify-heading)
      (1+ (length string)))))
@@ -420,14 +421,6 @@ switch to that buffer in the window."
   "delete the heading at point"
   (delete-region (point-at-bol)
 		 (line-beginning-position 2)))
-
-;; (defun reorg-views--delete-headers-maybe () ;; SUSPECT
-;;   "VERY SUSPECT"
-;;   (save-excursion 
-;;     (cl-loop while (and (reorg-tree--goto-next-property-field 'reorg-field-type 'branch t)
-;; 			(not (reorg--get-next-level-branches))
-;; 			(not (reorg-tree--branch-has-leaves-p)))
-;; 	     do (reorg-views--delete-leaf))))
 
 (defun reorg-view--update-view-headline ()
   "Goto source buffer, re-parse, update. WORKS"
@@ -446,18 +439,6 @@ switch to that buffer in the window."
 ;;;; inserting headers into the appropriate location
 
 ;;;;; reorg-map-branches
-
-;; (defmacro reorg--map-all-branches (&rest body)
-;;   "Move to the next clone of the current node."
-;;   `(save-restriction 
-;;      (save-excursion
-;;        (goto-char (point-min))
-;;        (while
-;; 	   (text-property-search-backward 'reorg-field-type
-;; 					  'branch
-;; 					  nil
-;; 					  'not-current)
-;; 	 ,@body))))
 
 (defmacro reorg--map-id (id &rest body)
   "Execute BODY at each entry that matches ID."
