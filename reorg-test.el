@@ -1,5 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
+
+
 (setq org-capture-templates
       '(("t" "Task" entry (function org-legal-default-capture-find-func) "* TASK %?\n")
 	("c" "Calendar" entry (function org-legal-calendar-capture-find-func) "* EVENT %?\n")
@@ -94,7 +96,91 @@
       (org-metaright)
       (insert "_NOTES_"))))
 
-
+(setq reorg-template--test-org '( :sources ((org . "~/tmp/tmp.org"))
+				  :children
+				  (( :group "By client"
+				     :children
+				     (( :group
+					.category-inherited
+					:sort-groups
+					(lambda (a b)
+					  (string< (downcase a)
+						   (downcase b)))			
+					:children
+					(( :group
+					   (when
+					       (and
+						.todo
+						(not (string= "DONE" .todo))
+						(not (string= "EVENT" .todo))
+						(not (string= "DEADLINE" .todo)))
+					     "Tasks")
+					   :sort-group
+					   string<
+					   :format-results
+					   (.priority
+					    " "
+					    (s-pad-right 15 " " .todo)
+					    " " .headline)
+					   :sort-results
+					   ((.priority . string<)
+					    (.headline . string<)))
+					 ( :group (when (and .ts-ts
+							     (ts> .ts-ts (ts-now)))
+						    "Calendar")
+					   :format-results
+					   (.ts-type
+					    " "
+					    (s-pad-right 30 " " .ts)
+					    " " .headline)
+					   :sort-results
+					   (( .ts . string<)))))))
+				   ( :group "By delegatee"
+				     :children (( :group
+						  .delegatee
+						  :sort-group
+						  (lambda (a b)
+						    (string< a b)))))		 
+				   ( :group "Calendar"
+				     :children (( :group
+						  .ts-year
+						  :sort-groups
+						  (lambda (a b) (string< a b))
+						  :children
+						  (( :group
+						     .ts-month
+						     :sort-groups
+						     (lambda (a b)
+						       (let ((seq '("January"
+								    "February"
+								    "March"
+								    "April"
+								    "May"
+								    "June"
+								    "July"
+								    "August"
+								    "September"
+								    "October"
+								    "November"
+								    "December")))
+							 (< (seq-position seq a 'string=)
+							    (seq-position seq b 'string=))))
+						     :sort-results
+						     ((.ts-day . <))
+						     :format-results
+						     (.stars
+						      " "
+						      (s-pad-left 2 " "
+								  (number-to-string
+								   .ts-day))
+						      " "
+						      (s-pad-right 12 " "
+								   .ts-day-name)
+						      (s-pad-right
+						       20
+						       " "
+						       .category-inherited)
+						      .headline)))))))))
 
 (setq reorg-template--test-all '( :sources ((org . "~/tmp/tmp.org"))
 				  :children
