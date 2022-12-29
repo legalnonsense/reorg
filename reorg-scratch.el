@@ -596,7 +596,7 @@ See `let-alist--deep-dot-search'."
 	(point)
       (if (reorg--goto-next-prop 'group-id
 				 (alist-get 'group-id header-data)
-				 (reorg--get-next-parent))
+				 (reorg--get-next-sibling))
 	  (point)
 	(goto-char point)
 	nil))))

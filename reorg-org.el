@@ -19,10 +19,17 @@
 (defun reorg-org-capture (&optional goto keys)
   "asfd"
   (interactive "P")
-  (let ((in-side-p (reorg--buffer-in-side-window-p)))
+  (let ((in-side-p (reorg--buffer-in-side-window-p))
+	(in-reorg-buffer-p (string=
+			    reorg-buffer-name
+			    (buffer-name (current-buffer)))))
     (when in-side-p
       (reorg--toggle-tree-buffer))
-    (org-capture goto keys)))
+    (org-capture goto keys)
+    (when in-reorg-buffer-p
+      (if in-side-p
+	  (reorg--toggle-tree-buffer)
+	(set-window-buffer reorg-buffer-name)))))
 
 (defun reorg--org-capture-goto-last-stored ()
   "Go to the location where the last capture note was stored."
@@ -31,19 +38,22 @@
 				 (plist-get org-bookmark-names-plist
 					    :last-capture)))
 
-
 (defun reorg--org-goto-marker-or-bmk (marker &optional bookmark)
   "Go to MARKER, widen if necessary.  When marker is not live, try BOOKMARK."
   (if (and marker (marker-buffer marker)
 	   (buffer-live-p (marker-buffer marker)))
       (progn
-	(with-current-buffer (marker-buffer marker))
-	(when (or (> marker (point-max)) (< marker (point-min)))
-	  (widen))
-	(goto-char marker)
-	(org-show-context 'org-goto))
+	(with-current-buffer (marker-buffer marker)
+	  (when (or (> marker (point-max)) (< marker (point-min)))
+	    (widen))
+	  (goto-char marker)
+	  (org-show-context 'org-goto)
+	  (current-buffer)))
     (if bookmark
-	(bookmark-jump bookmark)
+	(progn 
+	  (bookmark-jump bookmark)
+	  (current-buffer))
+      
       (error "Cannot find location"))))
 
 (defun reorg-org-capture-enable (&optional disable)
@@ -59,8 +69,9 @@
   "org capture hook to put captured header
 into current reorg outline."
   (let (data)
-    (reorg--org-capture-goto-last-stored)
-    (setq data (reorg--parser nil 'org))
+    (with-current-buffer 
+	(reorg--org-capture-goto-last-stored)
+      (setq data (reorg--parser nil 'org)))
     (with-current-buffer reorg-buffer-name
       (when (member (cons
 		     (alist-get 'class data)
