@@ -81,6 +81,18 @@ into current reorg outline."
 	(reorg--insert-new-heading* data reorg--current-template)))))
 
 
+;; (defmacro reorg--with-window-state (&rest body)
+;;   "execute body in a single window and then restore the window state"
+;;   `(let ((in-side-p (reorg--buffer-in-side-window-p))
+;; 	 (in-reorg-buffer-p (string=
+;; 			     reorg-buffer-name
+;; 			     (buffer-name (current-buffer)))))
+;;      (when in-side-p
+;;        (reorg--toggle-tree-buffer))
+;;      ,@body
+;;      (when in-side-p
+;;        (reorg--toggle-tree-buffer))))
+
 (defmacro reorg--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
 update the heading at point."
@@ -308,35 +320,59 @@ the point and return nil."
     t)
   nil)
 
+(defun reorg-org--org-edit-headline (&optional arg)
+  (interactive "P")
+  (reorg--with-source-and-sync 
+    (org-edit-headline (read-string "New headline: "
+				    (org-get-heading t t t t)))))
+
+(defun reorg-org--org-todo (&optional arg)
+  (interactive "P")
+  (reorg--with-source-and-sync
+    (reorg--select-main-window)
+    (funcall-interactively #'org-todo arg)))
+
+(defun reorg-org--org-set-tags-command (&optional arg)
+  (interactive "P")
+  (reorg--with-source-and-sync
+    (funcall-interactively #'org-set-tags-command arg)))
+
+(defun reorg-org--org-deadline (&optional arg)
+  (interactive "P")
+  (reorg--with-source-and-sync
+    (funcall-interactively #'org-deadline arg)))
+
+(defun reorg-org--org-schedule (&optional arg)
+  (interactive "P")
+  (reorg--with-source-and-sync
+    (funcall-interactively #'org-schedule arg)))
+
+(defun reorg-org--org-set-property (&optional arg)
+  (interactive )
+  (reorg--with-source-and-sync
+    (funcall-interactively #'org-set-property nil nil)))
+
+(defun reorg-org--org-priority (&optional arg)
+  (interactive "P")
+  (reorg--with-source-and-sync
+    (funcall-interactively #'org-priority arg)))
+
+(defun reorg-org--reload-heading (&optional arg)
+  (interactive)
+  (reorg--with-source-and-sync))
+
 (reorg-create-class-type
  :name org
  :render-func reorg--org--render-source
  :keymap (("SPC" . reorg-org--open-agenda-day)
-	  ("h" . (lambda (&optional arg)					   
-		   (interactive)
-		   (reorg--with-source-and-sync 
-		     (org-edit-headline (read-string "New headline: "
-						     (org-get-heading t t t t))))))
-	  ("t" . (lambda (&optional arg) (interactive "P")
-		   (reorg--with-source-and-sync
-		     (funcall-interactively #'org-todo arg))))
-	  ("a" . (lambda (&optional arg) (interactive "P")
-		   (reorg--with-source-and-sync
-		     (funcall-interactively #'org-set-tags-command arg))))
-	  ("d" . (lambda (&optional arg) (interactive "P")
-		   (reorg--with-source-and-sync
-		     (funcall-interactively #'org-deadline arg))))
-	  ("s" . (lambda (&optional arg) (interactive "P")
-		   (reorg--with-source-and-sync
-		     (funcall-interactively #'org-schedule arg))))
-	  ("r" . (lambda (&optional arg) (interactive )
-		   (reorg--with-source-and-sync
-		     (funcall-interactively #'org-set-property nil nil))))
-	  ("i" . (lambda (&optional arg) (interactive "P")
-		   (reorg--with-source-and-sync
-		     (funcall-interactively #'org-priority arg))))
-	  ("g" . (lambda (&optional arg) (interactive)
-		   (reorg--with-source-and-sync))))
+	  ("h" . reorg-org--org-edit-headline)
+	  ("t" . reorg-org--org-todo)
+	  ("a" . reorg-org--org-set-tags-command)
+	  ("d" . reorg-org--org-deadline)
+	  ("s" . reorg-org--org-schedule)
+	  ("r" . reorg-org--org-set-property)
+	  ("i" . reorg-org--org-priority)
+	  ("g" . reorg-org--reload-heading))
  :getter (org-ql-select SOURCE nil :action #'PARSER))
 
 (reorg-create-data-type
