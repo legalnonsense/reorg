@@ -344,7 +344,7 @@ switch to that buffer in the window."
   (toggle-truncate-lines 1)
   (setq-local cursor-type nil)
   ;; (reorg--map-all-branches #'reorg--delete-headers-maybe*)  
-  ;; (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
+  (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
   (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
   (goto-char (point-min))
