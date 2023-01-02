@@ -37,6 +37,16 @@ as used by `let-alist'."
 			      (funcall `(lambda (b) (let-alist b ,form)) b))))
    sequence))
 
+(defvar reorg--valid-template-keys '( :sources
+				      :group
+				      :children
+				      :overrides
+				      :post-overrides
+				      :sort-results
+				      :format-results
+				      :sort-groups)
+  "Allowable template keys.")
+
 (defun reorg--get-group-and-sort* (data
 				   template
 				   level
@@ -45,6 +55,12 @@ as used by `let-alist'."
 				   inherited-props)
   "Fetching, grouping, and sorting function to prepare
 data to be inserted into buffer."
+  (when-let ((invalid-keys
+	      (cl-set-difference
+	       (cl-loop for k in template by #'cddr
+			collect k)
+	       reorg--valid-template-keys)))
+    (error "Invalid keys in template plist: %s" invalid-keys))
   (cl-flet ((get-header-metadata
 	     (header groups sorts bullet)
 	     (let ((id (org-id-new)))
@@ -61,6 +77,7 @@ data to be inserted into buffer."
 			(pp-to-string (plist-get inherited-props :parent-template))
 			(pp-to-string (plist-get inherited-props :header)))))
 		(cons 'id id)))))
+
     (let ((format-results (or (plist-get template :format-results)
 			      (plist-get inherited-props :format-results)
 			      reorg-headline-format))
