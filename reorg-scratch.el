@@ -60,7 +60,7 @@ data to be inserted into buffer."
 	       (cl-loop for k in template by #'cddr
 			collect k)
 	       reorg--valid-template-keys)))
-    (error "Invalid keys in template plist: %s" invalid-keys))
+    (error "Invalid keys in entry in tempate: %s" invalid-keys))
   (cl-flet ((get-header-metadata
 	     (header groups sorts bullet)
 	     (let ((id (org-id-new)))
