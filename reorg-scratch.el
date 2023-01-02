@@ -56,7 +56,7 @@ as used by `let-alist'."
   "Fetching, grouping, and sorting function to prepare
 data to be inserted into buffer."
   (when-let ((invalid-keys
-	      (cl-set-difference
+	      (seq-difference 
 	       (cl-loop for k in template by #'cddr
 			collect k)
 	       reorg--valid-template-keys)))
@@ -511,9 +511,11 @@ point where the leaf should be inserted (ie, insert before)"
   (save-excursion 
     (goto-char (point-min))
     (reorg--map-id (alist-get 'id data)
-		   (reorg-views--delete-leaf)
-		   (when (reorg--goto-parent)
-		     (reorg--delete-headers-maybe*)))
+		   (let ((parent (reorg--get-parent)))
+		     (reorg-views--delete-leaf)
+		     (when parent
+		       (goto-char parent)
+		       (reorg--delete-headers-maybe*))))
     (cl-loop with header-groups = (reorg--get-all-tree-paths
 				   (reorg--get-group-and-sort*
 				    (list data) template 1 t)
