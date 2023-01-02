@@ -1,102 +1,108 @@
 ;; -*- lexical-binding: t; -*-
 
+(defun reorg--set-up-capture-test ()
+  "set up capture testing"
+  
+
+  (setq org-capture-templates
+	'(("t" "Task" entry (function org-legal-default-capture-find-func) "* TASK %?\n")
+	  ("c" "Calendar" entry (function org-legal-calendar-capture-find-func) "* EVENT %?\n")
+	  ("d" "Calendar" entry (function org-legal-calendar-capture-find-func) "* DEADLINE %?\n")
+	  ("n" "Progress note" plain (function org-legal-notes-capture-find-func) "%U\n%?\n")
+	  ("w" "Case review agenda" checkitem (id "ebd5bf86-9234-443a-bc90-9a11571d1424"))))
+
+  (defun org-legal-default-capture-find-func (&optional file)
+    "Prompt the user to select from the root headings in an agenda file."
+    (interactive)
+    (let* ((headings (org-ql-select "~/tmp/tmp.org"
+		       `(level 1)
+		       :action
+		       (lambda ()
+			 `(:file ,(buffer-file-name)
+				 :point ,(org-element-property
+					  :begin
+					  (org-element-at-point))
+				 :headline ,(org-no-properties (org-get-heading t t t t))))))
+	   (candidate (completing-read "Task target: " 
+				       (mapcar (lambda (heading) (plist-get heading :headline))
+					       headings)))
+	   (target (cl-loop for heading in headings
+			    when (string= (plist-get heading :headline) candidate)
+			    return heading)))
+      (find-file (plist-get target :file))
+      (widen)
+      (goto-char (plist-get target :point))
+      (if (re-search-forward "^\\*+[[:space:]]+_TASKS_"
+			     (save-excursion (org-end-of-subtree)) t)
+          (progn (goto-char (match-end 0)))
+	(org-insert-heading-respect-content)
+	(org-metaright)
+	(insert "_TASKS_"))))
 
 
-;; (setq org-capture-templates
-;;       '(("t" "Task" entry (function org-legal-default-capture-find-func) "* TASK %?\n")
-;; 	("c" "Calendar" entry (function org-legal-calendar-capture-find-func) "* EVENT %?\n")
-;; 	("d" "Calendar" entry (function org-legal-calendar-capture-find-func) "* DEADLINE %?\n")
-;; 	("n" "Progress note" plain (function org-legal-notes-capture-find-func) "%U\n%?\n")
-;; 	("w" "Case review agenda" checkitem (id "ebd5bf86-9234-443a-bc90-9a11571d1424"))))
+  (defun org-legal-calendar-capture-find-func (&optional file)
+    "Prompt the user to select from the root headings in an agenda file, 
+  then move to the first sub-heading called \"_CALENDAR_\"."
+    (interactive)
+    (let* ((headings (org-ql-select "~/tmp/tmp.org"
+		       `(level 1)
+		       :action
+		       (lambda ()
+			 `(:file ,(buffer-file-name)
+				 :point ,(org-element-property
+					  :begin
+					  (org-element-at-point))
+				 :headline ,(org-no-properties (org-get-heading t t t t))))))
+	   (candidate (completing-read "Calendar target: " 
+				       (mapcar (lambda (heading) (plist-get heading :headline))
+					       headings)))
+	   (target (cl-loop for heading in headings
+			    when (string= (plist-get heading :headline) candidate)
+			    return heading)))
+      (find-file (plist-get target :file))
+      (widen)
+      (goto-char (plist-get target :point))
+      (if (re-search-forward "^\\*+[[:space:]]+_CALENDAR_"
+			     (save-excursion (org-end-of-subtree)) t)
+	  (progn (goto-char (match-end 0)))
+	(org-insert-heading-respect-content)
+	(org-metaright)
+	(insert "_CALENDAR_"))))
 
-;; (defun org-legal-default-capture-find-func (&optional file)
-;;   "Prompt the user to select from the root headings in an agenda file."
-;;   (interactive)
-;;   (let* ((headings (org-ql-select "~/tmp/tmp.org"
-;; 		     `(level 1)
-;; 		     :action
-;; 		     (lambda ()
-;; 		       `(:file ,(buffer-file-name)
-;; 			       :point ,(org-element-property
-;; 					:begin
-;; 					(org-element-at-point))
-;; 			       :headline ,(org-no-properties (org-get-heading t t t t))))))
-;; 	 (candidate (completing-read "Task target: " 
-;; 				     (mapcar (lambda (heading) (plist-get heading :headline))
-;; 					     headings)))
-;; 	 (target (cl-loop for heading in headings
-;; 			  when (string= (plist-get heading :headline) candidate)
-;; 			  return heading)))
-;;     (find-file (plist-get target :file))
-;;     (widen)
-;;     (goto-char (plist-get target :point))
-;;     (if (re-search-forward "^\\*+[[:space:]]+_TASKS_"
-;; 			   (save-excursion (org-end-of-subtree)) t)
-;;         (progn (goto-char (match-end 0)))
-;;       (org-insert-heading-respect-content)
-;;       (org-metaright)
-;;       (insert "_TASKS_"))))
+  (defun org-legal-notes-capture-find-func (&optional file)
+    "Prompt the user to select from the root headings in an agenda file, 
+  then move to the first sub-heading called \"_NOTES_\"."
+    (interactive)
+    (let* ((headings (org-ql-select "~/tmp/tmp.org"
+		       `(level 1)
+		       :action
+		       (lambda ()
+			 `(:file ,(buffer-file-name)
+				 :point ,(org-element-property
+                                          :begin
+                                          (org-element-at-point))
+				 :headline ,(org-no-properties (org-get-heading t t t t))))))
+           (candidate (completing-read "Note: " 
+				       (mapcar (lambda (heading) (plist-get heading :headline))
+					       headings)))
+           (target (cl-loop for heading in headings
+			    when (string= (plist-get heading :headline) candidate)
+			    return heading)))
+      (find-file (plist-get target :file))
+      (widen)
+      (goto-char (plist-get target :point))
+      (if (re-search-forward "^\\*+[[:space:]]+_NOTES_"
+			     (save-excursion (org-end-of-subtree)) t)
+          (progn (org-end-of-meta-data t))
+	(org-insert-heading-respect-content)
+	(org-metaright)
+	(insert "_NOTES_")))))
 
+(defun reorg-test-1 ()
+  (interactive)
+  (reorg-open-main-window reorg-template--test-org))
 
-;; (defun org-legal-calendar-capture-find-func (&optional file)
-;;   "Prompt the user to select from the root headings in an agenda file, 
-;;   then move to the first sub-heading called \"_CALENDAR_\"."
-;;   (interactive)
-;;   (let* ((headings (org-ql-select "~/tmp/tmp.org"
-;; 		     `(level 1)
-;; 		     :action
-;; 		     (lambda ()
-;; 		       `(:file ,(buffer-file-name)
-;; 			       :point ,(org-element-property
-;; 					:begin
-;; 					(org-element-at-point))
-;; 			       :headline ,(org-no-properties (org-get-heading t t t t))))))
-;; 	 (candidate (completing-read "Calendar target: " 
-;; 				     (mapcar (lambda (heading) (plist-get heading :headline))
-;; 					     headings)))
-;; 	 (target (cl-loop for heading in headings
-;; 			  when (string= (plist-get heading :headline) candidate)
-;; 			  return heading)))
-;;     (find-file (plist-get target :file))
-;;     (widen)
-;;     (goto-char (plist-get target :point))
-;;     (if (re-search-forward "^\\*+[[:space:]]+_CALENDAR_"
-;; 			   (save-excursion (org-end-of-subtree)) t)
-;; 	(progn (goto-char (match-end 0)))
-;;       (org-insert-heading-respect-content)
-;;       (org-metaright)
-;;       (insert "_CALENDAR_"))))
-
-;; (defun org-legal-notes-capture-find-func (&optional file)
-;;   "Prompt the user to select from the root headings in an agenda file, 
-;;   then move to the first sub-heading called \"_NOTES_\"."
-;;   (interactive)
-;;   (let* ((headings (org-ql-select "~/tmp/tmp.org"
-;; 		     `(level 1)
-;; 		     :action
-;; 		     (lambda ()
-;; 		       `(:file ,(buffer-file-name)
-;; 			       :point ,(org-element-property
-;;                                         :begin
-;;                                         (org-element-at-point))
-;; 			       :headline ,(org-no-properties (org-get-heading t t t t))))))
-;;          (candidate (completing-read "Note: " 
-;; 				     (mapcar (lambda (heading) (plist-get heading :headline))
-;; 					     headings)))
-;;          (target (cl-loop for heading in headings
-;; 			  when (string= (plist-get heading :headline) candidate)
-;; 			  return heading)))
-;;     (find-file (plist-get target :file))
-;;     (widen)
-;;     (goto-char (plist-get target :point))
-;;     (if (re-search-forward "^\\*+[[:space:]]+_NOTES_"
-;; 			   (save-excursion (org-end-of-subtree)) t)
-;;         (progn (org-end-of-meta-data t))
-;;       (org-insert-heading-respect-content)
-;;       (org-metaright)
-;;       (insert "_NOTES_"))))
-
-(setq reorg-template--test-org '( :sources ((org . "~/org/taskmaster.org"))
+(setq reorg-template--test-org '( :sources ((org . "~/tmp/tmp.org"))
 				  :children
 				  (( :group "By client"
 				     :children
@@ -116,7 +122,7 @@
 						(not (string= "DEADLINE" .todo))
 						(not (string= "OPP_DUE" .todo)))
 					     "Tasks")
-					   :sort-group
+					   :sort-groups
 					   string<
 					   :format-results
 					   (.priority
@@ -140,9 +146,8 @@
 				   ( :group "By delegatee"
 				     :children (( :group
 						  .delegatee
-						  :sort-group
-						  (lambda (a b)
-						    (string< a b)))))		 
+						  :sort-groups
+						  string<)))		 
 				   ( :group "Calendar"
 				     :children (( :group
 						  .ts-year
@@ -183,6 +188,9 @@
 						       " "
 						       .category-inherited)
 						      .headline)))))))))
+(defun reorg-test-all ()
+  (interactive)
+  (reorg-open-main-window reorg-template--test-all))
 
 (setq reorg-template--test-all '( :sources ((org . "~/tmp/tmp.org"))
 				  :children
