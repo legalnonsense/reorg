@@ -850,4 +850,15 @@ will extract the single value prior to comparing to VAL."
   "get the start of the headline"
   (save-excursion (reorg--goto-headline-start)))
 
+(defmacro reorg--create-string-comparison-funcs ()
+  "string<, etc., while ignoring case."
+  `(progn 
+     ,@(cl-loop for each in '("<" ">" "=" )
+		collect `(defun ,(intern (concat "reorg-string" each)) (a b)
+			   ,(concat "like string" each " but ignore case")
+			   (,(intern (concat "string" each))
+			    (downcase a)
+			    (downcase b))))))
+(reorg--create-string-comparison-funcs)
+
 (provide 'reorg)
