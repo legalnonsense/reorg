@@ -133,24 +133,23 @@ one of the sources."
 
 
 ;;;###autoload
-(defun reorg-open-in-current-window (&optional template)
+(defun reorg-open-in-current-window (&optional template point)
   "open the reorg buffer here"
   (interactive)
-  (unless (get-buffer reorg-buffer-name)
-    (reorg-open (or template reorg--current-template)))
+  (reorg-open (or template reorg--current-template) point)
   (set-window-buffer nil reorg-buffer-name))
 
 ;;;###autoload
-(cl-defun reorg-open-sidebar (&optional template)
+(defun reorg-open-sidebar (&optional template point)
   "open reorg in sidebar"
   (interactive)
-  (unless (get-buffer reorg-buffer-name)
-    (reorg-open (or template reorg--current-template)))
+  (reorg-open (or template reorg--current-template) point)
+  ;; (reorg--select-tree-window)
+  ;; (set-window-buffer nil reorg-buffer-name)
   (reorg--open-side-window)
-  (reorg--select-tree-window)
-  (set-window-buffer nil reorg-buffer-name))
+  (reorg--select-tree-window))
 
-(cl-defun reorg-open (template)
+(defun reorg-open (template &optional point)
   "Open this shit in the sidebar."
   (interactive)
   (when (get-buffer reorg-buffer-name)
@@ -164,7 +163,7 @@ one of the sources."
 	  reorg--current-template
 	  template)
     (reorg-main-mode)
-    (goto-char (point-min))
+    (goto-char (or point (point-min)))
     (run-hooks 'reorg--navigation-hook)))
 
 
@@ -267,7 +266,7 @@ one of the sources."
   "reload the current template"
   (interactive)
   (if (reorg--buffer-in-side-window-p)
-      (reorg--open-side-window)
+      (reorg-open-sidebar)
     (reorg-open-in-current-window)))
 
 (defun reorg--buffer-p ()
