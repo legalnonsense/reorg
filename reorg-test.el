@@ -2,8 +2,7 @@
 
 (defun reorg--set-up-capture-test ()
   "set up capture testing"
-  
-
+  (interactive)
   (setq org-capture-templates
 	'(("t" "Task" entry (function org-legal-default-capture-find-func) "* TASK %?\n")
 	  ("c" "Calendar" entry (function org-legal-calendar-capture-find-func) "* EVENT %?\n")
@@ -96,22 +95,25 @@
           (progn (org-end-of-meta-data t))
 	(org-insert-heading-respect-content)
 	(org-metaright)
-	(insert "_NOTES_")))))
+	(insert "_NOTES_"))))
+  (reorg-org-capture-enable))
+
+
 
 (defun reorg-test-1 ()
   (interactive)
-  (reorg-open-main-window reorg-template--test-org))
+  (reorg-open reorg-template--test-org)
+  (reorg-open-sidebar))
 
 (setq reorg-template--test-org '( :sources ((org . "~/tmp/tmp.org"))
 				  :children
 				  (( :group "By client"
+				     :bullet "It's a tarp!"
 				     :children
 				     (( :group
 					.category-inherited
 					:sort-groups
-					(lambda (a b)
-					  (string< (downcase a)
-						   (downcase b)))			
+					reorg-string<
 					:children
 					(( :group
 					   (when
@@ -123,15 +125,15 @@
 						(not (string= "OPP_DUE" .todo)))
 					     "Tasks")
 					   :sort-groups
-					   string<
+					   reorg-string<
 					   :format-results
 					   (.priority
 					    " "
 					    (s-pad-right 15 " " .todo)
 					    " " .headline)
 					   :sort-results
-					   ((.priority . string<)
-					    (.headline . string<)))
+					   ((.priority . reorg-string<)
+					    (.headline . reorg-string<)))
 					 ( :group (when (and .ts-ts
 							     (ts> .ts-ts (ts-now))
 							     (not (string= "DONE" .todo)))
@@ -142,20 +144,23 @@
 					    (s-pad-right 30 " " .ts)
 					    " " .headline)
 					   :sort-results
-					   (( .ts . string<)))))))
+					   (( .ts . reorg-string<)))))))
 				   ( :group "By delegatee"
+				     :bullet "This should be different."
 				     :children (( :group
 						  .delegatee
 						  :sort-groups
-						  string<)))		 
+						  reorg-string<)))		 
 				   ( :group "Calendar"
 				     :children (( :group
 						  .ts-year
+						  :bullet "Year: "
 						  :sort-groups
-						  (lambda (a b) (string< a b))
+						  string<
 						  :children
 						  (( :group
 						     .ts-month
+						     :bullet "       "
 						     :sort-groups
 						     (lambda (a b)
 						       (let ((seq '("January"
@@ -175,7 +180,7 @@
 						     :sort-results
 						     ((.ts-day . <))
 						     :format-results
-						     (.stars
+						     ("                             "
 						      " "
 						      (s-pad-left 2 " "
 								  (number-to-string
@@ -199,9 +204,7 @@
 				     (( :group
 					.category-inherited
 					:sort-groups
-					(lambda (a b)
-					  (string< (downcase a)
-						   (downcase b)))			
+					reorg-string<			
 					:children
 					(( :group
 					   (when
@@ -212,7 +215,7 @@
 						(not (string= "DEADLINE" .todo)))
 					     "Tasks")
 					   :sort-group
-					   string<
+					   reorg-string<
 					   :format-results
 					   (.priority
 					    " "
