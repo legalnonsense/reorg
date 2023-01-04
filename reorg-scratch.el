@@ -2,6 +2,17 @@
 
 ;;     ﯍    
 
+(defconst reorg--valid-template-keys '( :sources
+					:group
+					:children
+					:overrides
+					:post-overrides
+					:sort-results
+					:bullet
+					:format-results
+					:sort-groups)
+  "Allowable template keys.")
+
 (defun reorg--map-all-branches (func)
   "map all"
   (save-excursion 
@@ -37,15 +48,7 @@ as used by `let-alist'."
 			      (funcall `(lambda (b) (let-alist b ,form)) b))))
    sequence))
 
-(defvar reorg--valid-template-keys '( :sources
-				      :group
-				      :children
-				      :overrides
-				      :post-overrides
-				      :sort-results
-				      :format-results
-				      :sort-groups)
-  "Allowable template keys.")
+
 
 (defun reorg--get-group-and-sort* (data
 				   template
@@ -57,8 +60,8 @@ as used by `let-alist'."
 data to be inserted into buffer."
   (when-let ((invalid-keys
 	      (seq-difference 
-	       (cl-loop for k in template by #'cddr
-			collect k)
+	       (cl-loop for key in template by #'cddr
+			collect key)
 	       reorg--valid-template-keys)))
     (error "Invalid keys in entry in tempate: %s" invalid-keys))
   (cl-flet ((get-header-metadata
@@ -77,7 +80,6 @@ data to be inserted into buffer."
 			(pp-to-string (plist-get inherited-props :parent-template))
 			(pp-to-string (plist-get inherited-props :header)))))
 		(cons 'id id)))))
-
     (let ((format-results (or (plist-get template :format-results)
 			      (plist-get inherited-props :format-results)
 			      reorg-headline-format))
