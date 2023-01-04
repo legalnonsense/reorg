@@ -98,8 +98,6 @@
 	(insert "_NOTES_"))))
   (reorg-org-capture-enable))
 
-
-
 (defun reorg-test-1 ()
   (interactive)
   (reorg-open reorg-template--test-org)

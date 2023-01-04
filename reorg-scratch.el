@@ -74,6 +74,7 @@ data to be inserted into buffer."
 		(cons 'result-sorters sorts)
 		(cons 'bullet bullet)
 		(cons 'reorg-level level)
+		(cons 'parent-id (plist-get inherited-props :parent-id))
 		(cons 'group-id
 		      (md5
 		       (concat 
@@ -133,11 +134,16 @@ data to be inserted into buffer."
 		                     data))))
       (if (null results)
 	  (cl-loop for child in (plist-get template :children)
-		   collect (reorg--get-group-and-sort* data child level ignore-sources
-		                                       (list :header nil
-							     :parent-template template
-							     :bullet bullet
-							     :face face)))
+		   collect (reorg--get-group-and-sort*
+			    data
+			    child
+			    level
+			    ignore-sources
+		            (list :header nil
+				  :parent-id nil
+				  :parent-template template
+				  :bullet bullet
+				  :face face)))
 	(when header-sort
 	  (setq results 
 		(cond ((functionp header-sort)
@@ -169,7 +175,6 @@ data to be inserted into buffer."
 			   (cons 'header header)
 			   (cons 'bullet bullet)
 			   (cons 'reorg-face face)))
-
 		 (cl-loop for child in (plist-get template :children)
 			  collect 
 			  (reorg--get-group-and-sort*			  
@@ -179,6 +184,7 @@ data to be inserted into buffer."
 			   ignore-sources
 			   (list :header header
 				 :parent-template template
+				 :parent-id (alist-get 'id metadata)
 				 :bullet bullet
 				 :face face))))))
 	      ((plist-get template :children)
@@ -189,10 +195,14 @@ data to be inserted into buffer."
 			 child
 			 (1+ level)
 			 ignore-sources
-			 (setq metadata (get-header-metadata nil
-							     group
-							     result-sorters
-							     bullet)))))
+			 (progn 
+			   (setq metadata (get-header-metadata nil
+							       group
+							       result-sorters
+							       bullet))
+			   (cl-loop for (key . val) in metadata
+				    append (list (reorg--add-remove-colon key)
+						 val))))))
 	      (t 
 	       (cl-loop for (header . children) in results
 			append
@@ -223,6 +233,8 @@ data to be inserted into buffer."
 			    (append result
 				    (list 
 				     (cons 'group-id
+					   (alist-get 'id metadata))
+				     (cons 'parent-id
 					   (alist-get 'id metadata))))
 			    format-results
 			    (1+ level)
@@ -278,6 +290,8 @@ template.  Use LEVEL number of leading stars.  Add text properties
 					headline-text)
 				  (cons 'reorg-class
 					(alist-get 'class data))
+				  (cons 'parent-id
+					(alist-get 'parent-id data))
 				  (cons 'reorg-field-type
 					(if (alist-get
 					     'reorg-branch data)
