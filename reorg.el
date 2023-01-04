@@ -263,6 +263,13 @@ one of the sources."
 ;; 		       (reorg-view--update-view-headline)
 ;; 		       (reorg-dynamic-bullets--fontify-heading))))))
 
+(defun reorg-reload ()
+  "reload the current template"
+  (interactive)
+  (if (reorg--buffer-in-side-window-p)
+      (reorg--open-side-window)
+    (reorg-open-in-current-window)))
+
 (defun reorg--buffer-p ()
   "Are you in the reorg buffer?"
   (string= (buffer-name)
@@ -281,7 +288,7 @@ one of the sources."
 				(save-excursion (reorg-open-main-window
 						 reorg--current-template))))
     (define-key map (kbd "c") #'reorg--goto-next-clone)
-    (define-key map (kbd "R" #'reorg-reload))
+    (define-key map (kbd "R") #'reorg-reload)
     (define-key map (kbd "f") #'reorg--goto-next-sibling)
     (define-key map (kbd "b") #'reorg--goto-previous-sibling)
     (define-key map (kbd "C") #'reorg--goto-previous-clone)
