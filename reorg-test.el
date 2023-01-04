@@ -106,7 +106,7 @@
 (setq reorg-template--test-org '( :sources ((org . "~/tmp/tmp.org"))
 				  :children
 				  (( :group "By client"
-				     :bullet "It's a tarp!"
+				     ;; :bullet "It's a tarp!"
 				     :children
 				     (( :group
 					.category-inherited
@@ -144,7 +144,7 @@
 					   :sort-results
 					   (( .ts . reorg-string<)))))))
 				   ( :group "By delegatee"
-				     :bullet "This should be different."
+				     ;; :bullet "This should be different."
 				     :children (( :group
 						  .delegatee
 						  :sort-groups
@@ -152,13 +152,13 @@
 				   ( :group "Calendar"
 				     :children (( :group
 						  .ts-year
-						  :bullet "Year: "
+						  ;; :bullet "Year: "
 						  :sort-groups
 						  string<
 						  :children
 						  (( :group
 						     .ts-month
-						     :bullet "       "
+						     ;; :bullet "       "
 						     :sort-groups
 						     (lambda (a b)
 						       (let ((seq '("January"
