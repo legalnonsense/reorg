@@ -1,3 +1,10 @@
+* testing for
+:PROPERTIES:
+:ID:       c2432d13-39b1-4737-8091-3b7fee6545b9
+:END:
+#+begin_src emacs-lisp :results silent
+(
+#+end_src
 * testing for org-tagger
 :PROPERTIES:
 :ID:       034e0860-4b17-470a-b536-187102b8d21a
@@ -180,8 +187,31 @@
     
     
 #+end_src
+* zzzzzaardvark
+:PROPERTIES: 
+:HAIR: 1
+:FEATHERS: 0
+:EGGS: 0
+:MILK: 1
+:AIRBORNE: 0
+:AQUATIC: 0
+:PREDATOR: 1
+:TOOTHED: 1
+:BACKBONE: 1
+:BREATHES: 1
+:VENOMOUS: 0
+:FINS: 0
+:LEGS: 44445
+:TAIL: 0
+:DOMESTIC: 0
+:CATSIZE: 1
+:CLASS_TYPE: 1
+:ID:       9cbcabb6-adce-49e5-a54b-8edaf8c085f5
+:END:
+
+
 * aardvark
-DEADLINE: <2021-06-28 Mon>
+DEADLINE: <2021-06-07 Mon>
 :PROPERTIES: 
 :HAIR: 1
 :FEATHERS: 0
@@ -225,7 +255,30 @@ DEADLINE: <2021-06-28 Mon>
 :ID:       45467efa-f7f0-40fc-b8d4-70b94079d558
 :END:
 
+* test animal
+:PROPERTIES:
+:HAIR: 1
+:FEATHERS: 0
+:EGGS: 0
+:MILK: 1
+:AIRBORNE: 0
+:AQUATIC: 0
+:PREDATOR: 0
+:TOOTHED: 1
+:BACKBONE: 1
+:BREATHES: 1
+:VENOMOUS: 0
+:FINS: 0
+:LEGS: 4
+:TAIL: 1
+:DOMESTIC: 0
+:CATSIZE: 1
+:CLASS_TYPE: 1
+:ID:       155b67c7-8ade-4c42-9f7f-4985911f24d9
+:END:
+
 * bass
+DEADLINE: <2021-10-16 Sat>
 :PROPERTIES:
 :HAIR: 0
 :FEATHERS: 0
@@ -1351,6 +1404,7 @@ DEADLINE: <2021-06-28 Mon>
 :END:
 
 * octopus
+DEADLINE: <2021-10-26 Tue>
 :PROPERTIES:
 :HAIR: 0
 :FEATHERS: 0
@@ -1967,6 +2021,29 @@ DEADLINE: <2021-06-28 Mon>
 :ID:       5d933925-3233-4ab0-a770-681d860335b8
 :END:
 
+* boarax
+:PROPERTIES:
+:HAIR: 1
+:FEATHERS: 0
+:EGGS: 0
+:MILK: 1
+:AIRBORNE: 0
+:AQUATIC: 0
+:PREDATOR: 1
+:TOOTHED: 1
+:BACKBONE: 1
+:BREATHES: 1
+:VENOMOUS: 0
+:FINS: 0
+:LEGS: 442
+:TAIL: 1
+:DOMESTIC: 0
+:CATSIZE: 1
+:CLASS_TYPE: 1
+:ID:       beb61f11-b4b6-42d1-b920-10d4cbe36252
+:END:
+
+
 * slug
 :PROPERTIES:
 :HAIR: 0
@@ -2387,7 +2464,7 @@ DEADLINE: <2021-06-28 Mon>
 :ID:       6516c1f6-2736-4eb9-9ce5-700abad079be
 :END:
 
-* wren
+* opp_due wren :test:
 :PROPERTIES:
 :HAIR: 0
 :FEATHERS: 1
@@ -2408,4 +2485,5 @@ DEADLINE: <2021-06-28 Mon>
 :CLASS_TYPE: 2
 :ID:       e6a32b4f-980f-4ae7-a4c6-d0be177c205a
 :END:
+
 

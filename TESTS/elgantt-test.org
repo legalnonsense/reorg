@@ -1,22 +1,26 @@
+
 * Rocket
 :PROPERTIES:
 :ID:       a02dbde8-38d3-4479-8c87-db79821a4296
 :CATEGORY: asdfasdf
 :END:
-** TODO [#A] Design rocket :#Juan:
-SCHEDULED: <2020-02-03 Mon> DEADLINE: <2020-05-10 Sun>
+
+** TO[DO [#A] Design rocket :#Juan:
+DEADLINE: <2020-05-10 Sun> SCHEDULED: <2020-02-03 Mon>
 :PROPERTIES:
 :ID:       7cda092c-d670-4545-892b-4eae2c68c4fa
 :ELGANTT-COLOR: Red Yellow
 :ELGANTT-LINKED-TO: 0b4dde5d-4363-47d2-9995-b82c36a40645
 :END:
-
+asdf
+xxx
 ** Get materials :#Justinia:                
 SCHEDULED: <2020-02-16 Sun> DEADLINE: <2020-03-21 Sat>
 :PROPERTIES:
 :ID:       0b4dde5d-4363-47d2-9995-b82c36a40645
 :ELGANTT-COLOR: Black LightBlue
 :Effort:   60d
+:nil:
 :END:
 
 ** Assemble materials :#Jasmine:
@@ -27,6 +31,7 @@ SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
 :END:
 
 ** TODO [#A] Test rocket :#Jack:
+DEADLINE: <2021-01-01 Fri>
 :PROPERTIES:
 :ID:       74b0cfe8-083e-4e4d-a235-60bc82b2ff02
 :END:
@@ -36,12 +41,17 @@ SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
 <2020-07-17 Fri>--<2021-09-15 Wed>
 <2021-09-15 Wed>
 [2021-09-15 Wed 09:46]
-*** deferred [#A] test
+
+font-lock-keywords
+
+
+*** deferred [#A] test [1/1]
+DEADLINE: <2021-06-01 Tue>
 :PROPERTIES:
 :ID:       cdf1cace-e403-43dd-90a3-0e76c916f735
 :END:
 
-** Visit from POTUS
+- [X] asdf** Visit from POTUS
 :PROPERTIES:
 :ID:       00db3ad5-ddce-4c22-9a63-96693d45b691
 :END:
@@ -50,11 +60,13 @@ SCHEDULED: <2020-06-01 Mon> DEADLINE: <2020-06-16 Tue>
 :PROPERTIES:
 :ID:       60b318f5-8093-4015-9f51-7239c0ff10e2
 :END:
+
 ** [#B] Design space suit :#Jasmine:adsf:
 SCHEDULED: <2020-01-09 Thu> DEADLINE: <2020-03-13 Fri>
 :PROPERTIES:
 :ID:       5b3e77de-fd29-4cde-b3ae-a86ecbd0141e
 :ELGANTT-COLOR: LightGreen DarkGreen
+:nil:
 :END:
 
 ** Get materials :#Justinia:
@@ -64,25 +76,30 @@ SCHEDULED: <2020-02-14 Fri> DEADLINE: <2020-04-07 Tue>
 :ELGANTT-COLOR: Black LightBlue
 :END:
 
-** TODO Assemble materials :#Jason:
-SCHEDULED: <2020-04-01 Wed> DEADLINE: <2020-05-23 Sat>
+org-font-lock-keywords
+** task Assemble materials :#Jason:
+DEADLINE: <2021-06-01 Tue> SCHEDULED: <2020-04-01 Wed>
 :PROPERTIES:
 :ELGANTT-COLOR: Purple Violet
 :ID:       0888069b-96f4-4059-bb4e-5797a2554a84
+:NIL:
 :END:
 
 ** TODO Test space suit :#Jack:
-SCHEDULED: <2020-04-22 Wed> DEADLINE: <2020-05-23 Sat>
+DEADLINE: <2021-06-01 Tue> SCHEDULED: <2020-04-22 Wed>
 :PROPERTIES:
 :ID:       09aa34ed-6dce-4e48-981f-3d0717c59fc1
+:NIL:
 :END:
-
+a
 * Launch pad
 :PROPERTIES:
 :ID:       b1444d1f-6fae-4475-83dc-39a83efc8d8b
+:test:     1 2 3
+:CATEGORY: ssss
 :END:
 
-** <2020-01-01 Wed> opp_due new headlin cas:
+** <2020-01-01 Wed> opp_due new headline case:
 DEADLINE: <2020-01-01 Wed> SCHEDULED: <2020-01-24 Fri>
 :PROPERTIES:
 :ELGANTT-COLOR: LightGreen DarkGreen
@@ -92,10 +109,11 @@ DEADLINE: <2020-01-01 Wed> SCHEDULED: <2020-01-24 Fri>
 - [ ] zzz
 
 ** TODO Get materials :#Justinia:
-SCHEDULED: <2020-02-24 Mon> DEADLINE: <2020-04-02 Thu>
+DEADLINE: <2024-02-02 Fri> SCHEDULED: <2022-02-02 Wed>
 :PROPERTIES:
 :ID:       3ed67722-6f89-4c0b-a23e-8949b9cf1686
 :ELGANTT-COLOR: Black LightBlue
+:NIL:
 :END:
 
 ** Assemble launch pad :#Jason:
@@ -120,11 +138,13 @@ DEADLINE: <2020-06-24 Wed>
 :PROPERTIES:
 :ID:       75f4b06b-e846-4c90-8291-16741bee93cb
 :END:
+
 ** Justinia on vacation :#Justinia:
 :PROPERTIES:
 :ID:       0b371c70-c90c-41e0-8556-fc591f602e34
 :ELGANTT-LINKED-TO: 0b371c70-c90c-41e0-8556-fc591f602e34
 :ELGANTT-COLOR: Purple LightSlateGray
+:nil:
 :END:
 <2020-05-29 Fri>--<2020-06-29 Mon>
 ** Juan on paternity leave :#Juan:
@@ -151,6 +171,7 @@ DEADLINE: <2020-07-11 Sat>
 :PROPERTIES:
 :ID:       71536120-18eb-440f-a877-da07468e86da
 :END:
+
 * asdf
 :PROPERTIES:
 :ID:       4fc022e0-f6e5-4693-b454-84feb2a33522
