@@ -408,10 +408,7 @@ one of the sources."
 ;;      (reorg-dynamic-bullets--fontify-heading)
 ;;      (1+ (length string)))))
 
-(defun reorg-views--delete-leaf ()
-  "delete the heading at point"
-  (delete-region (point-at-bol)
-		 (line-beginning-position 2)))
+
 
 ;; (defun reorg-view--update-view-headline ()
 ;;   "Goto source buffer, re-parse, update. WORKS"
@@ -431,13 +428,7 @@ one of the sources."
 
 ;;;;; reorg-map-branches
 
-(defmacro reorg--map-id (id &rest body)
-  "Execute BODY at each entry that matches ID."
-  `(org-with-wide-buffer 
-    (goto-char (point-min))
-    (let ((id ,id))
-      (while (reorg--goto-next-prop 'id id)
-	,@body))))
+
 
 ;; (defmacro reorg--map-next-level (&rest body)
 ;;   "Go to the next branch. With integer RELATIVE-LEVEL, go to the next
@@ -826,28 +817,18 @@ one of the sources."
 ;;     (goto-char (point-min))
 ;;     (doloop data template)))
 
-(defun reorg--goto-headline-start ()
-  "goto start of org headline"
-  (save-match-data 
-    (goto-char (org-entry-beginning-position))
-    (re-search-forward "^\\*+[[:space:]]" nil t)
-    (backward-char 1)
-    (point)))
+;; (defun reorg--goto-headline-start ()
+;;   "goto start of org headline"
+;;   (save-match-data 
+;;     (goto-char (org-entry-beginning-position))
+;;     (re-search-forward "^\\*+[[:space:]]" nil t)
+;;     (backward-char 1)
+;;     (point)))
 
-(defun reorg--get-headline-start ()
-  "get the start of the headline"
-  (save-excursion (reorg--goto-headline-start)))
+;; (defun reorg--get-headline-start ()
+;;   "get the start of the headline"
+;;   (save-excursion (reorg--goto-headline-start)))
 
-(defmacro reorg--create-string-comparison-funcs ()
-  "string<, etc., while ignoring case."
-  `(progn 
-     ,@(cl-loop for each in '("<" ">" "=" )
-		collect `(defun ,(intern (concat "reorg-string" each)) (a b)
-			   ,(concat "like string" each " but ignore case")
-			   (,(intern (concat "string" each))
-			    (if a (downcase a) "")
-			    (if b (downcase b) ""))))))
 
-(reorg--create-string-comparison-funcs)
 
 (provide 'reorg)

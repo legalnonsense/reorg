@@ -13,6 +13,32 @@
 					:sort-groups)
   "Allowable template keys.")
 
+
+(defmacro reorg--create-string-comparison-funcs ()
+  "string<, etc., while ignoring case."
+  `(progn 
+     ,@(cl-loop for each in '("<" ">" "=" )
+		collect `(defun ,(intern (concat "reorg-string" each)) (a b)
+			   ,(concat "like string" each " but ignore case")
+			   (,(intern (concat "string" each))
+			    (if a (downcase a) "")
+			    (if b (downcase b) ""))))))
+
+(reorg--create-string-comparison-funcs)
+
+(defun reorg-views--delete-leaf ()
+  "delete the heading at point"
+  (delete-region (point-at-bol)
+		 (line-beginning-position 2)))
+
+(defmacro reorg--map-id (id &rest body)
+  "Execute BODY at each entry that matches ID."
+  `(org-with-wide-buffer 
+    (goto-char (point-min))
+    (let ((id ,id))
+      (while (reorg--goto-next-prop 'id id)
+	,@body))))
+
 (defun reorg--map-all-branches (func)
   "map all"
   (save-excursion 
