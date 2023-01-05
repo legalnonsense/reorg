@@ -16,7 +16,7 @@
 (require 'reorg-data)
 (require 'reorg-utils)
 (require 'reorg-find)
-(require 'reorg-sort)
+;; (require 'reorg-sort)
 (require 'reorg-dynamic-bullets)
 (require 'reorg-scratch)
 

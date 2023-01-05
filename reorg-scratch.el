@@ -2,6 +2,13 @@
 
 ;;     ﯍    
 
+(defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
+  "turn .@symbol into .symbol."
+  (if (and (symbolp elem)
+	   (string-match "\\`\\.@" (symbol-name elem)))
+      (intern (concat "." (substring (symbol-name elem) 2)))
+    elem))
+
 (defconst reorg--valid-template-keys '( :sources
 					:group
 					:children

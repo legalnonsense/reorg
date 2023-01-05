@@ -230,20 +230,20 @@ parser for that type."
 
 ;;; creating headline strings from parsed data 
 
-(defun reorg--walk-tree (form func &optional data)
-  (cl-labels ((walk (form)
-		    (cl-loop for each in form
-			     if (listp each)
-			     collect (walk each)
-			     else
-			     collect (if data
-					 (funcall func each data)
-				       (funcall func each)))))
-    (if (listp form)
-	(walk form)
-      (if data 
-	  (funcall func form data)
-	(funcall func form)))))
+;; (defun reorg--walk-tree (form func &optional data)
+;;   (cl-labels ((walk (form)
+;; 		    (cl-loop for each in form
+;; 			     if (listp each)
+;; 			     collect (walk each)
+;; 			     else
+;; 			     collect (if data
+;; 					 (funcall func each data)
+;; 				       (funcall func each)))))
+;;     (if (listp form)
+;; 	(walk form)
+;;       (if data 
+;; 	  (funcall func form data)
+;; 	(funcall func form)))))
 
 ;; (defun reorg--walk-tree (form func &optional data)
 ;;   "Run FUNC at each node of TREE using a depth-first traversal
@@ -278,57 +278,57 @@ parser for that type."
 ;;    (headline . "yyy")))
 
 ;; TODO ensure a call to display function instead of relying on the data alist 
-(defun reorg--create-headline-string (data format-string &optional level overrides)
-  "Create a headline string from DATA using FORMAT-STRING as the
-template.  Use LEVEL number of leading stars.  Add text properties
-`reorg--field-property-name' and  `reorg--data-property-name'."
-  (cl-flet ((create-stars (num &optional data)
-			  (make-string (if (functionp num)
-					   (funcall num data)
-					 num)
-				       ?*)))
-    (push (cons 'reorg-level level) data)
-    (apply
-     #'propertize 
-     (concat
-      (if (alist-get 'reorg-branch data)
-	  (propertize 
-	   (concat (create-stars level) " " (alist-get 'branch-name data))
-	   reorg--field-property-name
-	   'branch)
-	;; TODO:get rid of this copy-tree
-	(let ((format-copy (copy-tree format-string)))
-	  (cl-loop for (prop . val) in overrides
-		   do (setf (alist-get prop data)
-			    (funcall `(lambda ()
-					(let-alist data 
-					  ,val)))))
-	  (concat
-	   ;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
-	   (let ((xxx (reorg--walk-tree format-string
-					#'reorg--turn-dot-to-display-string
-					data)))
-	     (funcall `(lambda (data)
-			 (concat ,@xxx))
-		      data)))))
-      ;; (apply (car xxx)
-      ;; 	 (cdr xxx)))
-      
-      ;; `(lambda (data)
-      ;;    (let-alist data 
-      ;;      ,format-string))
-      ;; data))))
-      "\n")
-     'reorg-data     
-     (append data
-	     (list 			;
-	      (cons 'reorg-class (alist-get 'class data))
-	      (cons 'reorg-level level)))
-     reorg--field-property-name
-     'leaf
-     (alist-get (alist-get 'class data)
-		reorg--extra-prop-list)
-     )))
+;; (defun reorg--create-headline-string (data format-string &optional level overrides)
+;;   "Create a headline string from DATA using FORMAT-STRING as the
+;; template.  Use LEVEL number of leading stars.  Add text properties
+;; `reorg--field-property-name' and  `reorg--data-property-name'."
+;;   (cl-flet ((create-stars (num &optional data)
+;; 			  (make-string (if (functionp num)
+;; 					   (funcall num data)
+;; 					 num)
+;; 				       ?*)))
+;;     (push (cons 'reorg-level level) data)
+;;     (apply
+;;      #'propertize 
+;;      (concat
+;;       (if (alist-get 'reorg-branch data)
+;; 	  (propertize 
+;; 	   (concat (create-stars level) " " (alist-get 'branch-name data))
+;; 	   reorg--field-property-name
+;; 	   'branch)
+;; 	;; TODO:get rid of this copy-tree
+;; 	(let ((format-copy (copy-tree format-string)))
+;; 	  (cl-loop for (prop . val) in overrides
+;; 		   do (setf (alist-get prop data)
+;; 			    (funcall `(lambda ()
+;; 					(let-alist data 
+;; 					  ,val)))))
+;; 	  (concat
+;; 	   ;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
+;; 	   (let ((xxx (reorg--walk-tree format-string
+;; 					#'reorg--turn-dot-to-display-string
+;; 					data)))
+;; 	     (funcall `(lambda (data)
+;; 			 (concat ,@xxx))
+;; 		      data)))))
+;;       ;; (apply (car xxx)
+;;       ;; 	 (cdr xxx)))
+
+;;       ;; `(lambda (data)
+;;       ;;    (let-alist data 
+;;       ;;      ,format-string))
+;;       ;; data))))
+;;       "\n")
+;;      'reorg-data     
+;;      (append data
+;; 	     (list 			;
+;; 	      (cons 'reorg-class (alist-get 'class data))
+;; 	      (cons 'reorg-level level)))
+;;      reorg--field-property-name
+;;      'leaf
+;;      (alist-get (alist-get 'class data)
+;; 		reorg--extra-prop-list)
+;;      )))
 
 (defun reorg--getter (sources)
   "Get entries from SOURCES, whih is an alist
