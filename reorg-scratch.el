@@ -9,18 +9,6 @@
       (intern (concat "." (substring (symbol-name elem) 2)))
     elem))
 
-(defconst reorg--valid-template-keys '( :sources
-					:group
-					:children
-					:overrides
-					:post-overrides
-					:sort-results
-					:bullet
-					:format-results
-					:sort-groups)
-  "Allowable template keys.")
-
-
 (defmacro reorg--create-string-comparison-funcs ()
   "string<, etc., while ignoring case."
   `(progn 
@@ -53,7 +41,7 @@
     (while (reorg--goto-next-branch)
       (funcall func))))
 
-(defun reorg--delete-headers-maybe* ()
+(defun reorg--delete-headers-maybe ()
   "delete headers at point if it has no children.
 assume the point is at a branch." 
   (cl-loop with p = nil
@@ -66,7 +54,7 @@ assume the point is at a branch."
 	   return t
 	   else do (goto-char p)))
 
-(defun reorg--multi-sort* (functions-and-predicates sequence)
+(defun reorg--multi-sort (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 
 FUNCTIONS should not be functions.  Use a form that can contain dotted symbols
@@ -83,12 +71,12 @@ as used by `let-alist'."
 
 
 
-(defun reorg--get-group-and-sort* (data
-				   template
-				   level
-				   ignore-sources
-				   &rest
-				   inherited-props)
+(defun reorg--get-group-and-sort (data
+				  template
+				  level
+				  ignore-sources
+				  &rest
+				  inherited-props)
   "Fetching, grouping, and sorting function to prepare
 data to be inserted into buffer."
   (when-let ((invalid-keys
@@ -140,12 +128,12 @@ data to be inserted into buffer."
       (setq results
 	    (pcase group 
 	      ((pred functionp)
-	       (reorg--seq-group-by* group data))
+	       (reorg--seq-group-by group data))
 	      ((pred stringp)
 	       (list (cons group data)))
 	      ((pred (not null))
 	       (when-let ((at-dots (seq-uniq 
-				    (reorg--at-dot-search*
+				    (reorg--at-dot-search
 				     group))))
 		 (setq data (cl-loop
 			     for d in data 
@@ -160,14 +148,14 @@ data to be inserted into buffer."
 					 (setf (alist-get at-dot ppp) x)
 					 ppp))
 			      finally return data))))
-	       (reorg--seq-group-by* (reorg--walk-tree*
-                                      group
-				      #'reorg--turn-at-dot-to-dot
-				      data)
-		                     data))))
+	       (reorg--seq-group-by (reorg--walk-tree
+                                     group
+				     #'reorg--turn-at-dot-to-dot
+				     data)
+		                    data))))
       (if (null results)
 	  (cl-loop for child in (plist-get template :children)
-		   collect (reorg--get-group-and-sort*
+		   collect (reorg--get-group-and-sort
 			    data
 			    child
 			    level
@@ -210,7 +198,7 @@ data to be inserted into buffer."
 			   (cons 'reorg-face face)))
 		 (cl-loop for child in (plist-get template :children)
 			  collect 
-			  (reorg--get-group-and-sort*			  
+			  (reorg--get-group-and-sort			  
 			   children
 			   child
 			   (1+ level)
@@ -223,7 +211,7 @@ data to be inserted into buffer."
 	      ((plist-get template :children)
 	       (cl-loop for child in (plist-get template :children)
 			collect
-			(reorg--get-group-and-sort*
+			(reorg--get-group-and-sort
 			 data
 			 child
 			 (1+ level)
@@ -256,8 +244,8 @@ data to be inserted into buffer."
 			   with
 			   children = 
 			   (if result-sorters
-			       (reorg--multi-sort* result-sorters
-						   children)
+			       (reorg--multi-sort result-sorters
+						  children)
 			     children)
 			   for result in children
 			   collect
@@ -274,12 +262,12 @@ data to be inserted into buffer."
 			    (plist-get template :overrides)
 			    (plist-get template :post-overrides))))))))))))
 
-(defun reorg--create-headline-string* (data
-				       format-string
-				       &optional
-				       level
-				       overrides
-				       post-overrides)
+(defun reorg--create-headline-string (data
+				      format-string
+				      &optional
+				      level
+				      overrides
+				      post-overrides)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  Add text properties
 `reorg--field-property-name' and  `reorg--data-property-name'."
@@ -308,9 +296,9 @@ template.  Use LEVEL number of leading stars.  Add text properties
 			 " "
 			 (alist-get 'branch-name data)
 			 "\n")
-	       (let* ((new (reorg--walk-tree*
+	       (let* ((new (reorg--walk-tree
 			    format-string
-			    #'reorg--turn-dot-to-display-string*
+			    #'reorg--turn-dot-to-display-string
 			    data))
 		      (result (funcall `(lambda (data)
 					  (concat ,@new "\n"))
@@ -339,7 +327,7 @@ template.  Use LEVEL number of leading stars.  Add text properties
        (alist-get (alist-get 'class data) ;; extra props 
 		  reorg--extra-prop-list)))))
 
-(defun reorg--seq-group-by* (func sequence)
+(defun reorg--seq-group-by (func sequence)
   "Apply FUNCTION to each element of SEQUENCE.
 Separate the elements of SEQUENCE into an alist using the results as
 keys.  Keys are compared using `equal'.  Do not group results
@@ -360,7 +348,7 @@ that return nil."
    (seq-reverse sequence)
    nil))
 
-(defun reorg--walk-tree* (tree func &optional data)
+(defun reorg--walk-tree (tree func &optional data)
   "apply func to each element of tree and return the results" 
   (cl-labels
       ((walk
@@ -378,7 +366,7 @@ that return nil."
 	  (funcall func tree data)
 	(funcall func tree)))))
 
-(defun reorg--at-dot-search* (data)
+(defun reorg--at-dot-search (data)
   "Return alist of symbols inside DATA that start with a `.@'.
 Perform a deep search and return a alist of any symbol
 same symbol without the `@'.
@@ -393,17 +381,17 @@ See `let-alist--deep-dot-search'."
 	(list (intern (replace-match "" nil nil name))))))
    ;; (list (cons data (intern (replace-match "" nil nil name)))))))
    ((vectorp data)
-    (apply #'nconc (mapcar #'reorg--at-dot-search* data)))
+    (apply #'nconc (mapcar #'reorg--at-dot-search data)))
    ((not (consp data)) nil)
    ((eq (car data) 'let-alist)
     ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
     ;; inner body because they don’t refer to the alist currently
     ;; being processed.  See Bug#24641.
-    (reorg--at-dot-search* (cadr data)))
-   (t (append (reorg--at-dot-search* (car data))
-	      (reorg--at-dot-search* (cdr data))))))
+    (reorg--at-dot-search (cadr data)))
+   (t (append (reorg--at-dot-search (car data))
+	      (reorg--at-dot-search (cdr data))))))
 
-(defun reorg--turn-dot-to-display-string* (elem data)
+(defun reorg--turn-dot-to-display-string (elem data)
   "turn .symbol to a string using a display function."
   (if (and (symbolp elem)
 	   (string-match "\\`\\." (symbol-name elem)))
@@ -420,21 +408,21 @@ See `let-alist--deep-dot-search'."
 			     ,elem))))))
     elem))
 
-(defun reorg--goto-next-sibling-same-group* (&optional data)
+(defun reorg--goto-next-sibling-same-group (&optional data)
   "goot next sibing same group"
   (let ((id (or
 	     (and data (alist-get 'group-id data))
 	     (reorg--get-view-prop 'group-id))))
     (reorg--goto-next-prop 'group-id id)))
 
-(defun reorg--goto-next-leaf-sibling* ()
+(defun reorg--goto-next-leaf-sibling ()
   "goto next sibling"
   (reorg--goto-next-prop 'reorg-field-type
 			 'leaf
 			 (reorg--get-next-parent)))
 
 ;;TODO move these into `reorg--create-navigation-commands'
-(defun reorg--goto-first-leaf* ()
+(defun reorg--goto-first-leaf ()
   "goto the first leaf of the current group"
   (reorg--goto-next-prop 'reorg-field-type
 			 'leaf
@@ -469,7 +457,7 @@ See `let-alist--deep-dot-search'."
   (reorg-dynamic-bullets--fontify-heading)
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--find-header-location-within-groups* (header-string)
+(defun reorg--find-header-location-within-groups (header-string)
   "assume the point is on the first header in the group"
   (let-alist (get-text-property 0 'reorg-data header-string)
     (if .sort-groups
@@ -481,7 +469,7 @@ See `let-alist--deep-dot-search'."
 				  .branch-name
 				  (reorg--get-view-prop 'branch-name))
 		 return nil
-		 while (reorg--goto-next-sibling-same-group*
+		 while (reorg--goto-next-sibling-same-group
 			(get-text-property 0 'reorg-data header-string))
 		 finally return (progn (goto-char point)
 				       nil))
@@ -489,12 +477,12 @@ See `let-alist--deep-dot-search'."
 	       when (equal .branch-name
 			   (reorg--get-view-prop 'branch-name))
 	       return t
-	       while (reorg--goto-next-sibling-same-group*
+	       while (reorg--goto-next-sibling-same-group
 		      (get-text-property 0 'reorg-data header-string))
 	       finally return (progn (goto-char point)
 				     nil)))))
 
-(defun reorg--find-first-header-group-member* (header-data)
+(defun reorg--find-first-header-group-member (header-data)
   "goto the first header that matches the group-id of header-data"
   (let ((point (point)))
     (if (equal (reorg--get-view-prop 'group-id)
@@ -508,12 +496,12 @@ See `let-alist--deep-dot-search'."
 	(goto-char point)
 	nil))))
 
-(defun reorg--find-leaf-location* (leaf-string &optional result-sorters)
+(defun reorg--find-leaf-location (leaf-string &optional result-sorters)
   "find the location for LEAF-DATA among the current leaves. put the
 point where the leaf should be inserted (ie, insert before)"
   ;; goto the first leaf if at a branch 
   (unless (eq 'leaf (reorg--get-view-prop 'reorg-field-type))
-    (if (reorg--goto-first-leaf*)
+    (if (reorg--goto-first-leaf)
 	(when-let ((result-sorters
 		    (or result-sorters
 			(save-excursion 
@@ -532,7 +520,7 @@ point where the leaf should be inserted (ie, insert before)"
 						   (funcall `(lambda (x) (let-alist x ,func))
 							    (reorg--get-view-prop))))
 		     return (point)
-		     while (reorg--goto-next-leaf-sibling*)
+		     while (reorg--goto-next-leaf-sibling)
 		     finally (goto-char (line-beginning-position 2)))))
       (reorg--goto-next-heading))))
 
@@ -547,7 +535,7 @@ point where the leaf should be inserted (ie, insert before)"
 (defun reorg--update-heading-at-point ()
   "update the current heading"
   (interactive)
-  (reorg--insert-new-heading*
+  (reorg--insert-new-heading
    (reorg--with-point-at-orig-entry nil
 				    nil
 				    (reorg--parser
@@ -555,7 +543,7 @@ point where the leaf should be inserted (ie, insert before)"
 				     (reorg--get-view-prop 'class)))
    reorg--current-template))
 
-(defun reorg--insert-new-heading* (data template)
+(defun reorg--insert-new-heading (data template)
   "insert an individual heading"
   (save-excursion 
     (goto-char (point-min))
@@ -564,9 +552,9 @@ point where the leaf should be inserted (ie, insert before)"
 		     (reorg-views--delete-leaf)
 		     (when parent
 		       (goto-char parent)
-		       (reorg--delete-headers-maybe*))))
+		       (reorg--delete-headers-maybe))))
     (cl-loop with header-groups = (reorg--get-all-tree-paths
-				   (reorg--get-group-and-sort*
+				   (reorg--get-group-and-sort
 				    (list data) template 1 t)
 				   (lambda (x)
 				     (and (listp x)
@@ -590,13 +578,13 @@ point where the leaf should be inserted (ie, insert before)"
 			(id (alist-get 'id header-props)))
 		   (unless (or (reorg--goto-id header-props)
 			       (equal id (reorg--get-view-prop 'id)))		   
-		     (if (reorg--find-first-header-group-member* header-props)
-			 (unless (reorg--find-header-location-within-groups* header)
+		     (if (reorg--find-first-header-group-member header-props)
+			 (unless (reorg--find-header-location-within-groups header)
 			   (reorg--insert-header-at-point header))
 		       (reorg--insert-header-at-point header t))))
 	      finally (progn (setq point (point))
 			     (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
-			       (reorg--find-leaf-location* leaf)
+			       (reorg--find-leaf-location leaf)
 			       (reorg--insert-header-at-point leaf))
 			     (goto-char point))))
     (org-indent-refresh-maybe (point-min) (point-max) nil))

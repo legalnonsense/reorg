@@ -1,27 +1,27 @@
 ;; -*- lexical-binding: t; -*-
 
 
-(defun reorg--process-results (data &optional format-string)
-  "Process the results of `reorg--group-and-sort' and turn them into orgmode headings."
-  (setq format-string (or format-string reorg-headline-format))
-  (let (results)
-    (cl-labels ((recurse (data level)
-			 (cl-loop for entry in data
-				  do (push (reorg--create-headline-string (car entry)
-									  format-string
-									  level)
-					   results)
-				  if (reorg--plist-p (caadr entry))
-				  do (cl-loop
-				      for x in (cadr entry)
-				      do (push (reorg--create-headline-string x
-									      format-string
-									      (1+ level))
-					       results))
-				  else do (cl-loop for e in (cdr entry)
-						   do (recurse e (1+ level))))))
-      (recurse data 1))
-    (reverse results)))
+;; (defun reorg--process-results (data &optional format-string)
+;;   "Process the results of `reorg--group-and-sort' and turn them into orgmode headings."
+;;   (setq format-string (or format-string reorg-headline-format))
+;;   (let (results)
+;;     (cl-labels ((recurse (data level)
+;; 			 (cl-loop for entry in data
+;; 				  do (push (reorg--create-headline-string (car entry)
+;; 									  format-string
+;; 									  level)
+;; 					   results)
+;; 				  if (reorg--plist-p (caadr entry))
+;; 				  do (cl-loop
+;; 				      for x in (cadr entry)
+;; 				      do (push (reorg--create-headline-string x
+;; 									      format-string
+;; 									      (1+ level))
+;; 					       results))
+;; 				  else do (cl-loop for e in (cdr entry)
+;; 						   do (recurse e (1+ level))))))
+;;       (recurse data 1))
+;;     (reverse results)))
 
 
 
@@ -62,4 +62,4 @@
 ;; 			      data
 ;; 			      (cdr each)))
 
-(provide 'reorg-display)
+;; (provide 'reorg-display)

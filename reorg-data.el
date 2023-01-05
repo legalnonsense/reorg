@@ -4,25 +4,66 @@
 ;;; variables
 
 (defvar reorg--extra-prop-list nil "")
-;;(defvar reorg--parser-func-list nil "")
 (defvar reorg--getter-list nil "")
 (defvar reorg--parser-list nil "")
 (defvar reorg--render-func-list nil "")
 
 
+
+;;; utilities
+
+(defun reorg--create-symbol (&rest args)
+  "Create a symbol from ARGS which can be
+strings or symbols.  Used in macros."
+  (cl-loop for arg in args
+           if (stringp arg)
+           concat arg into ret
+	   else if (numberp arg)
+	   concat (number-to-string arg) into ret
+           else if (symbolp arg)
+           concat (symbol-name arg) into ret
+           finally return (intern ret)))
+
+
+(defun reorg--create-symbol (&rest args)
+  "Create a symbol from ARGS which can be
+numbers, strings, symbols."
+  ;; (intern
+  ;;  (apply #'concat 
+  ;; 	  (mapcar (lambda (x)
+  ;; 		    (pcase x
+  ;; 		      ((pred stringp)
+  ;; 		       x)
+  ;; 		      ((pred numberp x)
+  ;; 		       (number-to-string x))
+  ;; 		      ((pred symbolp x)
+  ;; 		       (symbol-name x))
+  ;; 		      (_ (error "Unknown argument type: %s of type %s."
+  ;; 				x 
+  ;; 				(type-of x)))))
+  ;; 		  args)))
+  (cl-loop for arg in args
+	   if (stringp arg)
+	   concat arg into ret
+	   else if (numberp arg)
+	   concat (number-to-string arg) into ret
+	   else if (symbolp arg)
+	   concat (symbol-name arg) into ret
+	   finally return (intern ret)))
+
 ;;; name constructors
 
-(defun reorg--get-display-buffer-func-name (class)
-  "Create `reorg--CLASS--display-buffer' symbol"
-  (reorg--create-symbol 'reorg--
-			class
-			'--display-buffer))
+;; (defun reorg--get-display-buffer-func-name (class)
+;;   "Create `reorg--CLASS--display-buffer' symbol"
+;;   (reorg--create-symbol 'reorg--
+;; 			class
+;; 			'--display-buffer))
 
-(defun reorg--getter-func-name (class)
-  "Create `reorg--CLASS--get-from-source' symbol."
-  (reorg--create-symbol 'reorg--
-			class
-			'--get-from-source))
+;; (defun reorg--getter-func-name (class)
+;;   "Create `reorg--CLASS--get-from-source' symbol."
+;;   (reorg--create-symbol 'reorg--
+;; 			class
+;; 			'--get-from-source))
 
 (defun reorg--get-parser-func-name (class name)
   "Create `reorg--CLASS--parse-NAME' symbol."
@@ -31,11 +72,11 @@
 			'--parse-
 			name))
 
-(defun reorg--get-global-parser-func-name (class)
-  "Create `reorg--CLASS--parse-NAME' symbol."
-  (reorg--create-symbol 'reorg--
-			class
-			'--parser))
+;; (defun reorg--get-global-parser-func-name (class)
+;;   "Create `reorg--CLASS--parse-NAME' symbol."
+;;   (reorg--create-symbol 'reorg--
+;; 			class
+;; 			'--parser))
 
 (defun reorg--get-display-func-name (class name)
   "Create `reorg--CLASS--display-NAME' symbol."
@@ -44,11 +85,11 @@
 			'--display-
 			name))
 
-(defun reorg--get-parser-list-name (class)
-  "Create `reorg--CLASS--parser-list' symbol."
-  (reorg--create-symbol 'reorg--
-			class
-			'--parser-list))
+;; (defun reorg--get-parser-list-name (class)
+;;   "Create `reorg--CLASS--parser-list' symbol."
+;;   (reorg--create-symbol 'reorg--
+;; 			class
+;; 			'--parser-list))
 
 ;;; class macro
 
@@ -194,22 +235,6 @@ text properties of any field displaying the data type.
 	   (fmakunbound ',parsing-func)
 	   (setf (alist-get ',name (alist-get ',class reorg--parser-list)) nil))))))
 
-(defun reorg--render-source ()
-  "Render the heading at point."
-  (when-let ((func (alist-get
-		    (reorg--get-view-prop 'class)
-		    reorg--render-func-list)))
-    (funcall func)
-    (when (reorg--buffer-in-side-window-p)
-      (reorg--select-tree-window))))
-
-  (defun reorg--goto-source ()
-    "Goto rendered source buffer."
-    (interactive)
-    (reorg--render-source)
-    (when (reorg--buffer-in-side-window-p)
-      (reorg--select-main-window)))
-
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
 the result.  If TYPE is provided, only run the
@@ -227,108 +252,6 @@ parser for that type."
       (cl-loop for (type . func) in (alist-get class reorg--parser-list)
 	       collect (cons type (funcall func data)) into data
 	       finally return data))))
-
-;;; creating headline strings from parsed data 
-
-;; (defun reorg--walk-tree (form func &optional data)
-;;   (cl-labels ((walk (form)
-;; 		    (cl-loop for each in form
-;; 			     if (listp each)
-;; 			     collect (walk each)
-;; 			     else
-;; 			     collect (if data
-;; 					 (funcall func each data)
-;; 				       (funcall func each)))))
-;;     (if (listp form)
-;; 	(walk form)
-;;       (if data 
-;; 	  (funcall func form data)
-;; 	(funcall func form)))))
-
-;; (defun reorg--walk-tree (form func &optional data)
-;;   "Run FUNC at each node of TREE using a depth-first traversal
-;; and destructively modify TREE. 
-;; FUNC is a function that accepts one argument, which is the
-;; current element of TREE."
-;;   (let ((tree (copy-tree form)))
-;;     (cl-labels ((doloop (tree func)
-;; 			(setf (car tree) (funcall func (car tree) data))
-;; 			(cl-loop for n below (length (cdr tree))
-;; 				 if (listp (nth n (cdr tree))) do
-;; 				 (doloop (nth n (cdr tree)) func)
-;; 				 else do
-;; 				 (setf (nth n (cdr tree))
-;; 				       (funcall func (nth n (cdr tree)) data)))))
-;;       (if (listp tree)
-;; 	  (progn 
-;; 	    (doloop tree func)
-;; 	    tree)
-;; 	(funcall func tree)))))
-
-;; (reorg--walk-tree
-;;  '(.todo " " .headline)
-;;  #'reorg--turn-dot-to-display-string
-;;  '((todo . "xxx")
-;;    (headline . "yyy")))
-
-;; (reorg--walk-tree
-;;  '((s-pad-right 10 " " .todo) " " .headline)
-;;  #'reorg--turn-dot-to-display-string
-;;  '((todo . "xxx")
-;;    (headline . "yyy")))
-
-;; TODO ensure a call to display function instead of relying on the data alist 
-;; (defun reorg--create-headline-string (data format-string &optional level overrides)
-;;   "Create a headline string from DATA using FORMAT-STRING as the
-;; template.  Use LEVEL number of leading stars.  Add text properties
-;; `reorg--field-property-name' and  `reorg--data-property-name'."
-;;   (cl-flet ((create-stars (num &optional data)
-;; 			  (make-string (if (functionp num)
-;; 					   (funcall num data)
-;; 					 num)
-;; 				       ?*)))
-;;     (push (cons 'reorg-level level) data)
-;;     (apply
-;;      #'propertize 
-;;      (concat
-;;       (if (alist-get 'reorg-branch data)
-;; 	  (propertize 
-;; 	   (concat (create-stars level) " " (alist-get 'branch-name data))
-;; 	   reorg--field-property-name
-;; 	   'branch)
-;; 	;; TODO:get rid of this copy-tree
-;; 	(let ((format-copy (copy-tree format-string)))
-;; 	  (cl-loop for (prop . val) in overrides
-;; 		   do (setf (alist-get prop data)
-;; 			    (funcall `(lambda ()
-;; 					(let-alist data 
-;; 					  ,val)))))
-;; 	  (concat
-;; 	   ;;	   (when level (propertize (create-stars level) reorg--field-property-name 'stars))
-;; 	   (let ((xxx (reorg--walk-tree format-string
-;; 					#'reorg--turn-dot-to-display-string
-;; 					data)))
-;; 	     (funcall `(lambda (data)
-;; 			 (concat ,@xxx))
-;; 		      data)))))
-;;       ;; (apply (car xxx)
-;;       ;; 	 (cdr xxx)))
-
-;;       ;; `(lambda (data)
-;;       ;;    (let-alist data 
-;;       ;;      ,format-string))
-;;       ;; data))))
-;;       "\n")
-;;      'reorg-data     
-;;      (append data
-;; 	     (list 			;
-;; 	      (cons 'reorg-class (alist-get 'class data))
-;; 	      (cons 'reorg-level level)))
-;;      reorg--field-property-name
-;;      'leaf
-;;      (alist-get (alist-get 'class data)
-;; 		reorg--extra-prop-list)
-;;      )))
 
 (defun reorg--getter (sources)
   "Get entries from SOURCES, whih is an alist

@@ -78,7 +78,7 @@ into current reorg outline."
 		     (abbreviate-file-name
 		      (alist-get 'filename data)))
 		    reorg--current-sources)
-	(reorg--insert-new-heading* data reorg--current-template)))))
+	(reorg--insert-new-heading data reorg--current-template)))))
 
 
 ;; (defmacro reorg--with-window-state (&rest body)
@@ -117,7 +117,7 @@ update the heading at point."
 	   (setq data (reorg--parser nil 'org)))
 	 (with-current-buffer reorg-buffer-name 
 	   (save-excursion
-	     (reorg--insert-new-heading* data reorg--current-template)))))))
+	     (reorg--insert-new-heading data reorg--current-template)))))))
 
 ;; (defun reorg--get-format-string ()
 ;;   "get format string at point"
