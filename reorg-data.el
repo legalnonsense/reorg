@@ -3,26 +3,6 @@
 
 ;;; variables
 
-(defvar reorg--extra-prop-list nil "")
-(defvar reorg--getter-list nil "")
-(defvar reorg--parser-list nil "")
-(defvar reorg--render-func-list nil "")
-
-
-
-;;; utilities
-
-(defun reorg--create-symbol (&rest args)
-  "Create a symbol from ARGS which can be
-strings or symbols.  Used in macros."
-  (cl-loop for arg in args
-           if (stringp arg)
-           concat arg into ret
-	   else if (numberp arg)
-	   concat (number-to-string arg) into ret
-           else if (symbolp arg)
-           concat (symbol-name arg) into ret
-           finally return (intern ret)))
 
 
 (defun reorg--create-symbol (&rest args)

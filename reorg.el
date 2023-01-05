@@ -12,20 +12,6 @@
 (require 's)
 (require 'org-visual-indent nil t)
 
-;;; reorg requires 
-(require 'reorg-data)
-(require 'reorg-dynamic-bullets)
-(require 'reorg-scratch)
-
-;;; reorg data types 
-(require 'reorg-org)
-(require 'reorg-files)
-(require 'reorg-leo)
-(require 'reorg-email)
-
-;;; testing requires
-(require 'reorg-test)
-
 ;;; constants
 
 (defconst reorg--data-property-name 'reorg-data)
@@ -78,6 +64,14 @@
 (defvar reorg--navigation-hook nil
   "Post-navigation hook.")
 
+(defvar reorg--extra-prop-list nil "")
+
+(defvar reorg--getter-list nil "")
+
+(defvar reorg--parser-list nil "")
+
+(defvar reorg--render-func-list nil "")
+
 ;;; constants
 
 (defconst reorg--valid-template-keys '(:sources
@@ -90,6 +84,21 @@
 				       :format-results
 				       :sort-groups)
   "Allowable template keys.")
+
+;;; reorg requires 
+(require 'reorg-data)
+(require 'reorg-dynamic-bullets)
+(require 'reorg-scratch)
+
+;;; reorg data types 
+(require 'reorg-org)
+(require 'reorg-files)
+(require 'reorg-leo)
+(require 'reorg-email)
+
+;;; testing requires
+(require 'reorg-test)
+
 
 ;;; window control
 
