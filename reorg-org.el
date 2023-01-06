@@ -126,6 +126,15 @@ contains a timestamp."
 
 ;;; Convenience functions / specialized parsing functions
 
+(defvar reorg-org--org-link-regexp
+  (rx
+   "[["
+   (group (+? not-newline))
+   "]["
+   (group (+? not-newline))
+   "]]")
+  "Org link regexp.")
+
 (defun reorg-org--link-parser ()
   "the first link in the current heading and return an alist."
   (save-excursion 
@@ -135,7 +144,8 @@ contains a timestamp."
 				       (point)))
 		     (point-max))))
       (when (re-search-forward
-	     reorg-org--org-link-regexp
+	     ;; reorg-org--org-link-regexp
+	     org-link-any-re
 	     limit
 	     t)
 	(list 
@@ -313,27 +323,27 @@ the point and return nil."
 
 ;; TODO figure out where to use this after navigation
 ;; ie, what hook should call this? 
-;; (defun reorg-org--goto-end-of-meta-data ()
-;;   "Go to the end of the meta data and insert a blank line
-;; if there is not one."
-;;   (let ((next-heading (reorg--with-restore-state
-;; 		       (outline-next-heading)
-;; 		       (point)))
-;; 	(end-of-meta-data (save-excursion
-;; 			    (org-end-of-meta-data t)
-;; 			    (re-search-backward (rx (not whitespace)))
-;; 			    (match-end 0))))
+(defun reorg-org--goto-end-of-meta-data ()
+  "Go to the end of the meta data and insert a blank line
+if there is not one."
+  (let ((next-heading (reorg--with-restore-state
+		       (outline-next-heading)
+		       (point)))
+	(end-of-meta-data (save-excursion
+			    (org-end-of-meta-data t)
+			    (re-search-backward (rx (not whitespace)))
+			    (match-end 0))))
 
-;;     (if (= (- next-heading end-of-meta-data) 1)
-;; 	(progn (goto-char end-of-meta-data)
-;; 	       (insert "\n"))
-;;       (goto-char (1+ end-of-meta-data)))))
+    (if (= (- next-heading end-of-meta-data) 1)
+	(progn (goto-char end-of-meta-data)
+	       (insert "\n"))
+      (goto-char (1+ end-of-meta-data)))))
 
-;; (defun reorg-view--source--narrow-to-heading ()
-;;   "Narrow to the current heading only, i.e., no subtree."
-;;   (org-back-to-heading)
-;;   (org-narrow-to-element)
-;;   (reorg-org--goto-end-of-meta-data))
+(defun reorg-view--source--narrow-to-heading ()
+  "Narrow to the current heading only, i.e., no subtree."
+  (org-back-to-heading)
+  (org-narrow-to-element)
+  (reorg-org--goto-end-of-meta-data))
 
 
 ;; (reorg--select-main-window)
