@@ -1,97 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
-;;; syncing macro
-
-(defun reorg-org--open-agenda-day (&optional arg)
-  (interactive "P")
-  (when (reorg--get-view-prop 'ts)
-    (let ((date (list (reorg--get-view-prop 'ts-month-num)
-		      (reorg--get-view-prop 'ts-day)
-		      (string-to-number
-		       (reorg--get-view-prop 'ts-year)))))
-      (org-agenda-list nil (calendar-absolute-from-gregorian date) 'day))))
-
-(defun reorg-org-capture-disable ()
-  "disable org capture"
-  (interactive)
-  (reorg-org-capture-enable 'disable))
-
-(defun reorg-org-capture (&optional goto keys)
-  "asfd"
-  (interactive "P")
-  (let ((in-side-p (reorg--buffer-in-side-window-p))
-	(in-reorg-buffer-p (string=
-			    reorg-buffer-name
-			    (buffer-name (current-buffer)))))
-    (when in-side-p
-      (reorg--toggle-tree-buffer))
-    (org-capture goto keys)
-    (when in-reorg-buffer-p
-      (if in-side-p
-	  (reorg--toggle-tree-buffer)
-	(set-window-buffer reorg-buffer-name)))))
-
-(defun reorg--org-capture-goto-last-stored ()
-  "Go to the location where the last capture note was stored."
-  (interactive)
-  (reorg--org-goto-marker-or-bmk org-capture-last-stored-marker
-				 (plist-get org-bookmark-names-plist
-					    :last-capture)))
-
-(defun reorg--org-goto-marker-or-bmk (marker &optional bookmark)
-  "Go to MARKER, widen if necessary.  When marker is not live, try BOOKMARK."
-  (if (and marker (marker-buffer marker)
-	   (buffer-live-p (marker-buffer marker)))
-      (progn
-	(with-current-buffer (marker-buffer marker)
-	  (when (or (> marker (point-max)) (< marker (point-min)))
-	    (widen))
-	  (goto-char marker)
-	  (org-show-context 'org-goto)
-	  (current-buffer)))
-    (if bookmark
-	(progn 
-	  (bookmark-jump bookmark)
-	  (current-buffer))
-      
-      (error "Cannot find location"))))
-
-(defun reorg-org-capture-enable (&optional disable)
-  "wrapper for org-capture"
-  (interactive "P")
-  (if disable
-      (remove-hook 'org-capture-after-finalize-hook
-		   #'reorg-org-capture-hook)  
-    (add-hook 'org-capture-after-finalize-hook
-	      #'reorg-org-capture-hook)))
-
-(defun reorg-org-capture-hook ()
-  "org capture hook to put captured header
-into current reorg outline."
-  (let (data)
-    (with-current-buffer 
-	(reorg--org-capture-goto-last-stored)
-      (setq data (reorg--parser nil 'org)))
-    (with-current-buffer reorg-buffer-name
-      (when (member (cons
-		     (alist-get 'class data)
-		     (abbreviate-file-name
-		      (alist-get 'filename data)))
-		    reorg--current-sources)
-	(reorg--insert-new-heading data reorg--current-template)))))
-
-
-;; (defmacro reorg--with-window-state (&rest body)
-;;   "execute body in a single window and then restore the window state"
-;;   `(let ((in-side-p (reorg--buffer-in-side-window-p))
-;; 	 (in-reorg-buffer-p (string=
-;; 			     reorg-buffer-name
-;; 			     (buffer-name (current-buffer)))))
-;;      (when in-side-p
-;;        (reorg--toggle-tree-buffer))
-;;      ,@body
-;;      (when in-side-p
-;;        (reorg--toggle-tree-buffer))))
+;;; syncing function
 
 (defmacro reorg--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
@@ -119,15 +28,135 @@ update the heading at point."
 	   (save-excursion
 	     (reorg--insert-new-heading data reorg--current-template)))))))
 
-;; (defun reorg--get-format-string ()
-;;   "get format string at point"
-;;   (save-excursion 
-;;     (cl-loop until (or (reorg--get-view-prop 'format-string)
-;; 		       (not (reorg--goto-parent t)))
-;; 	     finally return (or (reorg--get-view-prop 'format-string)
-;; 				reorg-headline-format))))
+;;; org-capture integration 
 
-;;; parsing functions 
+(defun reorg-org-capture-hook ()
+  "Org-capture hook function to that
+runs and determines whether to insert the most
+recently captured heading belongs in the outline."
+  (let (data)
+    (with-current-buffer 
+	(reorg--org-capture-goto-last-stored)
+      (setq data (reorg--parser nil 'org)))
+    (with-current-buffer reorg-buffer-name
+      ;; When the captured item belongs to a source
+      ;; used to generate the outline
+      (when (member (cons
+		     (alist-get 'class data)
+		     (abbreviate-file-name
+		      (alist-get 'filename data)))
+		    reorg--current-sources)
+	;; try to insert it into the outline 
+	(reorg--insert-new-heading data reorg--current-template)))))
+
+(defun reorg-org-capture (&optional goto keys)
+  "Wrapper for org-capture to handle window
+and buffer switching.  This should be called instead of
+`org-capture'."
+  ;;TODO re-write this as advice 
+  (interactive "P")
+  (let ((in-side-p (reorg--buffer-in-side-window-p))
+	(in-reorg-buffer-p (string=
+			    reorg-buffer-name
+			    (buffer-name (current-buffer)))))
+    (when in-side-p
+      (reorg--toggle-tree-buffer))
+    (org-capture goto keys)
+    (when in-reorg-buffer-p
+      (if in-side-p
+	  (reorg--toggle-tree-buffer)
+	(set-window-buffer reorg-buffer-name)))))
+
+(defun reorg-org-capture-enable (&optional disable)
+  "Set up reorg to process anything captured by
+org-capture and insert it into the outline at the
+appropriat point(s)."
+  (interactive "P")
+  (if disable
+      (remove-hook 'org-capture-after-finalize-hook
+		   #'reorg-org-capture-hook)  
+    (add-hook 'org-capture-after-finalize-hook
+	      #'reorg-org-capture-hook)))
+
+(defun reorg-org-capture-disable ()
+  "Disable org capture"
+  (interactive)
+  (reorg-org-capture-enable 'disable))
+
+(defun reorg--org-capture-goto-last-stored ()
+  "Same as org-capture-goto-last-stored, except it call
+`reorg--org-goto-marker-or-bmk' instead of `org-goto-marker-or-bmk'."
+  (interactive)
+  (reorg--org-goto-marker-or-bmk
+   org-capture-last-stored-marker
+   (plist-get org-bookmark-names-plist
+	      :last-capture)))
+
+(defun reorg--org-goto-marker-or-bmk (marker &optional bookmark)
+  "Like `org-goto-marker-or-bmk' except that it handle buffer
+switching differently.  If a bookmark is found, return the
+buffer in which the bookmark was found."
+  (if (and marker (marker-buffer marker)
+	   (buffer-live-p (marker-buffer marker)))
+      (progn
+	(with-current-buffer (marker-buffer marker)
+	  (when (or (> marker (point-max)) (< marker (point-min)))
+	    (widen))
+	  (goto-char marker)
+	  (org-show-context 'org-goto)
+	  (current-buffer)))
+    (if bookmark
+	(progn 
+	  (bookmark-jump bookmark)
+	  (current-buffer))      
+      (error "Cannot find location"))))
+
+;;; navigation commands 
+
+(defun reorg-org--open-agenda-day (&optional arg)
+  "Open org-agenda if the heading at point
+contains a timestamp."
+  (interactive "P")
+  (when (reorg--get-view-prop 'ts)
+    (let ((date (list (reorg--get-view-prop 'ts-month-num)
+		      (reorg--get-view-prop 'ts-day)
+		      (string-to-number
+		       (reorg--get-view-prop 'ts-year)))))
+      (org-agenda-list nil (calendar-absolute-from-gregorian date) 'day))))
+
+;;; Convenience functions / specialized parsing functions
+
+(defun reorg-org--link-parser ()
+  "the first link in the current heading and return an alist."
+  (save-excursion 
+    (let ((limit (or (save-excursion (when (re-search-forward
+					    org-heading-regexp
+					    nil t)
+				       (point)))
+		     (point-max))))
+      (when (re-search-forward
+	     reorg-org--org-link-regexp
+	     limit
+	     t)
+	(list 
+	 (cons 'link (match-string-no-properties 1))
+	 (cons 'text (match-string-no-properties 2)))))))
+
+(defun reorg-org--all-link-parser ()
+  "the first link in the current heading and return an alist."
+  (save-excursion 
+    (let ((limit (or (save-excursion (when (re-search-forward
+					    org-heading-regexp
+					    nil t)
+				       (point)))
+		     (point-max))))
+      (cl-loop while (re-search-forward
+		      org-any-link-re
+		      limit
+		      t)
+	       collect (list 
+			(cons 'link (match-string-no-properties 1))
+			(cons 'text (match-string-no-properties 2)))))))
 
 (defun reorg--ts-hhmm-p (ts)
   (string-match (rx (or (seq (** 1 2 digit)
@@ -141,15 +170,15 @@ update the heading at point."
 		ts))
 
 (defun reorg--format-time-string (ts no-time-format &optional time-format)
+  "Format a ts object.  I am honestly not sure what this is doing."
   (format-time-string
    (if (reorg--ts-hhmm-p ts)
        (or time-format no-time-format)
      no-time-format)
    (org-read-date nil t ts )))
 
-
 (defun reorg-parser--get-property-drawer ()
-  "asdf"
+  "Get the property drawer of the heading at point as a plist."
   (save-excursion
     (org-back-to-heading)
     (let (seen-base props)
@@ -203,6 +232,7 @@ RANGE is non-nil, only look for timestamp ranges."
 (defun reorg--get-body ()
   "get headings body text"
   nil
+  ;;FIXME for some reason this doesn't work 
   ;; (org-no-properties
   ;;  (org-element-interpret-data
   ;;   (org-element--parse-elements (save-excursion (org-back-to-heading)
@@ -213,22 +243,7 @@ RANGE is non-nil, only look for timestamp ranges."
   ;; 				 'first-section nil nil nil nil)))
   )
 
-(defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
-  "Execute BODY with point at the heading with ID at point."
-  `(when-let ((id (or ,id (reorg--get-view-prop 'id))))
-     (with-current-buffer (or ,buffer (reorg--get-view-prop 'buffer))
-       (reorg--with-restore-state
-	(goto-char (point-min))
-	;; NOTE: Can't use `org-id-goto' here or it will keep the
-	;;       buffer open after the edit.  Getting the buffer
-	;;       and searching for the ID should ensure the buffer
-	;;       stays hidden.  It also avoids using `org-id'
-	;;       for anything other than ID generation. 
-	(save-match-data
-	  (if (re-search-forward id)
-	      (progn 
-		,@body)
-	    (error "Heading with ID %s not found." id)))))))
+;;; macros 
 
 (defmacro reorg--with-restore-state (&rest body)
   "do BODY while saving, excursion, restriction, etc."
@@ -239,7 +254,24 @@ RANGE is non-nil, only look for timestamp ranges."
        (let ((inhibit-field-text-motion t))
 	 ,@body))))
 
-;;; moving from outline to orgmode 
+(defmacro reorg--with-point-at-orig-entry (id buffer &rest body)
+  "Execute BODY with point at the heading with ID at point."
+  `(when-let ((id (or ,id (reorg--get-view-prop 'id))))
+     (with-current-buffer (or ,buffer (reorg--get-view-prop 'buffer))
+       (reorg--with-restore-state
+	(goto-char (point-min))
+	;; NOTE: Can't use `org-id-goto' here or it will keep the
+	;;       buffer open after the edit.  Getting the buffer
+	;;       and searching for the ID should ensure the buffer
+	;;       stays hidden.  This avoids using `org-id'
+	;;       for anything other than ID generation. 
+	(save-match-data
+	  (if (re-search-forward id)
+	      (progn 
+		,@body)
+	    (error "Heading with ID %s not found." id)))))))
+
+;;; render source func
 
 (defun reorg--org--render-source (&optional buffer id no-narrow)
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
@@ -260,106 +292,118 @@ the point and return nil."
 	(goto-char old-point)))
     (reorg--select-tree-window)))
 
-(defun reorg--org--goto-source (&optional buffer id no-narrow)
-  "Move to buffer and find heading with ID.  If NARROW is non-nil,
-then narrow to that heading and return t.  If no heading is found, don't move
-the point and return nil."
-  (let ((id (or id (reorg--get-view-prop 'id))))
-    (with-current-buffer (or buffer (reorg--get-view-prop 'buffer))
-      (let ((old-point (point))
-	    (search-invisible t))
-	(widen)
-	(ov-clear)
-	(goto-char (point-min))
-	(if (re-search-forward id nil t)
-	    (progn (goto-char (match-beginning 0))
-		   (org-back-to-heading)
-		   (when (not no-narrow)
-		     (reorg-view--source--narrow-to-heading)))
-	  (goto-char old-point))))))
+;; (defun reorg--org--goto-source (&optional buffer id no-narrow)
+;;   "Move to buffer and find heading with ID.  If NARROW is non-nil,
+;; then narrow to that heading and return t.  If no heading is found, don't move
+;; the point and return nil."
+;;   (let ((id (or id (reorg--get-view-prop 'id))))
+;;     (with-current-buffer (or buffer (reorg--get-view-prop 'buffer))
+;;       (let ((old-point (point))
+;; 	    (search-invisible t))
+;; 	(widen)
+;; 	(ov-clear)
+;; 	(goto-char (point-min))
+;; 	(if (re-search-forward id nil t)
+;; 	    (progn (goto-char (match-beginning 0))
+;; 		   (org-back-to-heading)
+;; 		   (when (not no-narrow)
+;; 		     (reorg-view--source--narrow-to-heading)))
+;; 	  (goto-char old-point))))))
 
 
 ;; TODO figure out where to use this after navigation
 ;; ie, what hook should call this? 
-(defun reorg-org--goto-end-of-meta-data ()
-  "Go to the end of the meta data and insert a blank line
-if there is not one."
-  (let ((next-heading (reorg--with-restore-state
-		       (outline-next-heading)
-		       (point)))
-	(end-of-meta-data (save-excursion
-			    (org-end-of-meta-data t)
-			    (re-search-backward (rx (not whitespace)))
-			    (match-end 0))))
+;; (defun reorg-org--goto-end-of-meta-data ()
+;;   "Go to the end of the meta data and insert a blank line
+;; if there is not one."
+;;   (let ((next-heading (reorg--with-restore-state
+;; 		       (outline-next-heading)
+;; 		       (point)))
+;; 	(end-of-meta-data (save-excursion
+;; 			    (org-end-of-meta-data t)
+;; 			    (re-search-backward (rx (not whitespace)))
+;; 			    (match-end 0))))
 
-    (if (= (- next-heading end-of-meta-data) 1)
-	(progn (goto-char end-of-meta-data)
-	       (insert "\n"))
-      (goto-char (1+ end-of-meta-data)))))
+;;     (if (= (- next-heading end-of-meta-data) 1)
+;; 	(progn (goto-char end-of-meta-data)
+;; 	       (insert "\n"))
+;;       (goto-char (1+ end-of-meta-data)))))
 
-(defun reorg-view--source--narrow-to-heading ()
-  "Narrow to the current heading only, i.e., no subtree."
-  (org-back-to-heading)
-  (org-narrow-to-element)
-  (reorg-org--goto-end-of-meta-data))
+;; (defun reorg-view--source--narrow-to-heading ()
+;;   "Narrow to the current heading only, i.e., no subtree."
+;;   (org-back-to-heading)
+;;   (org-narrow-to-element)
+;;   (reorg-org--goto-end-of-meta-data))
 
 
 ;; (reorg--select-main-window)
 ;; (set-window-buffer (selected-window) buffer)))
 
-(defun reorg-view--goto-source-marker (buffer marker &optional narrow)
-  "Move to buffer and find heading with ID.  If NARROW is non-nil,
-then narrow to that heading and return t.  If no heading is found, don't move
-the point and return nil."
-  (reorg--select-main-window)
-  (set-window-buffer (selected-window) buffer)
-  (widen)
-  (goto-char (marker-position marker))
-  (when narrow
-    (reorg-view--source--narrow-to-heading)
-    t)
-  nil)
+;; (defun reorg-view--goto-source-marker (buffer marker &optional narrow)
+;;   "Move to buffer and find heading with ID.  If NARROW is non-nil,
+;; then narrow to that heading and return t.  If no heading is found, don't move
+;; the point and return nil."
+;;   (reorg--select-main-window)
+;;   (set-window-buffer (selected-window) buffer)
+;;   (widen)
+;;   (goto-char (marker-position marker))
+;;   (when narrow
+;;     (reorg-view--source--narrow-to-heading)
+;;     t)
+;;   nil)
+
+;;; commands 
 
 (defun reorg-org--org-edit-headline (&optional arg)
+  "Edit the headline at point"
   (interactive "P")
   (reorg--with-source-and-sync 
     (org-edit-headline (read-string "New headline: "
 				    (org-get-heading t t t t)))))
 
 (defun reorg-org--org-todo (&optional arg)
+  "Edit todo state at point"
   (interactive "P")
   (reorg--with-source-and-sync
     (reorg--select-main-window)
     (funcall-interactively #'org-todo arg)))
 
 (defun reorg-org--org-set-tags-command (&optional arg)
+  "set tags at point"
   (interactive "P")
   (reorg--with-source-and-sync
     (funcall-interactively #'org-set-tags-command arg)))
 
 (defun reorg-org--org-deadline (&optional arg)
+  "set deadline at point"
   (interactive "P")
   (reorg--with-source-and-sync
     (funcall-interactively #'org-deadline arg)))
 
 (defun reorg-org--org-schedule (&optional arg)
+  "set scheduled at point"
   (interactive "P")
   (reorg--with-source-and-sync
     (funcall-interactively #'org-schedule arg)))
 
 (defun reorg-org--org-set-property (&optional arg)
+  "set property at point"
   (interactive )
   (reorg--with-source-and-sync
     (funcall-interactively #'org-set-property nil nil)))
 
 (defun reorg-org--org-priority (&optional arg)
+  "set priority at point"
   (interactive "P")
   (reorg--with-source-and-sync
     (funcall-interactively #'org-priority arg)))
 
 (defun reorg-org--reload-heading (&optional arg)
+  "reload heading at point"
   (interactive)
   (reorg--with-source-and-sync))
+
+;;; org class 
 
 (reorg-create-class-type
  :name org
@@ -374,6 +418,8 @@ the point and return nil."
 	  ("i" . reorg-org--org-priority)
 	  ("g" . reorg-org--reload-heading))
  :getter (org-ql-select SOURCE nil :action #'PARSER))
+
+;;; org data 
 
 (reorg-create-data-type
  :name delegatee
@@ -423,7 +469,6 @@ the point and return nil."
 						    "%a, %b %d, %Y at %-l:%M%p")))))
 
 (reorg-create-data-type
- ;;TODO add :desc[ription] keyword 
  :name ts
  :class org
  :parse (or
@@ -448,7 +493,6 @@ the point and return nil."
 							"%a, %b %d, %Y"
 							"%a, %b %d, %Y at %-l:%M%p")))
 	    ""))
-
 
 (reorg-create-data-type
  :name timestamp-all
@@ -500,10 +544,6 @@ the point and return nil."
  :name scheduled
  :class org 
  :parse (org-entry-get (point) "SCHEDULED")
- ;; :set (lambda ()
- ;;        (reorg--with-source-and-sync
- ;; 	 (if val (org-scheduled nil val)
- ;; 	   (org-scheduled '(4)))))
  :display (if (alist-get 'scheduled alist)
 	      (concat 
 	       (propertize "SCHEDULED: "
@@ -516,126 +556,38 @@ the point and return nil."
 (reorg-create-data-type
  :name headline
  :class org
- ;; :set (lambda ()
- ;;        (let ((val (field-string-no-properties)))
- ;; 	 (reorg--with-source-and-sync val
- ;; 	   (org-edit-headline val))))
- ;; :face org-level-3
  :display (alist-get 'headline alist)
  :parse (org-no-properties
 	 (org-get-heading t t t t)))
-
-;; (reorg-create-data-type
-;;  :name property
-;;  :class org
-;;  :parse (reorg-parser--get-property-drawer)
-;;  ;; :set (lambda ()
-;;  ;;        (reorg--with-source-and-sync
-;;  ;; 	 (let* ((pair (split-string val ":" t " "))
-;;  ;; 		(key (upcase (car pair)))
-;;  ;; 		(val (cadr pair)))
-;;  ;; 	   (org-set-property key val))))
-;;  :display (let* ((key (reorg--add-remove-colon (car args) t))
-;; 		 (val (plist-get (plist-get plist :property)
-;; 				 (reorg--add-remove-colon key))))
-;; 	    (concat
-;; 	     (propertize (format "%s:" key) 'font-lock-face 'org-special-keyword)
-;; 	     " "
-;; 	     (propertize (format "%s" val) 'font-lock-face 'org-property-value))))
-;; ;; :field-keymap (("C-c C-x p" . org-set-property)))
 
 (reorg-create-data-type
  :name tags
  :class org
  :parse (org-get-tags-string))
-;; :get (org-get-tags-string)
-;; :set (org-set-tags val)
-;; :face org-tag-group
-;; :heading-keymap (("C-c C-c" . org-set-tags-command)))
 
 (reorg-create-data-type
  :name todo
  :class org
  :parse (org-entry-get (point) "TODO")
- ;; :get (org-entry-get (point) "TODO")			
- ;; :set (org-todo val)
  :display (when-let ((s (alist-get 'todo alist)))
 	    (propertize
 	     s
 	     'font-lock-face
 	     (org-get-todo-face s))))
-;; :heading-keymap (("C-c C-t" . org-todo)
-;; 		  ("S-<right>" . org-shiftright)
-;; 		  ("S-<left>" . org-shiftleft)))
 
 (reorg-create-data-type
  :name timestamp
  :class org
  :parse (when (reorg--timestamp-parser)
 	  (org-no-properties (reorg--timestamp-parser)))
- ;; :get (reorg--timestamp-parser)
- ;; :set (if-let* ((old-val (reorg--timestamp-parser)))
- ;; 	 (when (search-forward old-val (org-entry-end-position) t)
- ;; 	   (replace-match (concat val)))
- ;;        (when val
- ;; 	 (org-end-of-meta-data t)
- ;; 	 (insert (concat val "\n"))
- ;; 	 (delete-blank-lines)))
  :display
  (if (alist-get 'timestamp alist)
      (concat 
       (propertize (alist-get 'timestamp alist)
 		  'font-lock-face 'org-date))
    "____"))
-;; :field-keymap (("S-<up>" . org-timestamp-up)
-;; 		("S-<down>" . org-timestamp-down))
-;; :header-keymap (("C-c ." . org-time-stamp))
-;; :validate (with-temp-buffer
-;; 	     (insert val)
-;; 	     (beginning-of-buffer)
-;; 	     (org-timestamp-change 0 'day)
-;; 	     (buffer-string)))
 
-(defvar reorg-org--org-link-regexp
-  (rx
-   "[["
-   (group (+? not-newline))
-   "]["
-   (group (+? not-newline))
-   "]]")
-  "Org link regexp.")
 
-(defun reorg-org--link-parser ()
-  "the first link in the current heading and return an alist."
-  (save-excursion 
-    (let ((limit (or (save-excursion (when (re-search-forward
-					    org-heading-regexp
-					    nil t)
-				       (point)))
-		     (point-max))))
-      (when (re-search-forward
-	     reorg-org--org-link-regexp
-	     limit
-	     t)
-	(list 
-	 (cons 'link (match-string-no-properties 1))
-	 (cons 'text (match-string-no-properties 2)))))))
-
-(defun reorg-org--all-link-parser ()
-  "the first link in the current heading and return an alist."
-  (save-excursion 
-    (let ((limit (or (save-excursion (when (re-search-forward
-					    org-heading-regexp
-					    nil t)
-				       (point)))
-		     (point-max))))
-      (cl-loop while (re-search-forward
-		      reorg-org--org-link-regexp
-		      limit
-		      t)
-	       collect (list 
-			(cons 'link (match-string-no-properties 1))
-			(cons 'text (match-string-no-properties 2)))))))
 
 (reorg-create-data-type :name links
 			:class org
@@ -715,7 +667,6 @@ the point and return nil."
 					       (org-no-properties
 						(org-get-heading t t t t))))
 (reorg-create-data-type
- ;; inactive timestamp between the current heading and the root
  :name root-ts-inactive
  :class org
  :parse (save-excursion (cl-loop while (org-up-heading-safe)
@@ -732,19 +683,12 @@ the point and return nil."
 		   collect (match-string-no-properties 1 headline))))
 
 (reorg-create-data-type
- :name childrenp
- :class org
- :parse (org-sidebar--children-p))
-
-(reorg-create-data-type
- ;; this uses the already parsed ts-any 
  :name ts-year
  :class org
  :parse (when-let ((ts (alist-get 'ts-ts data)))
 	  (number-to-string (ts-year ts))))
 
 (reorg-create-data-type
- ;; this uses the already parsed ts-any 
  :name ts-month
  :class org
  :parse (when-let ((ts (alist-get 'ts-ts data)))
@@ -757,21 +701,19 @@ the point and return nil."
 	  (ts-month ts)))
 
 (reorg-create-data-type
- ;; this uses the already parsed ts-any 
  :name ts-day
  :class org
  :parse (when-let ((ts (alist-get 'ts-ts data)))
 	  (ts-day ts)))
 
 (reorg-create-data-type
- ;; this uses the already parsed ts-any 
  :name ts-day-name
  :class org
  :parse (when-let ((ts (alist-get 'ts-ts data)))
 	  (ts-day-name ts)))
 
 (reorg-create-data-type
- :name ts-type
+ :name timestamp-type 
  :class org
  :parse (cond 
 	 ((org-entry-get (point) "DEADLINE") "deadline")
@@ -790,6 +732,16 @@ the point and return nil."
  :class org
  :parse (when (alist-get 'ts-any data)
 	  (ts-parse-org (alist-get 'ts-any data))))
+
+(reorg-create-data-type
+ :name all-active-timestamps
+ :class org
+ :parse (save-excursion
+	  (cl-loop
+	   while (re-search-forward org-ql-regexp-ts-active
+				    (save-excursion (outline-next-heading))
+				    t)
+	   collect (match-string-no-properties 0))))
 
 (reorg-create-data-type
  :name ts-any

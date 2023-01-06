@@ -1,5 +1,8 @@
 * /Re/​organize your life
-This is a prototype for a new approach to org-agenda. 
+** Quick start
+First, open the test file 
+
+
 ** Overview
 Create a tree view buffer of your orgmode file, akin to Leo Editor. 
 

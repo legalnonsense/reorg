@@ -5,15 +5,13 @@
 :CATEGORY: asdfasdf
 :END:
 
-** TO[DO [#A] Design rocket :#Juan:
+** TODO [#A] Design rocket :#Juan:
 DEADLINE: <2020-05-10 Sun> SCHEDULED: <2020-02-03 Mon>
 :PROPERTIES:
 :ID:       7cda092c-d670-4545-892b-4eae2c68c4fa
 :ELGANTT-COLOR: Red Yellow
 :ELGANTT-LINKED-TO: 0b4dde5d-4363-47d2-9995-b82c36a40645
 :END:
-asdf
-xxx
 ** Get materials :#Justinia:                
 SCHEDULED: <2020-02-16 Sun> DEADLINE: <2020-03-21 Sat>
 :PROPERTIES:
@@ -42,16 +40,14 @@ DEADLINE: <2021-01-01 Fri>
 <2021-09-15 Wed>
 [2021-09-15 Wed 09:46]
 
-font-lock-keywords
-
-
-*** deferred [#A] test [1/1]
+*** DONE [#A] test [1/1]
 DEADLINE: <2021-06-01 Tue>
 :PROPERTIES:
 :ID:       cdf1cace-e403-43dd-90a3-0e76c916f735
 :END:
 
-- [X] asdf** Visit from POTUS
+- [X] asdf
+** Visit from POTUS
 :PROPERTIES:
 :ID:       00db3ad5-ddce-4c22-9a63-96693d45b691
 :END:
