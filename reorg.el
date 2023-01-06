@@ -90,7 +90,9 @@
 (require 'reorg-dynamic-bullets)
 (require 'reorg-scratch)
 
-;;; reorg data types 
+;;; reorg data types
+(add-to-list 'load-path (concat (f-dirname (buffer-file-name)) "/examples/"))
+(add-to-list 'load-path (concat (f-dirname (buffer-file-name)) "/TESTS/"))
 (require 'reorg-org)
 (require 'reorg-files)
 (require 'reorg-leo)
