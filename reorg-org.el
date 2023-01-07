@@ -738,15 +738,15 @@ if there is not one."
  :parse (when (alist-get 'ts-any data)
 	  (ts-parse-org (alist-get 'ts-any data))))
 
-(reorg-create-data-type
- :name all-active-timestamps
- :class org
- :parse (save-excursion
-	  (cl-loop
-	   while (re-search-forward org-ql-regexp-ts-active
-				    (save-excursion (outline-next-heading))
-				    t)
-	   collect (match-string-no-properties 0))))
+;; (reorg-create-data-type
+;;  :name all-active-timestamps
+;;  :class org
+;;  :parse (save-excursion
+;; 	  (cl-loop
+;; 	   while (re-search-forward org-ql-regexp-ts-active
+;; 				    (save-excursion (outline-next-heading))
+;; 				    t)
+;; 	   collect (match-string-no-properties 0))))
 
 (reorg-create-data-type
  :name ts-any
