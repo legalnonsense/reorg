@@ -242,7 +242,9 @@ RANGE is non-nil, only look for timestamp ranges."
 (defun reorg--get-body ()
   "get headings body text"
   nil
-  ;;FIXME for some reason this doesn't work 
+  ;; FIXME this adds way too much time to parsing the
+  ;; org file.  A regexp would probably be faster
+
   ;; (org-no-properties
   ;;  (org-element-interpret-data
   ;;   (org-element--parse-elements (save-excursion (org-back-to-heading)
@@ -283,7 +285,7 @@ RANGE is non-nil, only look for timestamp ranges."
 
 ;;; render source func
 
-(defun reorg--org--render-source (&optional buffer id no-narrow)
+(defun reorg-org--render-source (&optional buffer id no-narrow)
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
@@ -320,9 +322,6 @@ the point and return nil."
 ;; 		     (reorg-view--source--narrow-to-heading)))
 ;; 	  (goto-char old-point))))))
 
-
-;; TODO figure out where to use this after navigation
-;; ie, what hook should call this? 
 (defun reorg-org--goto-end-of-meta-data ()
   "Go to the end of the meta data and insert a blank line
 if there is not one."
@@ -344,10 +343,6 @@ if there is not one."
   (org-back-to-heading)
   (org-narrow-to-element)
   (reorg-org--goto-end-of-meta-data))
-
-
-;; (reorg--select-main-window)
-;; (set-window-buffer (selected-window) buffer)))
 
 ;; (defun reorg-view--goto-source-marker (buffer marker &optional narrow)
 ;;   "Move to buffer and find heading with ID.  If NARROW is non-nil,
@@ -417,7 +412,7 @@ if there is not one."
 
 (reorg-create-class-type
  :name org
- :render-func reorg--org--render-source
+ :render-func reorg-org--render-source
  :keymap (("SPC" . reorg-org--open-agenda-day)
 	  ("h" . reorg-org--org-edit-headline)
 	  ("t" . reorg-org--org-todo)
@@ -763,5 +758,7 @@ if there is not one."
 	 (org-entry-get (point) "SCHEDULED")
 	 (org-no-properties (reorg--timestamp-parser t nil))
 	 (org-no-properties (reorg--timestamp-parser t t))))
+
+
 
 (provide 'reorg-org)

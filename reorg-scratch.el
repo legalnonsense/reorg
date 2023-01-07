@@ -624,5 +624,68 @@ returns:
       (doloop tree)
       (reverse paths))))
 
+(cl-defmacro reorg-create-data-type (&optional
+				     &key
+				     class
+				     name
+				     parse
+				     disable
+				     display
+				     append)
+  ;; TODO add disabled key to remove data type
+  ;; from the parser list 
+
+  "Create the data types that will be used to represent and
+interact with the data as key-value pairs.
+
+NAME is the name of the thing.  It can be string or a symbol.
+
+PARSE is a form that is called for each piece of data gathered by
+GETTER.  It must extract the relevant information from whatever data GETTER
+returns.
+
+DISPLAY is a function that accepts a plist and returns a string for display in the
+display tree.
+
+EXTRA-PROPS is a plist of text properties that are added to the
+text properties of any field displaying the data type.
+"
+  (let* ((parsing-func (reorg--create-symbol 'reorg--
+					     class
+					     '--parse-
+					     name))
+	 (display-func (reorg--create-symbol 'reorg--
+					     class
+					     '--display-
+					     name)))
+    `(progn
+       (cond ((not ,disable)
+	      (defun ,parsing-func (&optional data)
+		,parse)
+	      (cond (',append
+		     
+		     (setf (alist-get ',class reorg--parser-list)
+			   (assoc-delete-all ',name
+					     (alist-get
+					      ',class
+					      reorg--parser-list)))
+		     (setf (alist-get ',class reorg--parser-list)
+			   (append (alist-get ',class reorg--parser-list)
+				   (list 
+				    (cons ',name #',parsing-func)))))
+		    (t 
+		     (cl-pushnew (cons ',name #',parsing-func)
+				 (alist-get ',class reorg--parser-list))))
+	      (if ',display 
+		  (defun ,display-func (alist)
+		    ,display)
+		(fmakunbound ',display-func)))
+	     (t ;;if disabled 
+	      (setf (alist-get ',class reorg--parser-list)
+		    (assoc-delete-all ',name
+				      (alist-get ',class reorg--parser-list)))
+	      (fmakunbound ',display-func)
+	      (fmakunbound ',parsing-func))))))
+
 (provide 'reorg-scratch)
 
