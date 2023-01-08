@@ -100,7 +100,7 @@ numbers, strings, symbols."
        (if (boundp 'reorg--parser-list)
 	   (setf (alist-get ',name reorg--parser-list) nil)
 	 (defvar reorg--parser-list nil "Parser list for all classes."))     
-       (cl-pushnew (cons 'class (lambda (&optional _) ',name))
+       (cl-pushnew (cons 'class (lambda (&optional _ __) ',name))
 		   (alist-get ',name reorg--parser-list))
        ;; (setf (alist-get ',name reorg--parser-list)
        ;; 	   (cons 'class (lambda () ',(name)))
@@ -191,12 +191,10 @@ parser for that type."
 		      (alist-get class
 				 reorg--parser-list))
 		     data))
-    (if data
-	(cl-loop for (type . func) in (alist-get class reorg--parser-list)
-		 collect (cons type (funcall func data)))
-      (cl-loop for (type . func) in (alist-get class reorg--parser-list)
-	       collect (cons type (funcall func data)) into data
-	       finally return data))))
+    (cl-loop with DATA = nil
+	     for (type . func) in (alist-get class reorg--parser-list)
+	     collect (cons type (funcall func data DATA)) into DATA
+	     finally return DATA)))
 
 (defun reorg--getter (sources)
   "Get entries from SOURCES, whih is an alist

@@ -690,32 +690,32 @@ if there is not one."
 (reorg-create-data-type
  :name ts-year
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts data)))
+ :parse (when-let ((ts (alist-get 'ts-ts DATA)))
 	  (number-to-string (ts-year ts))))
 
 (reorg-create-data-type
  :name ts-month
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts data)))
+ :parse (when-let ((ts (alist-get 'ts-ts DATA)))
 	  (ts-month-name ts)))
 
 (reorg-create-data-type
  :name ts-month-num
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts data)))
+ :parse (when-let ((ts (alist-get 'ts-ts DATA)))
 	  (ts-month ts)))
 
 (reorg-create-data-type
  :name ts-day
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts data)))
+ :parse (when-let ((ts (alist-get 'ts-ts DATA)))
 	  (ts-day ts)))
 
 (reorg-create-data-type
  :name ts-day-name
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts data)))
-	  (ts-day-name ts)))
+ :parse (when .ts-ts
+	  (ts-day-name .ts-ts)))
 
 (reorg-create-data-type
  :name timestamp-type 
@@ -735,8 +735,8 @@ if there is not one."
 (reorg-create-data-type
  :name ts-ts
  :class org
- :parse (when (alist-get 'ts-any data)
-	  (ts-parse-org (alist-get 'ts-any data))))
+ :parse (when .ts-any 
+	  (ts-parse-org .ts-any)))
 
 ;; (reorg-create-data-type
 ;;  :name all-active-timestamps

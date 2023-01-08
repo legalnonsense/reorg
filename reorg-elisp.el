@@ -16,7 +16,46 @@ the point and return nil."
  :render-func reorg-elisp--render-source
  :keymap (("SPC" . reorg-org--open-agenda-day))
  :getter (with-current-buffer (find-file-noselect SOURCE)
-	   (cl-loop 
+	   (save-restriction 
+	     (save-excursion
+	       (goto-char (point-min))
+	       (cl-loop while
+			(re-search-forward
+			 (rx (seq
+			      line-start
+			      "("
+			      (group 
+			       (or "defun" "defvar" "defcustom"
+				   "defconst" "defmacro" "cl-defun"
+				   "cl-defmacro")
+			       space
+			       (maximal-match (one-or-more (not whitespace))))))
+			 nil t)
+			collect (PARSER
+				 (when-let ((contents (thing-at-point 'defun)))
+				   (org-no-properties contents))))))))
+
+(reorg-create-data-type
+ :class elisp
+ :name form-name 
+ :parse (org-no-properties (nth 1 (s-split " " data))))
+
+(reorg-create-data-type
+ :class elisp
+ :name form-type 
+ :parse (substring (org-no-properties (nth 0 (s-split " " data))) 1))
+
+(reorg-create-data-type
+ :class elisp
+ :name file
+ :parse (buffer-file-name))
+
+(reorg-create-data-type
+ :class elisp
+ :name marker
+ :parse (point-marker))
 
 
- (org-ql-select SOURCE nil :action #'PARSER))
+
+
+

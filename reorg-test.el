@@ -193,7 +193,7 @@
 						      .headline)))))))))
 (defun reorg-test-all ()
   (interactive)
-  (reorg-open-main-window reorg-template--test-all))
+  (reorg-open reorg-template--test-all))
 
 (setq reorg-template--test-all '( :sources ((org . "~/tmp/tmp.org"))
 				  :children
@@ -212,7 +212,7 @@
 						(not (string= "EVENT" .todo))
 						(not (string= "DEADLINE" .todo)))
 					     "Tasks")
-					   :sort-group
+					   :sort-groups
 					   reorg-string<
 					   :format-results
 					   (.priority
@@ -235,7 +235,7 @@
 				   ( :group "By delegatee"
 				     :children (( :group
 						  .delegatee
-						  :sort-group
+						  :sort-groups
 						  (lambda (a b)
 						    (string< a b)))))		 
 				   ( :group "Calendar"
