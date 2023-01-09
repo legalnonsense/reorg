@@ -1,5 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
+
 (defun reorg--set-up-capture-test ()
   "set up capture testing"
   (interactive)
@@ -97,6 +98,16 @@
 	(org-metaright)
 	(insert "_NOTES_"))))
   (reorg-org-capture-enable))
+
+(defun reorg-elisp-test ()
+  (interactive)
+  (setq reorg-elisp-test '( :sources ((elisp . "~/.emacs.d/lisp/reorg/reorg.el")
+				      (elisp . "~/.emacs.d/lisp/reorg/reorg-scratch.el")
+				      (elisp . "~/.emacs.d/lisp/reorg/reorg-data.el"))
+			    :group .form-type
+			    :format-results ((file-name-base .file) "\t\t" .form-name)))
+  (reorg-open reorg-elisp-test))
+
 
 (defun reorg-test-1 ()
   (interactive)
@@ -421,7 +432,7 @@
 	    (lambda (a b)
 	      (string< (downcase a)
 		       (downcase b)))			
-	    :children
+	    :chnildren
 	    (( :group
 	       (when
 		   (and

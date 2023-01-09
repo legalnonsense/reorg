@@ -366,6 +366,23 @@ that return nil."
 	  (funcall func tree data)
 	(funcall func tree)))))
 
+
+(defun reorg--code-search (func code)
+  "Return alist of symbols inside CODE that match REGEXP.
+See `let-alist--deep-dot-search'."
+  (let (acc)
+    (cl-labels ((walk (code)
+		      (cond ((symbolp code)
+			     (when (funcall func code)
+			       (push code acc)))
+			    ((listp code)
+			     (walk (car code))
+			     (walk (cdr code) )))))
+      (walk code)
+      (cl-delete-duplicates acc))))
+
+   
+
 (defun reorg--at-dot-search (data)
   "Return alist of symbols inside DATA that start with a `.@'.
 Perform a deep search and return a alist of any symbol
@@ -624,7 +641,7 @@ returns:
       (doloop tree)
       (reverse paths))))
 
-(cl-defmacro reorg-create-data-type (&optional
+(cl-defmacro reorg-create-data-type (&optional ;
 				     &key
 				     class
 				     name
@@ -648,19 +665,18 @@ returns:
 	      (defun ,parsing-func (&optional data DATA)
 		(let-alist DATA 
 		  ,parse))
-	      (cond (',append		     
-		     (setf (alist-get ',class reorg--parser-list)
-			   (assoc-delete-all ',name
-					     (alist-get
-					      ',class
-					      reorg--parser-list)))
-		     (setf (alist-get ',class reorg--parser-list)
-			   (append (alist-get ',class reorg--parser-list)
-				   (list 
-				    (cons ',name #',parsing-func)))))
-		    (t 
-		     (cl-pushnew (cons ',name #',parsing-func)
-				 (alist-get ',class reorg--parser-list))))
+	      (setf (alist-get ',class reorg--parser-list)
+		    (assoc-delete-all ',name
+				      (alist-get
+				       ',class
+				       reorg--parser-list)))
+	      (if ',append		     
+		  (setf (alist-get ',class reorg--parser-list)
+			(append (alist-get ',class reorg--parser-list)
+				(list 
+				 (cons ',name #',parsing-func))))
+		(cl-pushnew (cons ',name #',parsing-func)
+			    (alist-get ',class reorg--parser-list)))
 	      (if ',display 
 		  (defun ,display-func (alist)
 		    ,display)

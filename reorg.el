@@ -24,6 +24,7 @@
 (defcustom reorg-toggle-shortcut "C-; r"
   "shortcut to open tree side window")
 
+
 (defcustom reorg-parser-use-id-p t
   "use id or markers?")
 

@@ -14,10 +14,12 @@ the point and return nil."
 (reorg-create-class-type
  :name elisp
  :render-func reorg-elisp--render-source
- :keymap (("SPC" . reorg-org--open-agenda-day))
+ :keymap (("w" . (lambda () (interactive)
+		   (kill-new (reorg--get-view-prop 'form-name)))))
  :getter (with-current-buffer (find-file-noselect SOURCE)
-	   (save-restriction 
+	   (save-restriction
 	     (save-excursion
+	       (widen)
 	       (goto-char (point-min))
 	       (cl-loop while
 			(re-search-forward
@@ -27,18 +29,27 @@ the point and return nil."
 			      (group 
 			       (or "defun" "defvar" "defcustom"
 				   "defconst" "defmacro" "cl-defun"
-				   "cl-defmacro")
-			       space
-			       (maximal-match (one-or-more (not whitespace))))))
+				   "cl-defmacro"))))
 			 nil t)
 			collect (PARSER
-				 (when-let ((contents (thing-at-point 'defun)))
-				   (org-no-properties contents))))))))
+				 (when-let 
+				     ((contents (thing-at-point 'defun)))
+				   (s-trim (org-no-properties contents)))))))))
 
 (reorg-create-data-type
  :class elisp
  :name form-name 
- :parse (org-no-properties (nth 1 (s-split " " data))))
+ :parse (s-trim (org-no-properties (nth 1 (s-split " " data)))))
+
+(reorg-create-data-type
+ :class elisp
+ :name buffer
+ :parse (current-buffer))
+
+(reorg-create-data-type
+ :class elisp
+ :name id
+ :parse (org-id-new))
 
 (reorg-create-data-type
  :class elisp
@@ -55,7 +66,19 @@ the point and return nil."
  :name marker
  :parse (point-marker))
 
+(reorg-create-data-type
+ :class elisp
+ :name callees
+ :parse (reorg--code-search
+	 (lambda (x)
+	   (and (functionp x)
+		(s-starts-with-p "reorg" (symbol-name x))))
+	 (read data)))
 
+(reorg-create-data-type
+ :class elisp
+ :name order
+ :parse (point))
 
-
+(provide 'reorg-elisp)
 
