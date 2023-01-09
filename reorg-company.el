@@ -23,7 +23,7 @@
 	    (cl-remove-if-not (lambda (x) (s-starts-with-p root x))
 			      all-dots)))))))
 
-(defun reorg-company (command &optional arg &rest ignored)
+(defun reorg-company (command &optional arg &rest _)
   "company backend"
   (cl-case command
     (interactive (company-begin-backend 'reorg-company))

@@ -169,6 +169,7 @@ contains a timestamp."
 			(cons 'text (match-string-no-properties 2)))))))
 
 (defun reorg--ts-hhmm-p (ts)
+  ""
   (string-match (rx (or (seq (** 1 2 digit)
 			     ":"
 			     (= 2 digit))
@@ -240,8 +241,7 @@ RANGE is non-nil, only look for timestamp ranges."
 	     return (org-no-properties (match-string 0)))))
 
 (defun reorg--get-body ()
-  "get headings body text"
-  nil
+  "get headings body text"  
   ;; FIXME this adds way too much time to parsing the
   ;; org file.  A regexp would probably be faster
 
@@ -253,7 +253,7 @@ RANGE is non-nil, only look for timestamp ranges."
   ;; 				 (or (save-excursion (outline-next-heading))
   ;; 				     (point-max))
   ;; 				 'first-section nil nil nil nil)))
-  )
+  nil)
 
 ;;; macros 
 

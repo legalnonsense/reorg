@@ -101,11 +101,19 @@
 
 (defun reorg-elisp-test ()
   (interactive)
-  (setq reorg-elisp-test '( :sources ((elisp . "~/.emacs.d/lisp/reorg/reorg.el")
-				      (elisp . "~/.emacs.d/lisp/reorg/reorg-scratch.el")
-				      (elisp . "~/.emacs.d/lisp/reorg/reorg-data.el"))
+  (setq reorg-elisp-test '( :sources ((elisp . "~/.emacs.d/lisp/reorg/"))
 			    :group .form-type
-			    :format-results ((file-name-base .file) "\t\t" .form-name)))
+			    :children (( :group (if (s-contains-p "--" .form-name)
+						    "Private"
+						  "Public")
+					 :sort-groups reorg-string<
+					 :format-results ((s-replace "reorg-?-"
+								     ""
+								     .form-name)
+							  (propertize " " 'display
+								      `(space . (:align-to 70)))
+							  (f-filename .file)
+							  )))))
   (reorg-open reorg-elisp-test))
 
 
@@ -508,9 +516,9 @@
 			   .category-inherited)
 			  .headline))))))))))
 
-(defun reorg-user--test-email ()
+(defun reorg-test-email ()
   (interactive)
-  (reorg-open-main-window
+  (reorg-open
    '( :sources ((email . "subject:allums"))
       :children (( :group "Allums emails"
 		   :children (( :group (when (eq .class 'email)
@@ -518,6 +526,8 @@
 				:format-results (.stars
 						 " "
 						 .date
+						 "\t"
+						 .from
 						 "\t\t"
 						 .subject))))))))
 
