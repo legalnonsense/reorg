@@ -102,18 +102,26 @@
 (defun reorg-elisp-test ()
   (interactive)
   (setq reorg-elisp-test '( :sources ((elisp . "~/.emacs.d/lisp/reorg/"))
-			    :group .form-type
-			    :children (( :group (if (s-contains-p "--" .form-name)
-						    "Private"
-						  "Public")
-					 :sort-groups reorg-string<
-					 :format-results ((s-replace "reorg-?-"
-								     ""
-								     .form-name)
-							  (propertize " " 'display
-								      `(space . (:align-to 70)))
-							  (f-filename .file)
-							  )))))
+			    :group (pcase .form-type
+				     ((or "defun" "cl-defun") "Functions")
+				     ((or "defmacro" "cl-defmacro") "Macros")
+				     ((or "defvar" "defcustom" "defconst") "Variables"))
+			    :sort-groups reorg-string<
+			    :sort-results (((f-filename .file) . reorg-string<)
+					   (.form-name . reorg-string<))
+			    :children
+			    (( :group (if (s-contains-p "--" .form-name)
+					  "Private"
+					"Public")
+			       :sort-groups reorg-string<
+			       :format-results ((replace-regexp-in-string (rx "reorg-"
+									      (zero-or-one "-"))
+									  ""
+									  .form-name)
+						(propertize " " 'display
+							    `(space . (:align-to 70)))
+						(f-filename .file)
+						)))))
   (reorg-open reorg-elisp-test))
 
 
