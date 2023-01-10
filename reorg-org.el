@@ -344,19 +344,6 @@ if there is not one."
   (org-narrow-to-element)
   (reorg-org--goto-end-of-meta-data))
 
-;; (defun reorg-view--goto-source-marker (buffer marker &optional narrow)
-;;   "Move to buffer and find heading with ID.  If NARROW is non-nil,
-;; then narrow to that heading and return t.  If no heading is found, don't move
-;; the point and return nil."
-;;   (reorg--select-main-window)
-;;   (set-window-buffer (selected-window) buffer)
-;;   (widen)
-;;   (goto-char (marker-position marker))
-;;   (when narrow
-;;     (reorg-view--source--narrow-to-heading)
-;;     t)
-;;   nil)
-
 ;;; commands 
 
 (defun reorg-org--org-edit-headline (&optional arg)

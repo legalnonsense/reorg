@@ -12,11 +12,27 @@ the point and return nil."
     ;; (narrow-to-defun)
     (reorg--select-tree-window)))
 
+(defun reorg-elisp--with-point-at (func) 
+  "Move to buffer and find heading with ID.  If NARROW is non-nil,
+then narrow to that heading and return t.  If no heading is found, don't move
+the point and return nil."
+  (let ((marker (or id (reorg--get-view-prop 'marker))))
+    (reorg--select-main-window (or buffer (reorg--get-view-prop 'buffer)))
+    (widen)
+    (goto-char marker)
+    (recenter)
+    (funcall func)))
+
+
 (reorg-create-class-type
  :name elisp
  :render-func reorg-elisp--render-source
  :keymap (("w" . (lambda () (interactive)
-		   (kill-new (reorg--get-view-prop 'form-name)))))
+		   (kill-new (reorg--get-view-prop 'form-name))))
+	  ("x" . (lambda () (interactive)
+		   (reorg-elisp--with-point-at
+		    #'eval-defun))))
+ 
  :getter (progn (when (f-directory-p SOURCE)
 		  (setq SOURCE
 			(directory-files SOURCE t (rx
@@ -26,7 +42,7 @@ the point and return nil."
 						   line-end))))
 		(cl-loop for SOURCE in (-list SOURCE)
 			 append
-			 (with-current-buffer (find-file-noselect SOURCE)
+			 (with-current-buffer (find-file SOURCE)
 			   (save-restriction
 			     (save-excursion
 			       (widen)

@@ -2,57 +2,38 @@
 
 ;;     ﯍    
 
-(defun line-length-with-align-to ()
-  "calculate line length"
-  (interactive)
-  (let ((line-end (line-end-position))
-        (line-start (line-beginning-position))
-        (length 0))
-    (save-excursion
-      (goto-char line-start)
-      (while (< (point) line-end)
-        (let* ((display (get-char-property (point) 'display)))
-          (if (and display (plist-get (cdr display) :align-to))
-	      (when (< length (plist-get (cdr display) :align-to))
-		(setq length (plist-get (cdr display) :align-to)))
-            (setq length (1+ length))))
-	(forward-char 1)))
-    length
-
-    ))
-    ;; (length 
-    ;; 	(get-text-property (line-beginning-position 1) 'wrap-prefix)))))
-
-
-
-    (defun reorg--get-line-length (x)
-      "just what it says"
-      (+ (- (line-beginning-position (1+ x))
-	    (line-beginning-position x))
-	 (length 
-	  (get-text-property (line-beginning-position x) 'line-prefix))
-	 (length
-	  (get-text-property (line-beginning-position x) 'wrap-prefix))))
-
-
-(defun reorg--get-longest-line-length ()
-  "just what it says"
-  (let ((length 0))
-    (save-excursion 
-      (save-restriction
-	(widen)         
-	(while (not (eobp))
-	  (let ((l (+ (- (line-end-position)
-			 (line-beginning-position))
-		      (length 
-		       (get-text-property (line-beginning-position) 'prefix))
-		      (length
-		       (get-text-property (line-beginning-position) 'wrap-prefix)))))
-	    (when (> l length)
-	      (setq length l)))
-	  (forward-line))))
-    length))
-
+;; (defun reorg--line-length ()
+;;   "get the line length including align-to"
+;;   (interactive)
+;;   (save-excursion 
+;;     (goto-char (line-beginning-position))
+;;     (let ((point (point))
+;; 	  (start (point))
+;; 	  (length 0)
+;; 	  found)
+;;       (while (and (setq point (next-single-property-change
+;; 			       (point)
+;; 			       'display
+;; 			       nil
+;; 			       (1- (line-end-position))))
+;; 		  (< (line-end-position) point))
+;; 	(setq found t)
+;; 	(let ((l (- point start)))
+;; 	  (if-let* ((display (get-char-property point 'display))
+;; 		    (align-to (plist-get (cdr display) :align-to)))
+;; 	      (if (< l align-to)
+;; 		  (progn 
+;; 		    (cl-incf length align-to)
+;; 		    (setq start point)
+;; 		    (setf (point) point))
+;; 		(cl-incf length l)
+;; 		(setf (point) point))
+;; 	    (setf (point) point)
+;; 	    (cl-incf length l))))
+;;       (unless found 
+;; 	(cl-incf length (- (line-end-position)
+;; 			   (line-beginning-position))))
+;;       length)))
 
 (defun reorg--sort-by-list (a b seq &optional predicate list-predicate)
   "Provide a sequence SEQ and return the earlier of A or B."
