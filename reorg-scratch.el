@@ -1,39 +1,44 @@
 ;; -*- lexical-binding: t; -*-
 
+
 ;;     ﯍    
 
-;; (defun reorg--line-length ()
-;;   "get the line length including align-to"
-;;   (interactive)
-;;   (save-excursion 
-;;     (goto-char (line-beginning-position))
-;;     (let ((point (point))
-;; 	  (start (point))
-;; 	  (length 0)
-;; 	  found)
-;;       (while (and (setq point (next-single-property-change
-;; 			       (point)
-;; 			       'display
-;; 			       nil
-;; 			       (1- (line-end-position))))
-;; 		  (< (line-end-position) point))
-;; 	(setq found t)
-;; 	(let ((l (- point start)))
-;; 	  (if-let* ((display (get-char-property point 'display))
-;; 		    (align-to (plist-get (cdr display) :align-to)))
-;; 	      (if (< l align-to)
-;; 		  (progn 
-;; 		    (cl-incf length align-to)
-;; 		    (setq start point)
-;; 		    (setf (point) point))
-;; 		(cl-incf length l)
-;; 		(setf (point) point))
-;; 	    (setf (point) point)
-;; 	    (cl-incf length l))))
-;;       (unless found 
-;; 	(cl-incf length (- (line-end-position)
-;; 			   (line-beginning-position))))
-;;       length)))
+(defun reorg--line-length ()
+  "get the line length including align-to"
+  (interactive)
+  (save-excursion 
+    (goto-char (line-beginning-position))
+    (let ((point (point))
+	  (start (point))
+	  (length 0)
+	  found)
+      (cl-loop while (and (setq point (next-single-property-change
+				       (point)
+				       'display
+				       nil
+				       (line-end-position)))
+			  (/= (line-end-position) point))
+	       do (progn 
+		    (setq found t)
+		    (let ((l (- point start)))
+		      (if-let* ((display (get-char-property point 'display))
+				(align-to (plist-get (cdr display) :align-to)))
+			  (if (< l align-to)
+			      (progn 
+				(cl-incf length align-to)
+				(setq start point)
+				(setf (point) point))
+			    (cl-incf length l)
+			    (setf start point)
+			    (setf (point) point))
+			(setf start point)
+			(setf (point) point)
+			(cl-incf length l))))
+	       finally (cl-incf length (- (line-end-position) (point))))
+      (unless found 
+	(cl-incf length (- (line-end-position)
+			   (line-beginning-position))))
+      length)))
 
 (defun reorg--sort-by-list (a b seq &optional predicate list-predicate)
   "Provide a sequence SEQ and return the earlier of A or B."
