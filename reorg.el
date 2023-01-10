@@ -288,13 +288,14 @@ one of the sources."
   "reload the current template"
   (interactive)
   (if (reorg--buffer-in-side-window-p)
-      (reorg-open-sidebar)
-    (reorg-open-in-current-window)))
+      (reorg-open-sidebar nil (point))
+    (reorg-open-in-current-window nil (point))))
 
-(defun reorg--buffer-p ()
-  "Are you in the reorg buffer?"
-  (string= (buffer-name)
-	   reorg-buffer-name))
+
+  (defun reorg--buffer-p ()
+    "Are you in the reorg buffer?"
+    (string= (buffer-name)
+	     reorg-buffer-name))
 
 (defvar reorg-main-mode-map 
   (let ((map (make-keymap)))

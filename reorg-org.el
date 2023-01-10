@@ -2,7 +2,7 @@
 
 ;;; syncing function
 
-(defmacro reorg--with-source-and-sync (&rest body)
+(defmacro reorg-org--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
 update the heading at point."
   (declare (indent defun))
@@ -349,51 +349,51 @@ if there is not one."
 (defun reorg-org--org-edit-headline (&optional arg)
   "Edit the headline at point"
   (interactive "P")
-  (reorg--with-source-and-sync 
+  (reorg-org--with-source-and-sync 
     (org-edit-headline (read-string "New headline: "
 				    (org-get-heading t t t t)))))
 
 (defun reorg-org--org-todo (&optional arg)
   "Edit todo state at point"
   (interactive "P")
-  (reorg--with-source-and-sync
+  (reorg-org--with-source-and-sync
     (reorg--select-main-window)
     (funcall-interactively #'org-todo arg)))
 
 (defun reorg-org--org-set-tags-command (&optional arg)
   "set tags at point"
   (interactive "P")
-  (reorg--with-source-and-sync
+  (reorg-org--with-source-and-sync
     (funcall-interactively #'org-set-tags-command arg)))
 
 (defun reorg-org--org-deadline (&optional arg)
   "set deadline at point"
   (interactive "P")
-  (reorg--with-source-and-sync
+  (reorg-org--with-source-and-sync
     (funcall-interactively #'org-deadline arg)))
 
 (defun reorg-org--org-schedule (&optional arg)
   "set scheduled at point"
   (interactive "P")
-  (reorg--with-source-and-sync
+  (reorg-org--with-source-and-sync
     (funcall-interactively #'org-schedule arg)))
 
 (defun reorg-org--org-set-property (&optional arg)
   "set property at point"
   (interactive )
-  (reorg--with-source-and-sync
+  (reorg-org--with-source-and-sync
     (funcall-interactively #'org-set-property nil nil)))
 
 (defun reorg-org--org-priority (&optional arg)
   "set priority at point"
   (interactive "P")
-  (reorg--with-source-and-sync
+  (reorg-org--with-source-and-sync
     (funcall-interactively #'org-priority arg)))
 
 (defun reorg-org--reload-heading (&optional arg)
   "reload heading at point"
   (interactive)
-  (reorg--with-source-and-sync))
+  (reorg-org--with-source-and-sync))
 
 ;;; org class 
 
@@ -428,7 +428,7 @@ if there is not one."
  :class org
  ;; :set (lambda ()
  ;;        (let ((val (field-string-no-properties)))
- ;; 	 (reorg--with-source-and-sync val
+ ;; 	 (reorg-org--with-source-and-sync val
  ;; 	   (org-edit-headline val))))
  ;; :face org-level-3
  :parse (->> (org-no-properties
@@ -514,7 +514,7 @@ if there is not one."
  :class org
  :parse (org-entry-get (point) "DEADLINE")
  ;; :set (lambda ()
- ;;        (reorg--with-source-and-sync
+ ;;        (reorg-org--with-source-and-sync
  ;; 	 (if val (org-deadline nil val)
  ;; 	   (org-deadline '(4)))))
  ;; :display (if (plist-get plist :deadline)
