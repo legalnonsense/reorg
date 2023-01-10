@@ -2,6 +2,16 @@
 
 ;;     ﯍    
 
+(defun reorg--sort-by-list (a b seq &optional predicate list-predicate)
+  "Provide a sequence SEQ and return the earlier of A or B."
+  (let ((a-loc (seq-position seq a (or list-predicate #'equal)))
+	(b-loc (seq-position seq b (or list-predicate #'equal))))
+    (cond
+     ((and (null a-loc) (null b-loc)) nil)
+     ((null a-loc) nil)
+     ((null b-loc) t)
+     (t (funcall (or predicate #'<) a-loc b-loc)))))
+
 (defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
   "turn .@symbol into .symbol."
   (if (and (symbolp elem)
@@ -366,7 +376,6 @@ that return nil."
 	  (funcall func tree data)
 	(funcall func tree)))))
 
-
 (defun reorg--code-search (func code)
   "Return alist of symbols inside CODE that match REGEXP.
 See `let-alist--deep-dot-search'."
@@ -380,8 +389,6 @@ See `let-alist--deep-dot-search'."
 			     (walk (cdr code) )))))
       (walk code)
       (cl-delete-duplicates acc))))
-
-   
 
 (defun reorg--at-dot-search (data)
   "Return alist of symbols inside DATA that start with a `.@'.
@@ -687,6 +694,9 @@ returns:
 				      (alist-get ',class reorg--parser-list)))
 	      (fmakunbound ',display-func)
 	      (fmakunbound ',parsing-func))))))
+
+
+
 
 (provide 'reorg-scratch)
 
