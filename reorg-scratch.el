@@ -3,6 +3,15 @@
 
 ;;     ﯍    
 
+(defun reorg--get-longest-line-length ()
+  "get longest line length"
+  (save-excursion
+    (goto-char (point-min))
+    (cl-loop until (eobp)
+	     collect (reorg--line-length) into lengths
+	     do (forward-line)
+	     finally return (apply #'max lengths))))
+
 (defun reorg--line-length ()
   "get the line length including align-to"
   (interactive)

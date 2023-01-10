@@ -110,7 +110,8 @@
 				   (dedicated . t)
 				   (slot . nil)
 				   (window-parameters . ((reorg . t)))))
-  (balance-windows))
+  (reorg--select-tree-window)
+  (setf (window-width) (reorg--get-longest-line-length)))
 
 (defun reorg--select-main-window (&optional buffer)
   "Select the source window. If BUFFER is non-nil,
