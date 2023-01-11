@@ -35,9 +35,9 @@ This produces:
 #+ATTR_HTML: :width 800px
 [[file:TEST/initial-example-screenshot.png]]
 
-But this isn’t just for org-mode. Let’s add another:
+There is already a lot going on here. But this isn’t just for org-mode. Let’s add some more:
 
-5. [@5] Display all of the variable definitions in reorg.el, but don’t dislpay the reorg- prefix; sort them in reverse alphabetical order
+5. [@5] Display all of the variable declarations in reorg.el, but don’t dislpay the reorg- prefix; sort them in reverse alphabetical order. Group them by the type of variable. 
 6. Show all of the .el files in the reorg directory, but group them by the number of characters in the filename and sort the groups in descending order. If a filename contains the letter “a”, put a happy face next to it.
 
 Okay. You asked for it.

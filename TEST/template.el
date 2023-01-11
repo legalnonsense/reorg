@@ -29,13 +29,15 @@
 	    :group (when (member .form-type '("defvar" "defcustom" "defconst"))
 		     (concat 
 		      "All functions in the reorg source code, "
-		      "with the reorg- prefix removed, sorted alpabetically"))
-	    :format-results (.form-type
-			     (propertize " " 'display '(space . (:align-to 50)))
-			     (replace-regexp-in-string "reorg-?-"
-						       ""
-						       .form-name))
-	    :sort-results ((.form-name . string<)))
+		      "with the reorg- prefix removed, sorted alpabetically, "
+		      "and grouped by type"))
+	    :children (( :group .form-type 
+			 :format-results (.form-type
+					  (propertize " " 'display '(space . (:align-to 30)))
+					  (replace-regexp-in-string "reorg-?-"
+								    ""
+								    .form-name))
+			 :sort-results ((.form-name . string<)))))
 	  ( :sources ((files . "find ~/.emacs.d/lisp/reorg/ -type f | grep .el$"))
 	    :group (when (string= .extension "el")
 		     "All reorg elisp files")
