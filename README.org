@@ -26,7 +26,7 @@ Take the following orgmode file which contains a few notes, TODO items, and date
 #+end_src
 Suppose you want to display this information in the following way: 
 1. Group all entries with a timestamp under a single heading and sort them by date
-2. Group all entries that mention an @name under a heading for each @name /regardless of whether those entries were already inserted into the previous heading/
+2. Group all entries that mention an @name under a heading for each @name (regardless of whether those entries were already inserted into the previous heading)
    1. Within each of those headings, group the entries by tag with the tags sorted alphabetically
 3. Group all TODO entries together, sorting by tag, but displayed in all caps 
 4. Show all the entries in the file sorted by org-id, but only display the org-id
@@ -44,22 +44,20 @@ Okay. You asked for it.
 [[file:TEST/second-example-screenshot.png]]
 
 
+Note that these examples keep the types of data separate. It is possible to mix data so that files, org-mode entries, etc., all exist within the same headings.
 
-
-*** Template 
-*** Basic navigation 
-*** Viewing buffer 
-**** In a main window
-**** In a side window 
-*** Other examples: files, emails, source code, or anything
-Reorg provides a pair of macros to create new parsers, customize data display, and create keyboard shortcuts. These macros are explained below. These macros are intended 
-**** Files
-**** Source code (e.g., elisp)
-**** Emails
-**** Custom file formats (e.g., Leo Editor)
-**** Files, orgmode, and email in a single outline 
-** 
+These outlines are created using Reorg’s template system, which is explained below. For now, 
+*** Outline basics 
+- Moving through the outline
+- Jumping to clones 
+- Interacting with data
+- Updating data [DANGER]
+- Viewing the Reorg buffer 
+  - In a main window
+  - In a side window 
 ** How to write a template
+*** Basic template example
+
 *** Dotted symbols
 Templates utilize variables that are stored when Reorg parses the underlying data. These variables can be accessed using dotted symbols identical those used by the built-in [[https://elpa.gnu.org/packages/let-alist.html][let-alist]] macro. Templates can use any data that has been parsed by Reorg. 
 
