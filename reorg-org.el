@@ -473,7 +473,7 @@ if there is not one."
 	 (when (reorg--timestamp-parser nil t)
 	   (org-no-properties (reorg--timestamp-parser nil t)))
 	 (org-entry-get (point) "SCHEDULED"))
- :display (if-let ((ts (alist-get 'ts alist)))
+ :display (if-let ((ts (alist-get 'ts data)))
 	      (if (=
 		   (string-to-number
 		    (format-time-string "%Y"))
@@ -502,7 +502,7 @@ if there is not one."
  :name priority
  :class org
  :parse (org-entry-get (point) "PRIORITY")
- :display (pcase (alist-get 'priority alist)
+ :display (pcase (alist-get 'priority data)
 	    ("A" "⚡")
 	    ("B" "➙")
 	    ("C" "﹍")
@@ -528,10 +528,10 @@ if there is not one."
  ;; 	      (propertize (plist-get plist :deadline)
  ;; 			  'font-lock-face 'org-date))
  ;; 	   "__________")
- :display (when (alist-get 'deadline alist)
+ :display (when (alist-get 'deadline data)
 	    (string-pad 
 	     (ts-format "%B %e, %Y" ;
-			(ts-parse-org (alist-get 'deadline alist)))
+			(ts-parse-org (alist-get 'deadline data)))
 	     18
 	     nil t)))
 
@@ -539,12 +539,12 @@ if there is not one."
  :name scheduled
  :class org 
  :parse (org-entry-get (point) "SCHEDULED")
- :display (if (alist-get 'scheduled alist)
+ :display (if (alist-get 'scheduled data)
 	      (concat 
 	       (propertize "SCHEDULED: "
 
 			   'font-lock-face 'org-special-keyword)
-	       (propertize (alist-get 'scheduled alist)
+	       (propertize (alist-get 'scheduled data)
 			   'font-lock-face 'org-date))
 	    "__________"))
 
@@ -563,7 +563,7 @@ if there is not one."
  :name todo
  :class org
  :parse (org-entry-get (point) "TODO")
- :display (when-let ((s (alist-get 'todo alist)))
+ :display (when-let ((s (alist-get 'todo data)))
 	    (propertize
 	     s
 	     'font-lock-face
@@ -575,9 +575,9 @@ if there is not one."
  :parse (when (reorg--timestamp-parser)
 	  (org-no-properties (reorg--timestamp-parser)))
  :display
- (if (alist-get 'timestamp alist)
+ (if (alist-get 'timestamp data)
      (concat 
-      (propertize (alist-get 'timestamp alist)
+      (propertize (alist-get 'timestamp data)
 		  'font-lock-face 'org-date))
    "____"))
 
@@ -714,7 +714,7 @@ if there is not one."
 	 ((reorg--timestamp-parser) "active")
 	 ((org-no-properties (reorg--timestamp-parser nil t)) "range")
 	 ((org-entry-get (point) "SCHEDULED") "scheduled"))
- :display (pcase (alist-get 'ts-type alist)
+ :display (pcase (alist-get 'ts-type data)
 	    ("deadline" "≫")
 	    ("active" "⊡")
 	    ("range" "➥")
