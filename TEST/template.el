@@ -40,7 +40,7 @@
 			 :sort-results ((.form-name . string<)))))
 	  ( :sources ((files . "find ~/.emacs.d/lisp/reorg/ -type f | grep .el$"))
 	    :group (when (string= .extension "el")
-		     "All reorg elisp files")
+		     "All reorg elisp files, with smiles next to filenames containing an A")
 	    :children (( :group (number-to-string (length .filename))
 			 :sort-results string>
 			 :sort-groups (lambda (a b) (< (string-to-number a)
