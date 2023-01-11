@@ -96,6 +96,7 @@
 (require 'reorg-files)
 (require 'reorg-leo)
 (require 'reorg-email)
+(require 'reorg-elisp)
 
 ;;; testing requires
 (require 'reorg-test)
@@ -111,7 +112,14 @@
 				   (slot . nil)
 				   (window-parameters . ((reorg . t)))))
   (reorg--select-tree-window)
-  (setf (window-width) (reorg--get-longest-line-length)))
+  ;; TODO figure out a dwim method of setting sidebar size
+  ;; or make it a defcustom. See `reorg--get-longest-line-length'
+  ;; It's apparently tricky to calculate the length of a line that
+  ;; includes :align-to display text props and includes fonts of a different
+  ;; height.  There must be an easier way.
+  ;; For now, balance the windows
+  ;; (setf (window-width) 150))
+  (balance-windows))
 
 (defun reorg--select-main-window (&optional buffer)
   "Select the source window. If BUFFER is non-nil,

@@ -44,9 +44,9 @@
 			(setf (point) point)
 			(cl-incf length l))))
 	       finally (cl-incf length (- (line-end-position) (point))))
-      (unless found 
-	(cl-incf length (- (line-end-position)
-			   (line-beginning-position))))
+      (unless found
+	(setq length (- (line-end-position)
+			(line-beginning-position))))
       length)))
 
 (defun reorg--sort-by-list (a b seq &optional predicate list-predicate)

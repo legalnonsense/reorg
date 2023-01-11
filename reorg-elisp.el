@@ -1,27 +1,28 @@
 ;; -*- lexical-binding: t; -*-
 
-(defun reorg-elisp--render-source (&optional buffer id no-narrow) 
+(defun reorg-elisp--render-source (&optional buffer narrow) 
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((marker (or id (reorg--get-view-prop 'marker))))
+  (let ((marker (reorg--get-view-prop 'marker)))
     (reorg--select-main-window (or buffer (reorg--get-view-prop 'buffer)))
     (widen)
     (goto-char marker)
     (recenter)
-    ;; (narrow-to-defun)
+    (when narrow 
+      (narrow-to-defun))
     (reorg--select-tree-window)))
 
 (defun reorg-elisp--with-point-at (func) 
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((marker (or id (reorg--get-view-prop 'marker))))
-    (reorg--select-main-window (or buffer (reorg--get-view-prop 'buffer)))
+  (let ((marker (reorg--get-view-prop 'marker)))
+    (reorg--select-main-window (marker-buffer marker))
     (widen)
     (goto-char marker)
     (recenter)
-    (funcall func)))
+    (funcall-interactively func nil)))
 
 
 (reorg-create-class-type
@@ -59,9 +60,8 @@ the point and return nil."
 					collect
 					(let (results)
 					  (beginning-of-defun)
-					  (when-let* ((contents (thing-at-point 'defun))
-						      (contents (s-trim contents)))
-					    (setq results (PARSER contents)))
+					  (when-let* ((contents (thing-at-point 'defun)))
+					    (setq results (PARSER (s-trim contents))))
 					  (end-of-defun)
 					  results))))))))
 

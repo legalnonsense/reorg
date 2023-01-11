@@ -1,18 +1,55 @@
 * /Re/​organize your life
-** Quick start
-First, open the test file 
+Dynamically, recursively, and intelligently reorganize any data set into an outline based on custom templates.
+
+Recursively group, sort, format, view, edit, and sync changes to underlying data.
+
+Customize the data displayed in each heading and the shortcuts to interact with it
+
+Display the same data outline locations, i.e., clones
+
+Dynamically update the outline 
+
+Remotely edit the source files
+
+Plugin system to work with new types of data. 
+
+I originally designed an org-mode tree view. Imagine a combination of org-super-agenda, org-ql, and taxy.el. 
+
+But it is not limited to org-mode. You can use Reorg to display, and interact with, /any/ kind of data.
+** Quick example: Orgmode 
+*** Instructions
+*** Load the template 
+*** Basic navigation 
+*** Viewing buffer 
+*** View as side window 
+*** About the bullets
+** Not just for orgmode: use it with files, emails, source code, or anything
 
 
-** Overview
-Create a tree view buffer of your orgmode file, akin to Leo Editor. 
+Reorg provides a pair of macros to create new parsers, customize data display, and create keyboard shortcuts. One created, the full power 
 
-Dynamically, recursively, and automatically reorganize your orgmode files into new outlines shown in that tree view 
-
-Customize the data displayed in each heading. (E.g., deadline, timestamp, tags, TODO, properties, etc.)
-
-Edit the data displayed in each heading, with all changes immediately syncing to the underlying org file.
-** Usage 
-*** Step 1. Write a grouping and sorting template. 
+*** Files
+*** Source code
+*** Emails
+*** Custom file formats (e.g., Leo Editor)
+ 
+** How to write a template
+*** Dot-notation and let-alist
+*** :source 
+**** Inherited: t
+*** :group
+**** Multivalued data types: .@notation 
+*** :sort-groups
+**** Inherited: nil 
+*** :sort-results
+**** Inherited: t
+*** :format-results 
+**** Inherited: t
+**** Special properties 
+*** Hacking backdoors 
+**** :overrides and :post-overrides
+*** Help from company-reorg 
+** Example 
 Imagine an orgmode file:
 #+begin_src org :results silent 
   ,* Jack :tag1:
@@ -50,74 +87,33 @@ This will produce:
 There are a lot of other features of the grouping sorting function. See the source code.
 
 The grouped and sorted results are translated into an outline and displayed in a side buffer. 
-*** Step 2. Write a display template
-:PROPERTIES:
-:ID:       e188c453-38b0-4344-bdee-d0b7b9d34ce3
-:END:
-The information shown in each heading depends on a display template.
-
-A display template takes the following form:
-
-
-It is not necessary to display the leading stars, i.e., it can look more like a flat agenda view.
-*** Step 4. Using the outline
+** Step 4. Using the outline
 **** Navigation 
 ***** headings
-***** heading fields
 ***** clones 
 **** Editing fields
-*** Customization 
-**** Defining new data types
-:PROPERTIES:
-:ID:       d3205aae-528a-4282-ba20-6c1fd15a9798
-:END:
-Each definition has the following components. 
-1. name 
-2. parser
-3. setter
-4. field keymap
-5. heading keymap
-6. display function
-7. validation function
-*** Planned 
-**** Changing views on the fly
+** Capturing data into the outline: org-capture as an example 
+** How to write a plugin 
+*** Creating a class 
+**** Writing a getter 
+**** Writing a display function 
+*** Creating keyboard shortcuts 
+*** Creating data types
+**** Writing a parser 
+***** Referencing previously parsed data 
+***** Receiving data by side-effect vs. passing 
+**** Writing a display function (optional)
+*** 
+** Planned 
+CLOSED: [2023-01-10 Tue 21:28]
+*** Changing views on the fly
 :PROPERTIES:
 :ID:       0a8b0883-2b86-4db0-bb50-f3ef9778ab3f
 :END:
-***** Hoisting headings 
-***** Inverting the outline
-***** Infinite outlines 
-**** Capturing new entries 
+**** Hoisting headings 
+**** Inverting the outline
+**** Infinite outlines 
 :PROPERTIES:
 :ID:       50bb18ae-ba60-4a8f-8395-51870e377b35
 :END:
-**** Saving outline views 
-*** Can we talk about your code?
-We can talk about making it better.
-- The sorting and grouping function
-- The 
-* Terms
-** Branch
-*** Heading node
-** Leaf 
-*** Data node 
-** Child 
-*** Map children
-** Sibliing
-*** Map siblings
-** Parent
-** Movement
-*** To parent 
-*** To previous/next sibling
-*** To nth child 
-*** To next parent
-*** To next level 
-*** CDR equivalent = org-next-heading, org-narrow-to-subtree 
-** Ancestor
-** Descendant 
-** Other functions
-*** Map by generation 
-*** Map by generation within subtree 
-*** 
-** Branch properties
-*** 
+
