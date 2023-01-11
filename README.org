@@ -1,7 +1,7 @@
 * /Re/​organize your life
 
 
-#+HTML: <img src="reorg.webp" align="right">
+#+HTML: <img src="reorg.webp" align="right" width=100>
 
 
 Dynamically, recursively, and intelligently reorganize any type data into an outline. 
