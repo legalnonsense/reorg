@@ -17,40 +17,40 @@ Mix different kinds of data together (e.g., org-mode, email, files, etc.)
 
 Reorg is a framework that can be expanded to display and interact with any kind of data set including org-mode files, the filesystem, emails, databases, and anything else. 
 
-* Example: Orgmode 
-** Basic navigation 
-** Viewing buffer 
-*** In a main window
-*** In a side window 
-* Not just for orgmode: use it with files, emails, source code, or anything
+** Example: Orgmode 
+*** Basic navigation 
+*** Viewing buffer 
+**** In a main window
+**** In a side window 
+*** Other examples: files, emails, source code, or anything
 Reorg provides a pair of macros to create new parsers, customize data display, and create keyboard shortcuts. These macros are explained below. These macros are intended 
-** Files
-** Source code (e.g., elisp)
-** Emails
-** Custom file formats (e.g., Leo Editor)
-** Files, orgmode, and email in a single outline 
-* How to write a template
-** Dot-notation and let-alist
-** Templates depend on the parsed data 
-** :children 
-** :group
-*** Multivalued data types: .@notation
-** :source 
-*** Inherited: t
-** :sort-groups
-*** Inherited: nil 
-** :sort-results
-*** Inherited: t
-** :format-results 
-*** Inherited: t
-*** Special properties 
-** Hacking backdoors 
-*** :overrides and :post-overrides
-** Help from company-reorg when writing a template 
-** Capturing data into the outline and dynamic updates: org-capture as an example 
-*** Write an org-capture hook to parse the new entry 
-*** Drop the entry into the outline in the correct place(s)
-* How to define a class for new types of data
+**** Files
+**** Source code (e.g., elisp)
+**** Emails
+**** Custom file formats (e.g., Leo Editor)
+**** Files, orgmode, and email in a single outline 
+** How to write a template
+*** Dot-notation and let-alist
+*** Templates depend on the parsed data 
+*** :children 
+*** :group
+**** Multivalued data types: .@notation
+*** :source 
+**** Inherited: t
+*** :sort-groups
+**** Inherited: nil 
+*** :sort-results
+**** Inherited: t
+*** :format-results 
+**** Inherited: t
+**** Special properties 
+*** Hacking backdoors 
+**** :overrides and :post-overrides
+*** Help from company-reorg when writing a template 
+*** Capturing data into the outline and dynamic updates: org-capture as an example 
+**** Write an org-capture hook to parse the new entry 
+**** Drop the entry into the outline in the correct place(s)
+** How to define a class for new types of data
 A class is created using the =reorg-create-class= macro. Here are two examples of class definitions. First, the class definition for org files:
 
 #+begin_src emacs-lisp :results silent
@@ -91,9 +91,9 @@ Second, the class definition for files from the file system:
 A class definition has two required components: the name of the new class and a “getter.” It also has two optional components: a render function and a keymap.
 
 The :name argument is simply the name of the class. The rest require some explanation. 
-** Writing a getter
+*** Writing a getter
 The job of the “getter” is to fetch the data call tell Reorg where when and how the parser should be used on that data. There are two pre-defined variables that you must use when writing the getter: =SOURCE= and =PARSER=.
-*** Specifying a =SOURCE= 
+**** Specifying a =SOURCE= 
 
 The =SOURCE= variable refers to the input from the template that is supplied by the user. For example, in the above org-mode class, =SOURCE= is simply the path of an org-mode file.
 
@@ -125,7 +125,7 @@ Then the class getter would be defined this way:
                     collect (PARSER each))
 #+end_src
 As you can see, =SOURCE= simply refers to the anticipated input from the template. (If you want to check to ensure that input is safe before it is run, this is the place to do it.)
-*** Specifying how and when to use the =PARSER=
+**** Specifying how and when to use the =PARSER=
 Within the class creation macro, =PARSER= refers to a function that parsers the data. For the purposes of writing a class definition, you do not worry about /what/ you are parsing; only worry about /when/ you are calling the parser. The parsers for each data type are defined with a separate macro called =reorg-create-data-type=, /see infra/.
 
 There are primary ways to get data and call the =PARSER=.
@@ -161,9 +161,9 @@ But sometimes the data is not contained in a buffer, as in the files example abo
                     collect (PARSER each))
 #+end_src
 There are two other parts to writing a class definition: (1) writing a function that, when Reorg is used as a sidebar, displays the data at point in the main buffer; and (2) defining keyboard shortcuts to interact with the data. Because these are both optional, they are addressed below. The next section explains how to define what the =PARSER= actually does. 
-** Creating data types and defining what the =PARSER= should parse 
+*** Creating data types and defining what the =PARSER= should parse 
 In the above examples, we know that =PARSER= is being called either at an org-mode heading or with the path of a file name. The question is what information we want to store from those sources and, optionally, how we want to display that data. This is accomplished with the =reorg-create-data-type= marco.
-*** Handling data within a buffer
+**** Handling data within a buffer
 Suppose that we've created the same minimal org-mode class set out above:
 #+begin_src emacs-lisp :results silent
 (reorg-create-class-type
@@ -206,7 +206,7 @@ Note that this will return a list with, potentially, multiple entries. /See/ [[*
 
 Hopefully you can see that there is no limit to the data you can extract and save for later display. 
 
-*** Handling data passed to the parser as an argument
+**** Handling data passed to the parser as an argument
 
 The approach is slightly different when you are dealing with data that is passed to the =PARSER= as an argument. For example, in the files example, /supra/, the =PARSER= was called with each path as an argument. 
 #+begin_src emacs-lisp :results silent
@@ -227,7 +227,7 @@ For example, suppose you were creating an outline and you wanted to sort a list 
    :parse (f-ext data))
 #+end_src
 The variable =data= will always refer to the original data passed to =PARSER=. 
-*** Referencing previously parsed data
+**** Referencing previously parsed data
 For either approach, you can also reference all the data that has has been generated by the other previous parsers within the same class. For example, suppose you parse and store a [[https://github.com/alphapapa/ts.el][ts]] object that represents the deadline of a heading:
 #+begin_src emacs-lisp :results silent
   (reorg-create-data-type
@@ -256,7 +256,7 @@ Alternatively, you can use the variable =DATA= which is the alist of all previou
  #+end_src
 Note the use of :append in both examples. If you want to refer to /previously/ parsed data, you must ensure that parser is run /after/ the parser generating the data you want to use. If the first parser that is run attempts to reference =DATA=, it will be nil because there will be nothing there to reference.
 
-*** Writing a display function (optional)
+**** Writing a display function (optional)
 When a user writes a template and tells Reorg how to format and display the results, the user uses dot notation. But sometimes that is not satisfactory. For example, =(org-entry-get (point) "PRIORITY")= will return "A", "B", or "C". But no one wants to see A, B, or C in their outline because it would be ugly. To change how data is display, use the =:display= keyword. Like the parser, the display keyword can use dot-notation to refer to any previously parsed data (including the data generated by the current parser):
 #+begin_src emacs-lisp :results silent
   (reorg-create-data-type
@@ -303,12 +303,12 @@ Or, if you don't care if the .depth data is stored as an iteger, you could also 
    :class files
    :parse (number-to-string (f-depth data)))
 #+end_src
-*** Writing a render function (optional)
+**** Writing a render function (optional)
 When a Reorg buffer is displayed in a side window, it can automatically render the data at point as the user moves through the outline. For Reorg to know how to display the data, it needs to be told how to do so. 
-*** Creating keyboard shortcuts 
-* Planned 
-** Changing views on the fly
-*** Hoisting headings 
-*** Inverting the outline
-*** Infinite outlines (not sure what I meant by this)
+**** Creating keyboard shortcuts 
+** Planned 
+*** Changing views on the fly
+**** Hoisting headings 
+**** Inverting the outline
+**** Infinite outlines (not sure what I meant by this)
 
