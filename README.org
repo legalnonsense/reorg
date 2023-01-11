@@ -3,21 +3,39 @@
 
 Dynamically, recursively, and intelligently reorganize any type data
 
-Customize the data displayed in each heading and the shortcuts to interact with it.
+Customize how data displayed and shortcuts to interact with it
 
 Create three dimensional outlines by displaying the same data in multiple locations[fn:1]
 
-Dynamically update the outline 
+Mix different kinds of data together (e.g., org-mode, email, files, etc.) in the same outline
 
-Remotely edit and re-sync the source data 
+Create modules to display and interact with /any/ kind of data including org-mode files, the filesystem, emails, databases, and anything else. 
 
-Use Reorg to display, and interact with, /any/ kind of data by using the module creation macros
+** Example: Orgmode
+Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]]. 
 
-Mix different kinds of data together (e.g., org-mode, email, files, etc.)
+Take the following orgmode file which contains a few notes, TODO items, and dates. 
+#+begin_src org
+  ,* [2023-01-10 Tue 13:16] @Brian told @Alex that @Olivia ate three guitars for breakfast. :aaa:
+  ,* TODO [#A] Research the effect of nylon strings on gut health. :aaa:
+  ,* [2023-01-11 Wed 14:00] @Olivia told @Brian that she dreams of being a potato. :bbb:
+  ,* [2023-01-11 Wed 15:00] @Alex learns that @Olivia wants to be a potato and he begins pacing erratically. :bbb:
+  ,* [2023-01-08 Sun 13:19] @Olivia decides that she wants to mess with @Brian and @Alex because she is bored :aaa:
+  ,* TODO [#B] Think of a better example file :bbb: 
+#+end_src
+Suppose you want to display this information in the following way: 
+1. Group all entries with a timestamp under a single heading and sort them by date
+2. Group all entries that mention an @name under a heading for each @name /regardless of whether those entries were already inserted into the previous heading/
+   1. Within each of those headings heading, group the entries by tag with the tags sorted alphabetically
+3. Group all TODO entries together, sorting by tag
+4. Show all the entries in the file sorted by org-id, but only display the org-id
 
-Reorg is a framework that can be expanded to display and interact with any kind of data set including org-mode files, the filesystem, emails, databases, and anything else. 
 
-** Example: Orgmode 
+
+
+
+
+
 *** Template 
 *** Basic navigation 
 *** Viewing buffer 
