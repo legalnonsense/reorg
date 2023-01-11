@@ -5,16 +5,16 @@ Dynamically, recursively, and intelligently reorganize any type data
 
 Customize how data displayed and shortcuts to interact with it
 
-Create three dimensional outlines by displaying the same data in multiple locations[fn:1]
+Create three dimensional outlines by displaying the same data in multiple locations
 
 Mix different kinds of data together (e.g., org-mode, email, files, etc.) in the same outline
 
-Create modules to display and interact with /any/ kind of data including org-mode files, the filesystem, emails, databases, and anything else. 
+Create modules to display and interact with /any/ kind of data
 
 ** Example: Orgmode
-Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]]. 
+Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it uses none of those things). 
 
-Take the following orgmode file which contains a few notes, TODO items, and dates. 
+For example, take the following orgmode file which contains a few notes, TODO items, and dates. 
 #+begin_src org
   ,* [2023-01-11 Wed 13:16] @Brian told @Alex that @Olivia ate three guitars for breakfast. :aaa:
   ,* TODO [#A] Research the effect of nylon strings on gut health. :aaa:
@@ -28,14 +28,15 @@ Suppose you want to display this information in the following way:
 1. Group all entries with a timestamp under a single heading and sort them by date
 2. Group all entries that mention an @name under a heading for each @name (regardless of whether those entries were already inserted into the previous heading)
    1. Within each of those headings, group the entries by tag with the tags sorted alphabetically
-3. Group all TODO entries together, sorting by tag, but displayed in all caps 
+   2. But don’t display the timestamps 
+3. Group all TODO entries together, sorting by tag, but display the headlines in all caps 
 4. Show all the entries in the file sorted by org-id, but only display the org-id
 
 This produces:
 #+ATTR_HTML: :width 800px
 [[file:TEST/initial-example-screenshot.png]]
 
-There is already a lot going on here. But this isn’t just for org-mode. Let’s add some more:
+There is already a lot going on here. But this isn’t just for org-mode. Let’s add some more before discussing it:
 
 5. [@5] Display all of the variable declarations in reorg.el, but don’t dislpay the reorg- prefix; sort them in reverse alphabetical order. Group them by the type of variable. 
 6. Show all of the .el files in the reorg directory, but group them by the number of characters in the filename and sort the groups in descending order. If a filename contains the letter “a”, put a happy face next to it.
@@ -48,10 +49,45 @@ Note that these examples keep the types of data separate. It is possible to mix 
 
 These outlines are created using Reorg’s template system, which is explained below. For now, 
 *** Outline basics 
+- Clones
+Clones are a key feature of Reorg. Clones are entries that appear in multiple places in an outline. /See/, /e.g.,/ Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. /See also/ a prototype package I wrote some time ago called [[https://github.com/legalnonsense/org-clones][org-clones]]. In my mind, an outline with clones is a three-dimensional outline. 
+
+In Reorg, a heading can appear in different locations and can have different appearances. Take the original example. Each of the headings in a red box are identical:
+#+ATTR_HTML: :width 800px
+[[file:TEST/third-example-screenshot.png]]
+If you select any of these headings and render the underlying data, you will be taken to the exact same location in the org-mode file. If you edit these headings from the org-mode buffer, they will all be deleted, re-parsed from the new source, and re-inserted into the outline at the appropriate location(s)
+
 - Moving through the outline
-- Jumping to clones 
+  The keybindings, usable by any Reorg outline no matter the data type, are:
+  | n or down | next heading             |
+  | p or up   | previous heading         |
+  | u or left | goto parent              |
+  | U         | next parent              |
+  | b         | previous sibling         |
+  | f         | next sibling             |
+  | tab       | fold/unfold subtree      |
+  | shift+tab | fold/unfold all          |
+  | R         | Reload                   |
+  | g         | Refresh heading at point |
+  | c         | jump to next clone       |
+  | C         | jump to previous clone   |
+  | RET       | Display source buffer    |
+
 - Interacting with data
-- Updating data [DANGER]
+Reorg itself does not provide a way to interact with the data being displayed in the outline because it has no idea what that data is. All interactions are handled by the various modules. For example, if the header at point is based on an org-mode file, the reorg-org module uses the following keybindings:
+| SPC | reorg-org--open-agenda-day |
+| h   | edit headline              |
+| t   | edit todo state            |
+| a   | edit tags                  |
+| d   | edit deadline              |
+| s   | edit scheduled timestamp   |
+| r   | set properties             |
+| i   | set priority               |
+
+If you run any of these commands, Reorg will edit the source buffer, delete the heading (and its clones) in the reorg tree, re-parse the heading, and re-insert the data into the tree.
+
+Note that this is all tricky to do and I am still working out a few bugs. All of these bugs relate to the reorg buffer; the worst case scenario is that a heading is inserted in the wrong place. This is easily fixed by reloading the reorg buffer by pressing =R.=
+
 - Viewing the Reorg buffer 
   - In a main window
   - In a side window 
@@ -342,6 +378,6 @@ When a Reorg buffer is displayed in a side window, it can automatically render t
 **** Inverting the outline
 **** Infinite outlines (not sure what I meant by this)
 
-* Footnotes
 
-[fn:1]See, e.g., Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. 
+
+
