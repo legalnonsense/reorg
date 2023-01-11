@@ -31,17 +31,18 @@
 		     (concat 
 		      "All functions in the reorg source code, "
 		      "with the reorg- prefix removed, sorted alpabetically, "
-		      "and grouped by type"))
+		      "and grouped by type, and displayed with a large indent"))
 	    :children (( :group .form-type 
-			 :format-results (.form-type
-					  (propertize " " 'display '(space . (:align-to 30)))
+			 :format-results ((propertize " " 'display '(space . (:align-to 30)))
 					  (replace-regexp-in-string "reorg-?-"
 								    ""
 								    .form-name))
 			 :sort-results ((.form-name . string<)))))
 	  ( :sources ((files . "find ~/.emacs.d/lisp/reorg/ -type f | grep .el$"))
 	    :group (when (string= .extension "el")
-		     "All reorg elisp files, with smiles next to filenames containing an A")
+		     (concat 
+		      "All reorg elisp files, grouped by length of file name, "
+		      "with smiles next to filenames containing an A"))
 	    :children (( :group (number-to-string (length .filename))
 			 :sort-results string>
 			 :sort-groups (lambda (a b) (< (string-to-number a)
