@@ -35,10 +35,12 @@ Reorg provides a pair of macros to create new parsers, customize data display, a
  
 ** How to write a template
 *** Dot-notation and let-alist
+*** Templates depend on the parsed data 
+*** :children 
+*** :group
+**** Multivalued data types: .@notation
 *** :source 
 **** Inherited: t
-*** :group
-**** Multivalued data types: .@notation 
 *** :sort-groups
 **** Inherited: nil 
 *** :sort-results
@@ -48,7 +50,7 @@ Reorg provides a pair of macros to create new parsers, customize data display, a
 **** Special properties 
 *** Hacking backdoors 
 **** :overrides and :post-overrides
-*** Help from company-reorg 
+*** Help from company-reorg when writing a template 
 ** Example 
 Imagine an orgmode file:
 #+begin_src org :results silent 
@@ -88,12 +90,14 @@ There are a lot of other features of the grouping sorting function. See the sour
 
 The grouped and sorted results are translated into an outline and displayed in a side buffer. 
 ** Step 4. Using the outline
+**** Tree vs. Main view 
 **** Navigation 
-***** headings
-***** clones 
-**** Editing fields
-** Capturing data into the outline: org-capture as an example 
-** How to write a plugin 
+**** Editing fields: org-mode as an example 
+**** Editing fields: files as an example 
+** Capturing data into the outline and dynamic updates: org-capture as an example 
+*** Write an org-capture hook to parse the new entry 
+*** Drop the entry into the outline in the correct place(s)
+** How to write a plugin for new types of data 
 *** Creating a class 
 **** Writing a getter 
 **** Writing a display function 
