@@ -9,7 +9,8 @@
 		     "Headings with timestamps, sorted by timestamp")
 	    :format-results (.stars " " .headline)
 	    :sort-results ((.timestamp-ia . string<)))
-	  ( :group "Headings grouped by each @name in the heading, then grouped by tag"
+	  ( :group (concat "Headings grouped by each @name in the heading, "
+			   "then grouped by tag, but don't display timestamps")
 	    :children (( :group .@at-names
 			 :children (( :group .tags
 				      :sort-groups string<				   
