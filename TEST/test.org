@@ -1,0 +1,36 @@
+* [2023-01-11 Wed 13:16] @Brian told @Alex that @Olivia ate three guitars for breakfast. :aaa:
+:PROPERTIES:
+:ID:       7038a596-f2c3-414d-a68a-fadbc9ef61ad
+:END:
+
+* TODO [#A] Research the effect of nylon strings on gut health. :aaa:
+:PROPERTIES:
+:ID:       800b2057-ad95-4f97-8943-2543ea94fced
+:END:
+
+* [2023-01-11 Wed 14:00] @Olivia told @Brian that she dreams of being a potato. :bbb:
+:PROPERTIES:
+:ID:       e873a81f-233c-49db-b2e9-8595eb704d4d
+:END:
+
+* [2023-01-11 Wed 15:00] @Alex learns that @Olivia wants to be a potato and he begins pacing erratically. :bbb:
+:PROPERTIES:
+:ID:       20c793b0-5137-4f9d-8127-bd00f503515a
+:END:
+
+* [2023-01-08 Sun 13:19] @Olivia decides that she wants to mess with @Brian and @Alex because she is bored :aaa:
+:PROPERTIES:
+:ID:       2038e3b1-f838-479c-b9f2-cd6ed55cba32
+:END:
+
+* TODO [#B] Think of a better example file :bbb:
+:PROPERTIES:
+:ID:       414fe413-f199-41c7-a0b5-36033102bf97
+:END:
+
+* DONE [#A] Write a terrible example file 
+:PROPERTIES:
+:ID:       50888237-5e35-4f4f-8c82-a96166343c01
+:END:
+ 
+  

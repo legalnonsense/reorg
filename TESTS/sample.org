@@ -1,1 +1,7 @@
-* Entry with 
+* [2023-01-11 Wed 13:16] @Brian told @Alex that @Olivia ate three guitars for breakfast.
+* TODO [#A] Research the effect of nylon strings on gut health. 
+* [2023-01-11 Wed 14:00] @Olivia told @Brian that she dreams of being a potato. 
+* [2023-01-11 Wed 15:00] @Alex learns that @Olivia wants to be a potato and he begins pacing erratically. 
+* [2023-01-08 Sun 13:19] @Olivia decides that she wants to mess with @Brian and @Alex because she is bored 
+* TODO [#B] Think of a better example file
+* 

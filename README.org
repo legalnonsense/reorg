@@ -16,22 +16,32 @@ Reorg was originally designed as a way to view and interact with org-mode files.
 
 Take the following orgmode file which contains a few notes, TODO items, and dates. 
 #+begin_src org
-  ,* [2023-01-10 Tue 13:16] @Brian told @Alex that @Olivia ate three guitars for breakfast. :aaa:
+  ,* [2023-01-11 Wed 13:16] @Brian told @Alex that @Olivia ate three guitars for breakfast. :aaa:
   ,* TODO [#A] Research the effect of nylon strings on gut health. :aaa:
   ,* [2023-01-11 Wed 14:00] @Olivia told @Brian that she dreams of being a potato. :bbb:
   ,* [2023-01-11 Wed 15:00] @Alex learns that @Olivia wants to be a potato and he begins pacing erratically. :bbb:
   ,* [2023-01-08 Sun 13:19] @Olivia decides that she wants to mess with @Brian and @Alex because she is bored :aaa:
-  ,* TODO [#B] Think of a better example file :bbb: 
+  ,* TODO [#B] Think of a better example file :bbb:
+  ,* DONE [#A] Write a terrible example file   
 #+end_src
 Suppose you want to display this information in the following way: 
 1. Group all entries with a timestamp under a single heading and sort them by date
 2. Group all entries that mention an @name under a heading for each @name /regardless of whether those entries were already inserted into the previous heading/
-   1. Within each of those headings heading, group the entries by tag with the tags sorted alphabetically
-3. Group all TODO entries together, sorting by tag
+   1. Within each of those headings, group the entries by tag with the tags sorted alphabetically
+3. Group all TODO entries together, sorting by tag, but displayed in all caps 
 4. Show all the entries in the file sorted by org-id, but only display the org-id
 
+This produces:
+#+ATTR_HTML: :width 800px
+[[file:TEST/initial example screenshot.png]]
 
+But this isn’t just for org-mode. Let’s add another:
 
+5. [@5] Display all of the variable definitions in reorg.el, but don’t dislpay the reorg- prefix; sort them in reverse alphabetical order
+6. Show all of the .el files in the reorg directory, but group them by the number of characters in the filename and sort the groups in descending order. If a filename contains the letter “a”, put a happy face next to it.
+
+Okay. You asked for it.
+[[file:TEST/second example screenshot.png]]
 
 
 
@@ -48,6 +58,7 @@ Reorg provides a pair of macros to create new parsers, customize data display, a
 **** Emails
 **** Custom file formats (e.g., Leo Editor)
 **** Files, orgmode, and email in a single outline 
+** 
 ** How to write a template
 *** Dotted symbols
 Templates utilize variables that are stored when Reorg parses the underlying data. These variables can be accessed using dotted symbols identical those used by the built-in [[https://elpa.gnu.org/packages/let-alist.html][let-alist]] macro. Templates can use any data that has been parsed by Reorg. 
