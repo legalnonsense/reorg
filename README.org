@@ -1,16 +1,11 @@
 * /Re/​organize your life
-
-
 #+HTML: <img src="reorg.webp" align="right" width=300>
 
-
-Dynamically, recursively, and intelligently reorganize any type data into an outline. 
-
-Recursively group, sort, format, view, edit, and sync changes to underlying data.
+Dynamically, recursively, and intelligently reorganize any type data
 
 Customize the data displayed in each heading and the shortcuts to interact with it.
 
-Display the same data outline locations, i.e., clones
+Create three dimensional outlines by displaying the same data in multiple locations[fn:1]
 
 Dynamically update the outline 
 
@@ -320,3 +315,6 @@ When a Reorg buffer is displayed in a side window, it can automatically render t
 **** Inverting the outline
 **** Infinite outlines (not sure what I meant by this)
 
+* Footnotes
+
+[fn:1]See, e.g., Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. 
