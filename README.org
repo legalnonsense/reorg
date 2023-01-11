@@ -1,4 +1,9 @@
 * /Re/​organize your life
+
+
+#+HTML: <img src="reorg.webp" align="right">
+
+
 Dynamically, recursively, and intelligently reorganize any type data into an outline. 
 
 Recursively group, sort, format, view, edit, and sync changes to underlying data.
@@ -18,6 +23,7 @@ Mix different kinds of data together (e.g., org-mode, email, files, etc.)
 Reorg is a framework that can be expanded to display and interact with any kind of data set including org-mode files, the filesystem, emails, databases, and anything else. 
 
 ** Example: Orgmode 
+*** Template 
 *** Basic navigation 
 *** Viewing buffer 
 **** In a main window
@@ -30,7 +36,9 @@ Reorg provides a pair of macros to create new parsers, customize data display, a
 **** Custom file formats (e.g., Leo Editor)
 **** Files, orgmode, and email in a single outline 
 ** How to write a template
-*** Dot-notation and let-alist
+*** Dotted symbols
+Templates utilize variables that are stored when Reorg parses the underlying data. These variables can be accessed using dotted symbols identical those used by the built-in [[https://elpa.gnu.org/packages/let-alist.html][let-alist]] macro. Templates can use any data that has been parsed by Reorg. 
+
 *** Templates depend on the parsed data 
 *** :children 
 *** :group
