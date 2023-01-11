@@ -732,8 +732,9 @@ returns:
 		(cl-pushnew (cons ',name #',parsing-func)
 			    (alist-get ',class reorg--parser-list)))
 	      (if ',display 
-		  (defun ,display-func (alist)
-		    ,display)
+		  (defun ,display-func (data)
+		    (let-alist data 
+		      ,display))
 		(fmakunbound ',display-func)))
 	     (t ;;if disabled 
 	      (setf (alist-get ',class reorg--parser-list)

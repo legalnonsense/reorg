@@ -409,7 +409,10 @@ if there is not one."
 	  ("r" . reorg-org--org-set-property)
 	  ("i" . reorg-org--org-priority)
 	  ("g" . reorg-org--reload-heading))
- :getter (org-ql-select SOURCE nil :action #'PARSER))
+ :getter (with-current-buffer (find-file SOURCE)
+           (org-map-entries #'PARSER)))
+
+;; (org-ql-select SOURCE nil :action #'PARSER))
 
 ;;; org data 
 
@@ -548,7 +551,6 @@ if there is not one."
 (reorg-create-data-type
  :name headline
  :class org
- :display (alist-get 'headline alist)
  :parse (org-no-properties
 	 (org-get-heading t t t t)))
 
