@@ -38,7 +38,7 @@ This produces:
 
 One of the key features is that entries can appear in multiple places in the outline.
 
-*** _Clones_
+*** Clones
 
 Clones are a key feature of Reorg. Clones are entries that appear in multiple places in an outline. /See/, /e.g.,/ Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. /See also/ a prototype package I wrote some time ago called [[https://github.com/legalnonsense/org-clones][org-clones]]. In my mind, an outline with clones is a three-dimensional outline which means that it can be viewed from different perspective. More on that later. 
 
@@ -95,8 +95,9 @@ Reorg itself does not provide a way to interact with the data being displayed in
 | s   | edit scheduled timestamp   |
 | r   | set properties             |
 | i   | set priority               |
+
 **** Refreshing the display 
-If you run any of these commands and change the underlying org-mode file, Reorg will edit the source buffer, delete the heading (and its clones) in the reorg tree, re-parse the heading, and re-insert the data into the tree.
+If you run any of these commands and change the underlying org-mode file, Reorg will edit the source buffer, delete the heading (and its clones) in the reorg tree, re-parse the heading, and re-insert the data into the tree. It does this without reloading the entire tree, so the change is immediate. 
 
 Note that refreshing the a single element in the outline is tricky. I am still working out a few bugs. All of these bugs relate to the reorg buffer; the worst case scenario is that a heading is inserted in the wrong place. This is easily fixed by reloading the reorg buffer by pressing =R.=
 **** Viewing the Reorg buffer
@@ -134,68 +135,53 @@ Templates utilize variables that are stored when Reorg parses the underlying dat
 *** Capturing data into the outline and dynamic updates: org-capture as an example 
 **** Write an org-capture hook to parse the new entry 
 **** Drop the entry into the outline in the correct place(s)
-** How to define a class for new types of data
+** Extending Reorg to handle different types of data 
 A class is created using the =reorg-create-class= macro. Here are two examples of class definitions. First, the class definition for org files:
 
 #+begin_src emacs-lisp :results silent
 (reorg-create-class-type
  :name org
- :render-func reorg-org--render-source
- :keymap (("SPC" . reorg-org--open-agenda-day)
-	  ("h" . reorg-org--org-edit-headline)
-	  ("t" . reorg-org--org-todo)
-	  ("a" . reorg-org--org-set-tags-command)
-	  ("d" . reorg-org--org-deadline)
-	  ("s" . reorg-org--org-schedule)
-	  ("r" . reorg-org--org-set-property)
-	  ("i" . reorg-org--org-priority)
-	  ("g" . reorg-org--reload-heading))
  :getter (org-ql-select SOURCE nil :action #'PARSER))
 #+end_src
 Second, the class definition for files from the file system:
 #+begin_src emacs-lisp :results silent
-(reorg-create-class-type
- :name files
- :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
-					     SOURCE)
-				       t)
-		  collect (PARSER each))
- :keymap (("x" . (lambda () (interactive) (message "adf")))
-	  ("e" . (lambda ()
-		   (interactive)
-		   (let ((file (reorg--get-view-prop 'fullname)))
-		     (reorg--select-main-window)
-		     (find-file file))))
-
-	  ("y" . (lambda () (interactive) (message "yyyy")))
-	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
-	  ("o" . (lambda () (interactive)
-		   (xdg-open (reorg--get-view-prop 'path))))))
+  (reorg-create-class-type
+   :name files
+   :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
+                                               SOURCE)
+                                         t)
+                    collect (PARSER each))
+   :keymap (("e" . (lambda ()
+                     (interactive)
+                     (let ((file (reorg--get-view-prop 'fullname)))
+                       (reorg--select-main-window)
+                       (find-file file))))
+            ("o" . (lambda () (interactive)
+                     (xdg-open (reorg--get-view-prop 'path))))))
 #+end_src
-A class definition has two required components: the name of the new class and a “getter.” It also has two optional components: a render function and a keymap.
+A class definition has two required components: the name of the new class and a “getter.” It also has two optional components: a render (=:render-func=)function and a keymap (=:keymap=).
 
-The :name argument is simply the name of the class. The rest require some explanation. 
+The =:name= argument is simply the name of the class that will be used then declaring a source in a template and when creating parsers for the data. 
 *** Writing a getter
 The job of the “getter” is to fetch the data call tell Reorg where when and how the parser should be used on that data. There are two pre-defined variables that you must use when writing the getter: =SOURCE= and =PARSER=.
 **** Specifying a =SOURCE= 
 
 The =SOURCE= variable refers to the input from the template that is supplied by the user. For example, in the above org-mode class, =SOURCE= is simply the path of an org-mode file.
 
-This means that in a template to use org-mode data, the user would specify the source like this:
+This means that to use org-mode data in an outline, the user would specify the source like this:
 #+begin_src emacs-lisp :results silent
-'(:sources ((org . "~/.emacs.d/lisp/reorg/TEST/test.org")
+'(:sources ((org . "~/.emacs.d/lisp/reorg/TEST/test.org")))
 #+end_src
-In the files exmaple, =SOURCE= is a bash command that outputs a list of file paths (e.g., it could be =find ~/ -type f=). In a template using the files class, the user would specify the source like this:
+In the files example, =SOURCE= is a bash command that outputs a list of file paths (e.g., it could be =find ~/ -type f=). In a template using the files class, the user would specify the source like this:
 #+begin_src emacs-lisp :results silent
 '(:sources ((files . "find ~/.emacs.d -type f")))
 #+end_src
 
-Here is an example of a different way to handle input from a template for the files class. Suppose that you did not want the user to have to type in a shell command to retrieve a list of files; instead, you only want the user to supply a directory so that the template use looks like: 
+But suppose that you did not want the user to have to type in a shell command to retrieve a list of files; instead, you only want the user to supply a directory. In other words, you want the template to look like this:
 
 #+begin_src emacs-lisp :results silent
 '(:sources ((files . "~/.emacs.d")))
 #+end_src
-
 Then the class getter would be defined this way:
 #+begin_src emacs-lisp :results silent
   (reorg-create-class-type
@@ -208,21 +194,14 @@ Then the class getter would be defined this way:
                                          t)
                     collect (PARSER each))
 #+end_src
-As you can see, =SOURCE= simply refers to the anticipated input from the template. (If you want to check to ensure that input is safe before it is run, this is the place to do it.)
+As you can see, =SOURCE= simply refers to the anticipated input from the template.
+
 **** Specifying how and when to use the =PARSER=
-Within the class creation macro, =PARSER= refers to a function that parsers the data. For the purposes of writing a class definition, you do not worry about /how/ you are parsing the data; only worry about /when/ you are parsing it. We’ll deal with writing the parser later using a separate macro called =reorg-create-data-type=, /see infra/.
+Within the class creation macro, =PARSER= refers to a function that parsers the data. For the purposes of writing a class definition, you do not worry about /how/ you are parsing the data; only worry about /when/ you are parsing it. (We’ll deal with writing the parsers later using a separate macro called =reorg-create-data-type=, /see infra/.)
 
 There two primary ways to fetch get data and call the =PARSER=.
 
-First, for the org-mode class above, all the data fetching and parsing is done by physically moving through the buffer and calling the parsing function at each heading. 
-
-#+begin_src emacs-lisp :results silent
-(reorg-create-class-type
- :name org
- ;; . . . 
- :getter (org-ql-select SOURCE nil :action #'PARSER))
-#+end_src
-This is exactly what =org-ql= does. Alternatively, one could use =org-map-entries= but it is a bit slower:
+First, for the org-mode class above, all parsing is done by physically moving through the buffer and calling the parsing function at each heading. 
 #+begin_src emacs-lisp :results silent
   (reorg-create-class-type
    :name org
@@ -230,9 +209,17 @@ This is exactly what =org-ql= does. Alternatively, one could use =org-map-entrie
    :getter (with-current-buffer (find-file SOURCE)
              (org-map-entries #'PARSER)))
 #+end_src
-In these examples, =PARSER= is called with no arguments because it is does not need any data; it gathers the data by examining the buffer. 
+You could, alternatively, use =org-ql= which does the same thing:
+#+begin_src emacs-lisp :results silent
+(reorg-create-class-type
+ :name org
+ ;; . . . 
+ :getter (org-ql-select SOURCE nil :action #'PARSER))
+#+end_src
 
-But sometimes the data is not contained in a buffer, as in the files example above which runs a shell command and receives a list of file paths, and =PARSER= is called on each member of that list individually. In that case, =PARSER= is called with one argument: the data to be parsed.
+In these examples, =PARSER= is called with no arguments because it is does not need any data; it gathers the data by examining a buffer. 
+
+But sometimes the data is not contained in a buffer. The second way to parse data is to call =PARSER=, with the data passed to it as an argument. For example, in the =files= example above which runs a shell command and receives a list of file paths, =PARSER= is called on each member of that list individually. In that case, =PARSER= is called with the data to be parsed as an argument: 
 #+begin_src emacs-lisp :results silent
   (reorg-create-class-type
    :name files
@@ -263,17 +250,9 @@ Suppose we want to store the TODO state of an org entry for use in our outline.
 #+end_src
 This tells Reorg that we are adding data named "todo" to the org class. The macro will automatically create a function definition, add that function to an internal parser list, and call that function each time the =PARSER= function is invoked by the org class we defined above.
 
-Let's create another data type that will get and store the priority of the org-mode heading:
+Reorg will store all parsed data in an alist, so the above data type would generate:
 #+begin_src emacs-lisp :results silent
-  (reorg-create-data-type
-   :class org
-   :name priority
-   :parse (org-entry-get (point) "PRIORITY")
-   :display (pcase (alist-get 'priority data)
-              ("A" "⚡")
-              ("B" "➙")
-              ("C" "﹍")
-              (_ " ")))
+'((todo . "TODO")) ;;or "DONE" or whatever
 #+end_src
 You are not limited to pre-defined parts of the org-mode heading like TODO statets and priorities. For example, here is one that searching the heading for any words prefixed with an @ symbol and that stores a list of those words:
 #+begin_src emacs-lisp :results silent
@@ -286,9 +265,9 @@ You are not limited to pre-defined parts of the org-mode heading like TODO state
                                             (match-end 1)))
                      collect (match-string-no-properties 1 headline))))
 #+end_src
-Note that this will return a list with, potentially, multiple entries. /See/ [[*Multivalued data types: .@notation][deadling with multivalued data types]], /supra/. 
+Note that this will return a list with, potentially, multiple entries. That is not a problem because Reorg can clone these so each @name can appear in multiple places in the outline, as in the first example in this readme. /See also/ [[*Multivalued data types: .@notation][deadling with multivalued data types]], /supra/. 
 
-Hopefully you can see that there is no limit to the data you can extract and save for later display. 
+There is no limit to the data you can extract and save for later display.
 
 **** Handling data passed to the parser as an argument
 
@@ -382,16 +361,8 @@ But also assume (for whatever reason) you want to keep the data stored as an int
    :parse (f-depth data)
    :display (number-to-string .depth))
 #+end_src
-Alternatively, you could also transform it to a string when it is parsed:
-#+begin_src emacs-lisp :results silent
-  (reorg-create-data-type
-   :name depth 
-   :class files
-   :parse (number-to-string (f-depth data)))
-#+end_src
-There are usually multiple ways to accomplish the same goal. 
 **** Writing a render function (optional)
-When a Reorg buffer is displayed in a side window, it can automatically render the data at point as the user moves through the outline. For Reorg to know how to display the data, it needs to be told how to do so. Thus, when defining a class 
+When a Reorg buffer is displayed in a side window, it can automatically render the data at point as the user moves through the outline. For Reorg to know how to display the data, it needs to be told how to do so. If no render function is provided in a class definition, then Reorg will not attempt to render the data. If a render function is provided, and the Reorg buffer is in a side window, then it will render the underlying data each time the user selects a heading in the outline. 
 
 
 **** Creating keyboard shortcuts 
