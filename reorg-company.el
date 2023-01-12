@@ -1,5 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 
+(require 's)
 
 (defun reorg-company--get-candidates (arg)
   "Get company candidates."
@@ -22,20 +23,24 @@
 	  (let ((root (concat "." (match-string 2 arg))))
 	    (cl-remove-if-not (lambda (x) (s-starts-with-p root x))
 			      all-dots)))))))
+(rassoc 5 '((a . 4) (b . 5)))
+ (defun reorg-company--annotation (canditate)
+   "Get annotation"
+   "test")
 
-(defun reorg-company (command &optional arg &rest _)
-  "company backend"
-  (cl-case command
-    (interactive (company-begin-backend 'reorg-company))
-    (prefix
-     (and (eq major-mode 'emacs-lisp-mode)
-	  (when-let ((sym (thing-at-point 'symbol)))
-	    (when (equal "."
-			 (substring sym 0 1))
-	      sym))))
-    (candidates (reorg-company--get-candidates arg))
-    (sorted t)
-    (no-cache t)))
+  (defun reorg-company (command &optional arg &rest _)
+    "company backend"
+    (cl-case command
+      (interactive (company-begin-backend 'reorg-company))
+      (prefix (and (eq major-mode 'emacs-lisp-mode)
+		   (when-let ((sym (thing-at-point 'symbol)))
+		     (when (equal "."
+				  (substring sym 0 1))
+		       sym))))
+      (candidates (reorg-company--get-candidates arg))
+      (annotation (reorg-company--annotation arg))
+      (sorted t)
+      (no-cache t)))
 
 ;;;###autoload 
 (defun reorg-company-enable ()
