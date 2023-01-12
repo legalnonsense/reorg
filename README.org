@@ -1,18 +1,18 @@
 * /Re/​organize your life
 #+HTML: <img src="reorg.webp" align="right" width=300>
 
-Dynamically, recursively, and intelligently reorganize any type data
+Dynamically, recursively, and intelligently reorganize and display any type data
 
 Customize how data displayed and shortcuts to interact with it
 
-Create three dimensional outlines by displaying the same data in multiple locations
+Create three dimensional outlines by displaying the same headings in multiple locations
 
-Mix different kinds of data together (e.g., org-mode, email, files, etc.) in the same outline
+Mix different kinds of data (e.g., org-mode, email, files, etc.) in the same outline
 
-Create modules to display and interact with /any/ kind of data
+Create modules to expand capabilities to display and interact with /any/ kind of data
 
-** Example: Orgmode
-Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it uses none of those things). 
+** _Example: Orgmode_
+Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-sidebar][org-sidebar]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it uses none of those things). 
 
 For example, take the following orgmode file which contains a few notes, TODO items, and dates. 
 #+begin_src org
@@ -36,7 +36,19 @@ This produces:
 #+ATTR_HTML: :width 800px
 [[file:TEST/initial-example-screenshot.png]]
 
-There is already a lot going on here. But this isn’t just for org-mode, so let’s add some more before discussing it:
+There is already a lot going on here. One of the key features is that entries can appear in multiple places in the outline.
+
+*** _Clones_
+
+Clones are a key feature of Reorg. Clones are entries that appear in multiple places in an outline. /See/, /e.g.,/ Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. /See also/ a prototype package I wrote some time ago called [[https://github.com/legalnonsense/org-clones][org-clones]]. In my mind, an outline with clones is a three-dimensional outline which means that it can be viewed from different perspective. More on that later. 
+
+In Reorg, a heading can appear in different locations and can have different appearances. Take the original example. Each of the headings in a red box are identical:
+#+ATTR_HTML: :width 800px
+[[file:TEST/third-example-screenshot.png]]
+If you select any of these headings and render the underlying data, you will be taken to the exact same location in the org-mode file. If you edit these headings from the org-mode buffer, they will all be deleted, re-parsed from the new source, and re-inserted into the outline at the appropriate location(s)
+*** _Not just for orgmode_
+
+Reorg isn’t just for org-mode, so let’s add some more:
 
 5. [@5] Display all of the variable declarations in reorg.el, but don’t dislpay the reorg- prefix; sort them in reverse alphabetical order. Group them by the type of variable. 
 6. Show all of the .el files in the reorg directory, but group them by the number of characters in the filename and sort the groups in descending order. If a filename contains the letter “a”, put a happy face next to it.
@@ -49,13 +61,6 @@ Note that these examples keep the types of data separate. It is possible to mix 
 
 These outlines are created using Reorg’s template system, which is explained below. For now, let’s talk about the outlines themselves. 
 *** Outline basics 
-- Clones
-Clones are a key feature of Reorg. Clones are entries that appear in multiple places in an outline. /See/, /e.g.,/ Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. /See also/ a prototype package I wrote some time ago called [[https://github.com/legalnonsense/org-clones][org-clones]]. In my mind, an outline with clones is a three-dimensional outline which means that it can be viewed from different perspective. More on that later. 
-
-In Reorg, a heading can appear in different locations and can have different appearances. Take the original example. Each of the headings in a red box are identical:
-#+ATTR_HTML: :width 800px
-[[file:TEST/third-example-screenshot.png]]
-If you select any of these headings and render the underlying data, you will be taken to the exact same location in the org-mode file. If you edit these headings from the org-mode buffer, they will all be deleted, re-parsed from the new source, and re-inserted into the outline at the appropriate location(s)
 
 - Moving through the outline
   The keybindings, usable by any Reorg outline no matter the data type, are:
@@ -93,6 +98,7 @@ Note that this is all tricky to do and I am still working out a few bugs. All of
 If you view reorg as a sidebar (the default shortcut to toggle the sidebar is =C-; r=), it will automatically render the source for the header at point.
 
 Reorg will automatically detect if it’s in a side window or not, and adjust its display behavior accordingly. 
+*** Not just for orgmode
 
 ** How to write a template
 *** Basic template example
