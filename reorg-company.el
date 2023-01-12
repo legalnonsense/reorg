@@ -23,24 +23,34 @@
 	  (let ((root (concat "." (match-string 2 arg))))
 	    (cl-remove-if-not (lambda (x) (s-starts-with-p root x))
 			      all-dots)))))))
-(rassoc 5 '((a . 4) (b . 5)))
- (defun reorg-company--annotation (canditate)
-   "Get annotation"
-   "test")
 
-  (defun reorg-company (command &optional arg &rest _)
-    "company backend"
-    (cl-case command
-      (interactive (company-begin-backend 'reorg-company))
-      (prefix (and (eq major-mode 'emacs-lisp-mode)
-		   (when-let ((sym (thing-at-point 'symbol)))
-		     (when (equal "."
-				  (substring sym 0 1))
-		       sym))))
-      (candidates (reorg-company--get-candidates arg))
-      (annotation (reorg-company--annotation arg))
-      (sorted t)
-      (no-cache t)))
+(defun reorg-company--annotation (candidate)
+  "Get annotation"
+  (setq candidate (intern (substring candidate 1)))
+  (when-let ((results (cl-loop for (key . rest) in reorg--parser-list
+			       append (cl-loop for (k . v) in rest
+					       when (equal k candidate)
+					       collect key))))
+    (concat "["
+	    (substring 
+	     (cl-loop for result in results
+		      concat (concat (symbol-name result) " "))
+	     0 -1)
+	    "]")))
+
+(defun reorg-company (command &optional arg &rest _)
+  "company backend"
+  (cl-case command
+    (interactive (company-begin-backend 'reorg-company))
+    (prefix (and (eq major-mode 'emacs-lisp-mode)
+		 (when-let ((sym (thing-at-point 'symbol)))
+		   (when (equal "."
+				(substring sym 0 1))
+		     sym))))
+    (candidates (reorg-company--get-candidates arg))
+    (annotation (reorg-company--annotation arg))
+    (sorted t)
+    (no-cache t)))
 
 ;;;###autoload 
 (defun reorg-company-enable ()
