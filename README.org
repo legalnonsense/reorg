@@ -1,4 +1,4 @@
-* /Re/​organize your life
+* Reorg: Re​organize your life
 #+HTML: <img src="reorg.webp" align="right" width=300>
 
 Dynamically, recursively, and intelligently reorganize and display any type data
