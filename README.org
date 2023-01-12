@@ -36,7 +36,7 @@ This produces:
 #+ATTR_HTML: :width 800px
 [[file:TEST/initial-example-screenshot.png]]
 
-There is already a lot going on here. One of the key features is that entries can appear in multiple places in the outline.
+One of the key features is that entries can appear in multiple places in the outline.
 
 *** _Clones_
 
@@ -49,7 +49,7 @@ If you select any of these headings and render the underlying data, you will be 
 
 *** Multi-valued data sets
 
-Note that some of the headlines in the above example contained multiple @name references. If Reorg encounters data that is a list, it can be told to clone those entries once for each piece of data in the list. That means that a heading that includes @Olivia and @Brian will appear under both of their headings.
+Note that some of the headlines in the above example contained multiple @name references. If Reorg encounters data that is a list, it can be told to clone those entries once for each piece of data in the list. That means that a heading that includes @Olivia and @Brian will appear under both of their headings. This is explained further in the section on writing templates. 
 
 *** Deeply nested outline headings
 
@@ -95,24 +95,23 @@ Reorg itself does not provide a way to interact with the data being displayed in
 | s   | edit scheduled timestamp   |
 | r   | set properties             |
 | i   | set priority               |
+**** Refreshing the display 
+If you run any of these commands and change the underlying org-mode file, Reorg will edit the source buffer, delete the heading (and its clones) in the reorg tree, re-parse the heading, and re-insert the data into the tree.
 
-If you run any of these commands, Reorg will edit the source buffer, delete the heading (and its clones) in the reorg tree, re-parse the heading, and re-insert the data into the tree.
-
-Note that this is all tricky to do and I am still working out a few bugs. All of these bugs relate to the reorg buffer; the worst case scenario is that a heading is inserted in the wrong place. This is easily fixed by reloading the reorg buffer by pressing =R.=
+Note that refreshing the a single element in the outline is tricky. I am still working out a few bugs. All of these bugs relate to the reorg buffer; the worst case scenario is that a heading is inserted in the wrong place. This is easily fixed by reloading the reorg buffer by pressing =R.=
 **** Viewing the Reorg buffer
 A reorg buffer can be viewed in a side window so that it is like a sidebar. Otherwise, it can be viewed in a normal window as you would any buffer.
 
 If you view reorg as a sidebar (the default shortcut to toggle the sidebar is =C-; r=), it will automatically render the source for the header at point. For example, here it is interacting with the preceding outline:
 
-Reorg will automatically detect if it’s in a side window or not, and adjust its display behavior accordingly.
+Reorg will automatically detect if it’s in a side window or not, and adjust its display behavior accordingly. If in a side window, it will try to render the source of the heading at point. If in a main window, it will only try to render the source if you press =RET=. 
+(Please forgive my haphazard GIF.)
 #+ATTR_HTML: :width 800px
-
 [[file:TEST/output-2023-01-11-19:51:30.gif]]
-*** Not just for orgmode
-
 ** How to write a template
+Templates are used to create customizable outlines and have a simple syntax. Be forewarned that the user must be familiar with basic lisp (i.e., enough to navigate a config file). 
 *** Basic template example
-
+A template 
 *** Dotted symbols
 Templates utilize variables that are stored when Reorg parses the underlying data. These variables can be accessed using dotted symbols identical those used by the built-in [[https://elpa.gnu.org/packages/let-alist.html][let-alist]] macro. Templates can use any data that has been parsed by Reorg. 
 
@@ -211,11 +210,11 @@ Then the class getter would be defined this way:
 #+end_src
 As you can see, =SOURCE= simply refers to the anticipated input from the template. (If you want to check to ensure that input is safe before it is run, this is the place to do it.)
 **** Specifying how and when to use the =PARSER=
-Within the class creation macro, =PARSER= refers to a function that parsers the data. For the purposes of writing a class definition, you do not worry about /what/ you are parsing; only worry about /when/ you are calling the parser. The parsers for each data type are defined with a separate macro called =reorg-create-data-type=, /see infra/.
+Within the class creation macro, =PARSER= refers to a function that parsers the data. For the purposes of writing a class definition, you do not worry about /how/ you are parsing the data; only worry about /when/ you are parsing it. We’ll deal with writing the parser later using a separate macro called =reorg-create-data-type=, /see infra/.
 
-There are primary ways to get data and call the =PARSER=.
+There two primary ways to fetch get data and call the =PARSER=.
 
-First, for the org-mode class above, all the data fetching and parsing is done by physically moving through the buffer and calling the parsing function at each heading.
+First, for the org-mode class above, all the data fetching and parsing is done by physically moving through the buffer and calling the parsing function at each heading. 
 
 #+begin_src emacs-lisp :results silent
 (reorg-create-class-type
@@ -358,22 +357,24 @@ Now, if the user creates a template that displays the priority of an org heading
 
 Note: the =:display= parameter is not the only way to customize how data is displayed because templates can also alter how data is displayed. The :display parameter is most useful if the data being parsed is not a string. For example, if you create a parser that stores an integer value, you should dislay it as a string.
 
-Here is a file parser that stores the depth of the file:
+For example, here is a parser for the =files= class that stores the depth of the file:
 #+begin_src emacs-lisp :results silent
 (reorg-create-data-type
  :name depth 
  :class files
  :parse (f-depth data))
 #+end_src
-If the user attempts to display the depth data in their outline, they'll have to ensure that it's transformed into a string in the user's template. For example suppose the user tries to use a tempalte that formats the results like this:
+If the user attempts to display the depth data in their outline by using .depth in the template, they'll have to ensure that it's transformed into a string. For example suppose the user tries to use a tempalte that formats the results like this:
 #+begin_src emacs-lisp :results silent
-:format-results (.stars " Depth: " .depth " " .filename)
+:format-results ("Depth: " .depth " " .filename)
 #+end_src
-Reorg will err. It cannot concat .depth because it is an integer. Instead, the user's template will have to be:
+Reorg will err. It cannot concat .depth because it is an integer. Instead, the user's template will have to convert it to a string:
 #+begin_src emacs-lisp :results silent
 :format-results (.stars " Depth: " (number-to-string .depth) " " .filename)
 #+end_src
-But that's messy because the user should be able to assume that any stored data can be safely displayed. But assume (for whatever reason) you want to keep the data stored as an integer. You can avoid this mess with a definition that uses the =:display= keyword:
+This is not best practice. The user should be able to assume that any stored data can be safely displayed.
+
+But also assume (for whatever reason) you want to keep the data stored as an integer (or any other object). You do not want it stored as a string. You can avoid this mess with a definition that uses the =:display= keyword:
 #+begin_src emacs-lisp :results silent
   (reorg-create-data-type
    :name depth 
@@ -381,15 +382,18 @@ But that's messy because the user should be able to assume that any stored data 
    :parse (f-depth data)
    :display (number-to-string .depth))
 #+end_src
-Or, if you don't care if the .depth data is stored as an iteger, you could also transform it to a string when it is parsed:
+Alternatively, you could also transform it to a string when it is parsed:
 #+begin_src emacs-lisp :results silent
   (reorg-create-data-type
    :name depth 
    :class files
    :parse (number-to-string (f-depth data)))
 #+end_src
+There are usually multiple ways to accomplish the same goal. 
 **** Writing a render function (optional)
-When a Reorg buffer is displayed in a side window, it can automatically render the data at point as the user moves through the outline. For Reorg to know how to display the data, it needs to be told how to do so. 
+When a Reorg buffer is displayed in a side window, it can automatically render the data at point as the user moves through the outline. For Reorg to know how to display the data, it needs to be told how to do so. Thus, when defining a class 
+
+
 **** Creating keyboard shortcuts 
 ** Planned 
 *** Changing views on the fly
