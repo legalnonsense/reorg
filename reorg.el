@@ -941,7 +941,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
       (while (reorg--goto-next-prop 'id id)
 	,@body))))
 
-(defun reorg--map-all-branches (func)
+(defun reorg--map-all (func)
   "map all"
   (save-excursion 
     (goto-char (point-min))
@@ -961,6 +961,11 @@ assume the point is at a branch."
 	   return t
 	   else do (goto-char p)))
 
+(defun reorg--delete-dangling-headers ()
+  "delete any unnecessary headers"
+  (reorg--map-all
+   #'reorg--delete-headers-maybe))
+
 (defun reorg--multi-sort (functions-and-predicates sequence)
   "FUNCTIONS-AND-PREDICATES is an alist of functions and predicates.
 
@@ -975,8 +980,6 @@ as used by `let-alist'."
 			      (funcall `(lambda (a) (let-alist a ,form)) a)
 			      (funcall `(lambda (b) (let-alist b ,form)) b))))
    sequence))
-
-
 
 (defun reorg--get-group-and-sort (data
 				  template
