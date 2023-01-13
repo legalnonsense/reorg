@@ -115,7 +115,6 @@ numbers, strings, symbols."
 			'--display-
 			name))
 
-
 (cl-defmacro reorg-create-class-type (&key name
 					   getter
 					   follow
@@ -379,17 +378,13 @@ one of the sources."
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
-
-;;;; NEW WINDOW SELECTOR
+;;;; new window selector
 
 (defun reorg--buffer-in-side-window-p ()
   "Is the reorg buffer in a side window?"
   (cl-loop for window in (window-at-side-list nil reorg-buffer-side)
 	   when (window-parameter window 'reorg)
 	   return window))
-;; (--first 
-;;  (window-parameter it 'reorg)
-;;  ))
 
 (defun reorg--select-window-run-func-maybe (window &optional func switch-back)
   "WINDOW is either 'main or 'tree. FUNC is a function with no args."
@@ -399,18 +394,17 @@ one of the sources."
 		 (window-parameter x 'reorg))
 	       (window-at-side-list nil reorg-buffer-side))))
     (pcase window
-      ('tree (progn (reorg--select-tree-window)
-		    (funcall func)
-		    (when switch-back
-		      (reorg--select-main-window))))
-      ('main (progn (funcall func)
-		    (when switch-back
-		      (reorg--select-tree-window)))))))
+      ('tree (reorg--select-tree-window)
+	     (funcall func)
+	     (when switch-back
+	       (reorg--select-main-window)))
+      ('main (funcall func)
+	     (when switch-back
+	       (reorg--select-tree-window))))))
 
 (defun reorg--render-maybe ()
   "maybe render if we are in a tree window."
   (reorg--select-window-run-func-maybe 'main #'reorg--render-source t))
-
 
 ;;;; updating the tree
 
@@ -464,8 +458,9 @@ one of the sources."
 		    (window-parameter x 'reorg))
 		  (window-at-side-list nil reorg-buffer-side)))
 	 (buffer (window-buffer window)))
-    (mapc #'delete-window (seq-filter (lambda (x) (window-parameter x 'reorg))
-				      (window-at-side-list nil reorg-buffer-side)))))
+    (mapc #'delete-window
+	  (seq-filter (lambda (x) (window-parameter x 'reorg))
+		      (window-at-side-list nil reorg-buffer-side)))))
 
 (defun reorg--toggle-tree-buffer ()
   "toggle tree buffer"
@@ -576,23 +571,6 @@ supplied, get that property from 'reorg-data'."
     (if property
 	(alist-get property props)
       props)))
-
-;; (defun reorg--get-view-props (&optional point &rest props)
-;;   "Get text property PROPS at point. If there are multiple PROPS,
-;; get nested properties."
-;;   (cl-labels ((get-props (props &optional payload)
-;; 			 (if props 
-;; 			     (let ((props (if (listp props) props (list props))))
-;; 			       (if (not payload)
-;; 				   (->> (get-text-property (or point (point)) (car props))
-;; 					(get-props (cdr props)))
-;; 				 (->> (alist-get (car props) payload)
-;; 				      (get-props (cdr props)))))
-;; 			   payload)))
-;;     (if props 
-;; 	(get-props props)
-;;       (let ((inhibit-field-text-motion t))
-;; 	(reorg--get-view-prop nil (or point (point)))))))
 
 (defun reorg--goto-next-prop (property &optional
 				       value
