@@ -112,119 +112,6 @@ Reorg will automatically detect if it’s in a side window or not, and adjust it
 ** How to write a template
 Templates are used to create custom outlines and have a simple syntax. Be forewarned that the user must be familiar with basic lisp (i.e., enough to navigate a config file) to competently write a template. 
 *** Nested recursive outlines 
-*** Examples
-Here is a basic template that will display each heading that has a "TODO" todo state for each file in your =org-agenda-files=. 
-#+begin_src emacs-lisp :results silent
-  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
-                         :group "Example template"
-                         :children (( :group (when (equal .todo "TODO" ) "TODO")
-                                      :format-results (.stars " " .todo " " .headline)))))
-#+end_src
-We'll examine these one at a time:
-**** :sources
-=:sources= is an alist where the key is the name of a class and the value is the actual source. The value can also be a list of sources, e.g., in the above code =(org-agenda-files)= can return multiple org-mode files. You can use multiple sources. For example: 
-#+begin_src emacs-lisp :results silent
-  '( :sources ((org . "~/path/to/org/file.org")
-               (org . "~/path/to/a/different/org.org")
-               (email . "email search terms")
-               (files . "/path/to/directory")))
-#+end_src
-(For a source to be available, a module has to be created using =reorg-create-class-type= and =reorg-create-data-type= as described below.)
-**** :group
-Group is an elisp form that determines what data to include in the outline, and what data should be available to any subtrees within the outline. The rule is easy: if =:group= returns nil, then the data is excluded from the outline. If =:group= returns non-nil, then the data is grouped by return value.
-
-In the previous example, there is only one non-nil return value for group: "TODO"
-#+begin_src emacs-lisp :results silent
-:group (when (equal .todo "TODO" ) "TODO")
-#+end_src
-But what if you wanted to create groups for each todo state?
-#+begin_src emacs-lisp :results silent
-:group .todo ;; Remember: .todo will either be a string (the todo state) or it will be nil (if there is no todo keyword)
-#+end_src
-What if you wanted to create a group called "GROUP A" if there is a timestamp, and "GROUP B" if there is a "DONE" todo state, but you want the timestamp to take precedence? 
-#+begin_src emacs-lisp :results silent
-  :group (cond (.timestamp "GROUP A")
-               ((when (and .todo
-                           (equal .todo "DONE")))
-                "GROUP B"))
-#+end_src
-The preceding example has a problem: what if a heading has a timestamp, and a DONE todo state? Maybe you want it to appear under both headings. In that case, you have to create sibling groups using the =:children= keyword: 
-#+begin_src emacs-lisp :results silent
-  :children (( :group (when .timestamp "GROUP A"))
-             ( :group (when (and .todo
-                                 (equal .todo "DONE"))
-                        "GROUP B")))
-#+end_src
-**** :children 
-Let's return to our template and make it group all of the todo entries in your agenda files and sort them alphabetically:
-#+begin_src emacs-lisp :results silent
-  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
-                         :group "Example template"
-                         :children (( :group .todo
-                                      :format-results (.stars " " .todo " " .headline)))))
-#+end_src
-I've decided that I do not like having the root heading there. Luckily you do not need a root heading and you can skip the first =:group= declaration: 
-#+begin_src emacs-lisp :results silent
-  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
-                         :children (( :group .todo
-                                      :format-results (.stars " " .todo " " .headline)))))
-#+end_src
-Now, all of the TODO keywords will be root headings instead of part of a subtree. 
-**** :sort-groups
-Let's sort the todo keywords. =:sort-groups= accepts a function that takes two argument and returns t if the first should come before the second. The arguments to the function are the heading strings returned by the =:group= parameter.
-#+begin_src emacs-lisp :results silent
-  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
-                         :children (( :group .todo
-                                      :sort-groups string<
-                                      :format-results (.stars " " .todo " " .headline)))))
- #+end_src
-Unlike some template components, :sort-groups is not inherited. It will only apply to the group in which it is declared.
-
-It may be ideal to pass the function accepted by :sort-groups some metadata about the group instead of only the heading string, but because the outline is still being generated at the time =:sort-groups= is called, it's not clear whether it would be useful. 
-**** :format-results
-Format results tells reorg how to display the data. It is a list that contains either strings or dotted symbols. After the values of the dotted symbols are substituted into the list, the string is concatted together with =concat=. (Note: it is okay if the dotted symbols evaluate to =nil=.) 
-
-=:format-results= can transform the results in any way, e.g., adding text properties, overlays, performing calculations, transforming values. 
-#+begin_src emacs-lisp :results silent
-  :format-results ((replace-regexp-in-string (rx "reorg-"
-                                                 (zero-or-one "-"))
-                                             ""
-                                             .form-name)
-                   (propertize " " 'display
-                               `(space . (:align-to 70)))
-                   (f-filename .file)))))
-#+end_src
-Again, all that matters is that each form within it returns a string or nil.
-
-=:format-results= arguments are inherited. For example, in this template, botih groups would be rendered with the same result formatter. 
-#+begin_src emacs-lisp :results silent
-  :format-results (.stars " " .todo " " .priority " " .headline)
-  :children (( :group (when .timestamp "GROUP A"))
-             ( :group (when (and .todo
-                                 (equal .todo "DONE"))
-                        "GROUP B")))
-#+end_src
-But in this tempalte, only the second would use the formatter (the first would have to use one declared higher in the template, or the fallback format =reorg-headline-format=.
-#+begin_src emacs-lisp :results silent
-  :children (( :group (when .timestamp "GROUP A"))
-             ( :group (when (and .todo
-                                 (equal .todo "DONE"))
-                        "GROUP B")
-               :format-results (.stars " " .todo " " .priority " " .headline)))
-#+end_src
-Finally the =.stars= symbol you have seen refers to org-mode style stars showing the depth in the outline. It can be included or omitted. (Group headings always have leading stars, because Reorg relies on functions from =outline-mode= to handle folding. This reliance is out of laziness; in reality there is no need for Reorg's folding or display to be confined to an outline and that code should be written as it would help free Reorg from  org-mode styled outline trees.)
-
-But, we have the next best thing because you can also customize the bullets for the headers using the =:bullet= keyword but I don't feel like getting into that. 
-**** :sort-results
-Currently, groups can only sorted by a single function. But results can be multi-sorted.
-
-=:sort-results= accepts an alist in the form '((FORM . PREDICATE)) where FORM is code that determines what arguments are passed to the predicate function. For example:
-#+begin_src emacs-lisp :results silent
-  :sort-results (( .todo . string<)
-                 ((downcase .headline) . string>))
-#+end_src
-Result sorters are inherited through the subtree. If additional result sorters appear within a subtree, they are added to the previously declared sorters such that the previous declarations have a higher precedence. 
-
 *** Accessing the parsed data: dotted symbols
 
 Templates use variables that are stored when Reorg parses the underlying data. These variables can be accessed using dotted symbols identical those used by the built-in [[https://elpa.gnu.org/packages/let-alist.html][let-alist]] macro. Templates can use any data that has been parsed by Reorg.
@@ -276,22 +163,160 @@ As the =reorg-org= module stands now (i.e., hacky, in testing, etc.), if the fir
 #+end_src
 At all points within a template, the user can access any of these variables with dotted notation. In other words, =.priority= is the same as =(alist-get 'priority data)=. 
 
+**** Help from company-reorg when writing a template
 
-*** :children 
-*** :group
-**** Multivalued data types: .@notation
-*** :source 
-**** Inherited: t
-*** :sort-groups
-**** Inherited: nil 
-*** :sort-results
-**** Inherited: t
-*** :format-results 
-**** Inherited: t
-**** Special properties 
-*** Hacking backdoors 
+
+*** Example
+Here is a basic template that will display each heading that has a "TODO" todo state for each file in your =org-agenda-files=. 
+#+begin_src emacs-lisp :results silent
+  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
+                         :group "Example template"
+                         :children (( :group (when (equal .todo "TODO" ) "TODO")
+                                      :format-results (.stars " " .todo " " .headline)))))
+#+end_src
+Here is another example that will create a date tree from your agenda files. Note: this requires [[https://github.com/alphapapa/ts.el][ts.el]]. 
+#+begin_src emacs-lisp :results silent
+  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
+                         :children (( :group
+                                      .ts-year
+                                      :sort-groups
+                                      string<
+                                      :children
+                                      (( :group
+                                         .ts-month
+                                         :sort-groups
+                                         (lambda (a b)
+                                           (let ((seq '("January"
+                                                        "February"
+                                                        "March"
+                                                        "April"
+                                                        "May"
+                                                        "June"
+                                                        "July"
+                                                        "August"
+                                                        "September"
+                                                        "October"
+                                                        "November"
+                                                        "December")))
+                                             (< (seq-position seq a 'string=)
+                                                (seq-position seq b 'string=))))
+                                         :sort-results
+                                         ((.ts-day . <))
+                                         :format-results
+                                         (.stars " " .headline " " .tag-string)))))))
+#+end_src
+Here's an explanation: 
+**** :sources
+=:sources= is an alist where the key is the name of a class and the value is the actual source. The value can also be a list of sources, e.g., in the above code =(org-agenda-files)= can return multiple org-mode files. You can use multiple sources. For example: 
+#+begin_src emacs-lisp :results silent
+  '( :sources ((org . "~/path/to/org/file.org")
+               (org . "~/path/to/a/different/org.org")
+               (email . "email search terms")
+               (files . "/path/to/directory")))
+#+end_src
+(For a source to be available, a module has to be created using =reorg-create-class-type= and =reorg-create-data-type= as described below.)
+**** :group
+Group is an elisp form that determines what data to include in the outline, and what data should be available to any subtrees within the outline. The rule is easy: if =:group= returns nil, then the data is excluded from the outline. If =:group= returns non-nil, then the data is grouped by return value.
+
+In the previous example, there is only one non-nil return value for group: "TODO"
+#+begin_src emacs-lisp :results silent
+:group (when (equal .todo "TODO" ) "TODO")
+#+end_src
+But what if you wanted to create groups for each todo state?
+#+begin_src emacs-lisp :results silent
+:group .todo ;; Remember: .todo will either be a string (the todo state) or it will be nil (if there is no todo keyword)
+#+end_src
+What if you wanted to create a group called "GROUP A" if there is a timestamp, and "GROUP B" if there is a "DONE" todo state, but you want the timestamp to take precedence? 
+#+begin_src emacs-lisp :results silent
+  :group (cond (.timestamp "GROUP A")
+               ((when (and .todo
+                           (equal .todo "DONE")))
+                "GROUP B"))
+#+end_src
+The preceding example has a problem: what if a heading has a timestamp, and a DONE todo state? Maybe you want it to appear under both headings. In that case, you have to create sibling groups using the =:children= keyword: 
+#+begin_src emacs-lisp :results silent
+  :children (( :group (when .timestamp "GROUP A"))
+             ( :group (when (and .todo
+                                 (equal .todo "DONE"))
+                        "GROUP B")))
+#+end_src
+***** Multivalued properties
+The =:group= keyword allows a second kind of dotted symbol: the =.@symbol=. If a reorg group contains a symbol prefixed with =.@= it is a signal to reorg that: (1) you anticipate the value of that data will be a list; and (2) you want to create clones of the data which are identical except for that one piece of data.
+
+I am not explaining this well. Example:
+
+
+**** :children 
+Let's return to our template and make it group all of the todo entries in your agenda files and sort them alphabetically:
+#+begin_src emacs-lisp :results silent
+  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
+                         :group "Example template"
+                         :children (( :group .todo
+                                      :format-results (.stars " " .todo " " .headline)))))
+#+end_src
+I've decided that I do not like having the root heading there. Luckily you do not need a root heading and you can skip the first =:group= declaration: 
+#+begin_src emacs-lisp :results silent
+  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
+                         :children (( :group .todo
+                                      :format-results (.stars " " .todo " " .headline)))))
+#+end_src
+Now, all of the TODO keywords will be root headings instead of part of a subtree. 
+**** :sort-groups
+Let's sort the todo keywords. =:sort-groups= accepts a function that takes two argument and returns t if the first should come before the second. The arguments to the function are the heading strings returned by the =:group= parameter.
+#+begin_src emacs-lisp :results silent
+  (reorg-open-sidebar `( :sources ((org . ,(org-agenda-files)))
+                         :children (( :group .todo
+                                      :sort-groups string<
+                                      :format-results (.stars " " .todo " " .headline)))))
+ #+end_src
+Unlike some template components, :sort-groups is not inherited. It will only apply to the group in which it is declared.
+
+It may be ideal to pass the function accepted by :sort-groups some metadata about the group instead of only the heading string, but because the outline is still being generated at the time =:sort-groups= is called, it's not clear whether it would be useful. 
+**** :format-results
+Format results tells reorg how to display the data. It is a list that contains either strings or dotted symbols. After the values of the dotted symbols are substituted into the list, the string is concatted together with =concat=. (Note: it is okay if the dotted symbols evaluate to =nil=.) 
+
+=:format-results= can transform the results in any way, e.g., adding text properties, overlays, performing calculations, transforming values. 
+#+begin_src emacs-lisp :results silent
+  :format-results ((replace-regexp-in-string (rx "reorg-"
+                                                 (zero-or-one "-"))
+                                             ""
+                                             .form-name)
+                   (propertize " " 'display
+                               `(space . (:align-to 70)))
+                   (f-filename .file)))))
+#+end_src
+Again, all that matters is that each form within it returns a string or nil.
+
+=:format-results= arguments are inherited. For example, in this template, botih groups would be rendered with the same result formatter. 
+#+begin_src emacs-lisp :results silent
+  :format-results (.stars " " .todo " " .priority " " .headline)
+  :children (( :group (when .timestamp "GROUP A"))
+             ( :group (when (and .todo
+                                 (equal .todo "DONE"))
+                        "GROUP B")))
+#+end_src
+But in this tempalte, only the second would use the formatter (the first would have to use one declared higher in the template, or the fallback format =reorg-headline-format=. 
+#+begin_src emacs-lisp :results silent
+  :children (( :group (when .timestamp "GROUP A"))
+             ( :group (when (and .todo
+                                 (equal .todo "DONE"))
+                        "GROUP B")
+               :format-results (.stars " " .todo " " .priority " " .headline)))
+#+end_src
+Finally the =.stars= symbol you have seen refers to org-mode style stars showing the depth in the outline. It can be included or omitted. (Group headings always have leading stars, because Reorg relies on functions from =outline-mode= to handle folding. This reliance is out of laziness; in reality there is no need for Reorg's folding or display to be confined to an outline and that code should be written as it would help free Reorg from  org-mode styled outline trees.)
+
+But, we have the next best thing because you can also customize the bullets for the headers using the =:bullet= keyword but I don't feel like getting into that. Try it yourself and Reorg's bullet package will change the display of the leading stars (but, in the buffer, they are still leading stars). 
+**** :sort-results
+Currently, groups can only sorted by a single function. But results can be multi-sorted.
+
+=:sort-results= accepts an alist in the form '((FORM . PREDICATE)) where FORM is code that determines what arguments are passed to the predicate function. For example:
+#+begin_src emacs-lisp :results silent
+  :sort-results (( .todo . string<)
+                 ((downcase .headline) . string>))
+#+end_src
+Result sorters are inherited through the subtree. If additional result sorters appear within a subtree, they are added to the previously declared sorters such that the previous declarations have a higher precedence. 
+
 **** :overrides and :post-overrides
-*** Help from company-reorg when writing a template 
 *** Capturing data into the outline and dynamic updates: org-capture as an example 
 **** Write an org-capture hook to parse the new entry 
 **** Drop the entry into the outline in the correct place(s)
@@ -526,7 +551,11 @@ When a Reorg buffer is displayed in a side window, it can automatically render t
 
 **** Creating keyboard shortcuts
 When you define a keyboard shortcut in a class, it will apply any entry in the outline that belongs to that class. See reorg-org.el, reorg-files.el, and other modules to see how this works. 
+** Status of the project
+This is by no means complete. If you read the code you will see that. 
 ** Planned 
+*** Write a JSON module
+Seems like a json module would allow Reorg to work with just about anything that exports data, and to interact with anything that imports data. Another option is to work with CSV files. 
 *** Changing views on the fly
 **** Hoisting headings / Inverting the outline
 **** Infinite outlines (not sure what I meant by this)
