@@ -19,6 +19,17 @@
 
 (defconst reorg--field-property-name 'reorg-field-type)
 
+(defconst reorg--valid-template-keys '(:sources
+				       :group
+				       :children
+				       :overrides
+				       :post-overrides
+				       :sort-results
+				       :bullet
+				       :format-results
+				       :sort-groups)
+  "Allowable template keys.")
+
 ;;; customs
 
 (defcustom reorg-toggle-shortcut "C-; r"
@@ -72,19 +83,6 @@
 
 (defvar reorg--render-func-list nil "")
 
-;;; constants
-
-(defconst reorg--valid-template-keys '(:sources
-				       :group
-				       :children
-				       :overrides
-				       :post-overrides
-				       :sort-results
-				       :bullet
-				       :format-results
-				       :sort-groups)
-  "Allowable template keys.")
-
 ;;; reorg requires
 
 (require 'reorg-dynamic-bullets)
@@ -94,20 +92,6 @@
 (defun reorg--create-symbol (&rest args)
   "Create a symbol from ARGS which can be
 numbers, strings, symbols."
-  ;; (intern
-  ;;  (apply #'concat 
-  ;; 	  (mapcar (lambda (x)
-  ;; 		    (pcase x
-  ;; 		      ((pred stringp)
-  ;; 		       x)
-  ;; 		      ((pred numberp x)
-  ;; 		       (number-to-string x))
-  ;; 		      ((pred symbolp x)
-  ;; 		       (symbol-name x))
-  ;; 		      (_ (error "Unknown argument type: %s of type %s."
-  ;; 				x 
-  ;; 				(type-of x)))))
-  ;; 		  args)))
   (cl-loop for arg in args
 	   if (stringp arg)
 	   concat arg into ret
@@ -117,53 +101,20 @@ numbers, strings, symbols."
 	   concat (symbol-name arg) into ret
 	   finally return (intern ret)))
 
-(cl-defmacro reorg-create-data-type (&optional ;
-				     &key
-				     class
-				     name
-				     parse
-				     disable
-				     display
-				     append)
-  ;; TODO add disabled key to remove data type
-  ;; from the parser list 
-  ""
-  (let* ((parsing-func (reorg--create-symbol 'reorg--
-					     class
-					     '--parse-
-					     name))
-	 (display-func (reorg--create-symbol 'reorg--
-					     class
-					     '--display-
-					     name)))
-    `(progn
-       (cond ((not ,disable)
-	      (defun ,parsing-func (&optional data DATA)
-		(let-alist DATA 
-		  ,parse))
-	      (setf (alist-get ',class reorg--parser-list)
-		    (assoc-delete-all ',name
-				      (alist-get
-				       ',class
-				       reorg--parser-list)))
-	      (if ',append		     
-		  (setf (alist-get ',class reorg--parser-list)
-			(append (alist-get ',class reorg--parser-list)
-				(list 
-				 (cons ',name #',parsing-func))))
-		(cl-pushnew (cons ',name #',parsing-func)
-			    (alist-get ',class reorg--parser-list)))
-	      (if ',display 
-		  (defun ,display-func (data)
-		    (let-alist data 
-		      ,display))
-		(fmakunbound ',display-func)))
-	     (t ;;if disabled 
-	      (setf (alist-get ',class reorg--parser-list)
-		    (assoc-delete-all ',name
-				      (alist-get ',class reorg--parser-list)))
-	      (fmakunbound ',display-func)
-	      (fmakunbound ',parsing-func))))))
+;; (defun reorg--get-parser-func-name (class name)
+;;   "Create `reorg--CLASS--parse-NAME' symbol."
+;;   (reorg--create-symbol 'reorg--
+;; 			class
+;; 			'--parse-
+;; 			name))
+
+(defun reorg--get-display-func-name (class name)
+  "Create `reorg--CLASS--display-NAME' symbol."
+  (reorg--create-symbol 'reorg--
+			class
+			'--display-
+			name))
+
 
 (cl-defmacro reorg-create-class-type (&key name
 					   getter
@@ -172,7 +123,7 @@ numbers, strings, symbols."
 					   extra-props
 					   render-func
 					   display-buffer)
-  ""
+  "Create a new class type"
   (let ((func-name (reorg--create-symbol 'reorg--
 					 name
 					 '--get-from-source)))
@@ -211,20 +162,71 @@ numbers, strings, symbols."
 	 (setf (alist-get ',name reorg--render-func-list)
 	       ',render-func)))))
 
+(cl-defmacro reorg-create-data-type (&optional ;
+				     &key
+				     class
+				     name
+				     parse
+				     disable
+				     display
+				     append)
+  "Create a new class"
+  (let* ((parsing-func (reorg--create-symbol 'reorg--
+					     class
+					     '--parse-
+					     name))
+	 (display-func (reorg--create-symbol 'reorg--
+					     class
+					     '--display-
+					     name)))
+    `(progn
+       (cond ((not ,disable)
+	      (defun ,parsing-func (&optional data DATA)
+		(let-alist DATA 
+		  ,parse))
+	      (setf (alist-get ',class reorg--parser-list)
+		    (assoc-delete-all ',name
+				      (alist-get
+				       ',class
+				       reorg--parser-list)))
+	      (if ',append		     
+		  (setf (alist-get ',class reorg--parser-list)
+			(append (alist-get ',class reorg--parser-list)
+				(list 
+				 (cons ',name #',parsing-func))))
+		(cl-pushnew (cons ',name #',parsing-func)
+			    (alist-get ',class reorg--parser-list)))
+	      (if ',display 
+		  (defun ,display-func (data)
+		    (let-alist data 
+		      ,display))
+		(fmakunbound ',display-func)))
+	     (t ;;if disabled 
+	      (setf (alist-get ',class reorg--parser-list)
+		    (assoc-delete-all ',name
+				      (alist-get ',class reorg--parser-list)))
+	      (fmakunbound ',display-func)
+	      (fmakunbound ',parsing-func))))))
+
+;;; Reorg modules 
+
 (require 'reorg-org)
 (require 'reorg-files)
 (require 'reorg-leo)
 (require 'reorg-email)
 (require 'reorg-elisp)
+
+;;; completion at point function
+
 (require 'reorg-completion)
 
-;;; testing requires
+;;; testing require
+
 (require 'reorg-test)
 
+;;; code 
 
-
-
-;;; window control
+;;;; window control
 
 (defun reorg--open-side-window ()
   "Open a side window to display the tree."
@@ -273,7 +275,7 @@ switch to that buffer in the window."
   (when (reorg--buffer-in-side-window-p)
     (reorg--select-main-window)))
 
-;;; main
+;;;; Tree buffer functions 
 
 (defun reorg--insert-all (data)
   "Insert grouped and sorted data into outline."
@@ -311,8 +313,6 @@ one of the sources."
   "open reorg in sidebar"
   (interactive)
   (reorg-open (or template reorg--current-template) point)
-  ;; (reorg--select-tree-window)
-  ;; (set-window-buffer nil reorg-buffer-name)
   (reorg--open-side-window)
   (reorg--select-tree-window))
 
@@ -333,10 +333,7 @@ one of the sources."
     (goto-char (or point (point-min)))
     (run-hooks 'reorg--navigation-hook)))
 
-
-
-
-;;;; view buffer functions
+;;;; Tree buffer movement 
 
 (defun reorg--move-to-next-entry-follow ()
   "move to next entry"
@@ -362,15 +359,37 @@ one of the sources."
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
 
+(defun reorg--move-to-previous-entry ()
+  "move to previous entry"
+  (interactive)
+  (reorg--goto-previous-visible-heading)
+  (run-hooks 'reorg--navigation-hook))
+
+(defun reorg--move-to-next-entry ()
+  "next entry"
+  (interactive)
+  (reorg--goto-next-visible-heading)
+  (run-hooks 'reorg--navigation-hook))
+
+(defun reorg--move-to-previous-entry-no-follow ()
+  "previous entry"
+  (interactive)
+  (reorg--goto-previous-visible-heading)
+  (reorg--render-source)
+  (reorg--select-tree-window)
+  (run-hooks 'reorg--navigation-hook))
 
 
 ;;;; NEW WINDOW SELECTOR
 
 (defun reorg--buffer-in-side-window-p ()
   "Is the reorg buffer in a side window?"
-  (--first 
-   (window-parameter it 'reorg)
-   (window-at-side-list nil reorg-buffer-side)))
+  (cl-loop for window in (window-at-side-list nil reorg-buffer-side)
+	   when (window-parameter window 'reorg)
+	   return window))
+;; (--first 
+;;  (window-parameter it 'reorg)
+;;  ))
 
 (defun reorg--select-window-run-func-maybe (window &optional func switch-back)
   "WINDOW is either 'main or 'tree. FUNC is a function with no args."
@@ -392,25 +411,6 @@ one of the sources."
   "maybe render if we are in a tree window."
   (reorg--select-window-run-func-maybe 'main #'reorg--render-source t))
 
-(defun reorg--move-to-previous-entry ()
-  "move to previous entry"
-  (interactive)
-  (reorg--goto-previous-visible-heading)
-  (run-hooks 'reorg--navigation-hook))
-
-(defun reorg--move-to-next-entry ()
-  "next entry"
-  (interactive)
-  (reorg--goto-next-visible-heading)
-  (run-hooks 'reorg--navigation-hook))
-
-(defun reorg--move-to-previous-entry-no-follow ()
-  "previous entry"
-  (interactive)
-  (reorg--goto-previous-visible-heading)
-  (reorg--render-source)
-  (reorg--select-tree-window)
-  (run-hooks 'reorg--navigation-hook))
 
 ;;;; updating the tree
 
@@ -421,11 +421,10 @@ one of the sources."
       (reorg-open-sidebar nil (point))
     (reorg-open-in-current-window nil (point))))
 
-
-  (defun reorg--buffer-p ()
-    "Are you in the reorg buffer?"
-    (string= (buffer-name)
-	     reorg-buffer-name))
+(defun reorg--buffer-p ()
+  "Are you in the reorg buffer?"
+  (string= (buffer-name)
+	   reorg-buffer-name))
 
 (defvar reorg-main-mode-map 
   (let ((map (make-keymap)))
@@ -547,8 +546,6 @@ one of the sources."
     ((pred (s-ends-with-p "3")) "rd")
     (_ "th")))
 
-
-
 (defun reorg--add-remove-colon (prop &optional remove)
   "PROP is a symbol with or without a colon prefix.
 Returns PROP with a colon prefix. If REMOVE is t,
@@ -580,28 +577,29 @@ supplied, get that property from 'reorg-data'."
 	(alist-get property props)
       props)))
 
-(defun reorg--get-view-props (&optional point &rest props)
-  "Get text property PROPS at point. If there are multiple PROPS,
-get nested properties."
-  (cl-labels ((get-props (props &optional payload)
-			 (if props 
-			     (let ((props (if (listp props) props (list props))))
-			       (if (not payload)
-				   (->> (get-text-property (or point (point)) (car props))
-					(get-props (cdr props)))
-				 (->> (alist-get (car props) payload)
-				      (get-props (cdr props)))))
-			   payload)))
-    (if props 
-	(get-props props)
-      (let ((inhibit-field-text-motion t))
-	(reorg--get-view-prop nil (or point (point)))))))
+;; (defun reorg--get-view-props (&optional point &rest props)
+;;   "Get text property PROPS at point. If there are multiple PROPS,
+;; get nested properties."
+;;   (cl-labels ((get-props (props &optional payload)
+;; 			 (if props 
+;; 			     (let ((props (if (listp props) props (list props))))
+;; 			       (if (not payload)
+;; 				   (->> (get-text-property (or point (point)) (car props))
+;; 					(get-props (cdr props)))
+;; 				 (->> (alist-get (car props) payload)
+;; 				      (get-props (cdr props)))))
+;; 			   payload)))
+;;     (if props 
+;; 	(get-props props)
+;;       (let ((inhibit-field-text-motion t))
+;; 	(reorg--get-view-prop nil (or point (point)))))))
 
-(defun reorg--goto-next-prop (property &optional value limit
-				       predicate visible-only)
-  "Initially based on 'text-property-search-forward'
-but inclde a LIMIT parameter.  Now, assume we are getting 'reorg-data
-and PROPERTY is the key of that alist.
+(defun reorg--goto-next-prop (property &optional
+				       value
+				       limit
+				       predicate
+				       visible-only)
+  "Aassume we are getting 'reorg-data and PROPERTY is the key of that alist.
 DOES NOT RUN 'reorg--navigation-hooks'." 
   (cond
    ((eobp)
@@ -617,7 +615,9 @@ DOES NOT RUN 'reorg--navigation-hooks'."
           pos)
       (cl-loop with found = nil
 	       while (not ended)
-	       do (setq pos (next-single-property-change (point) 'reorg-data nil limit))
+	       do (setq pos (next-single-property-change
+			     (point)
+			     'reorg-data nil limit))
 	       if (or (not pos)		
 		      (> pos limit))
 	       return
@@ -635,8 +635,11 @@ DOES NOT RUN 'reorg--navigation-hooks'."
 					value
 					(if property 
 					    (alist-get property 
-						       (get-text-property (point) 'reorg-data))
-					  (get-text-property (point) 'reorg-data))))
+						       (get-text-property
+							(point)
+							'reorg-data))
+					  (get-text-property (point)
+							     'reorg-data))))
 			  (progn 
 			    (setq ended t)
 			    (setq found t))
@@ -747,34 +750,63 @@ and FORM is evaluated to see if that target exists.
 
 This creates two functions: reorg--get-NAME and reorg--goto-NAME."
   `(progn 
-     ,@(cl-loop for (name . form) in alist
-		append (list `(defun ,(reorg--create-symbol 'reorg--goto- name) (&optional no-update)
-				,(concat "Move point to "
-					 (s-replace "-" " " (symbol-name name))
-					 " and run navigation hook.")
-				(interactive)
-				(when-let ((point ,form))
-				  (if no-update
-				      (goto-char point)
-				    (reorg--goto-char point))))
-			     `(defun ,(reorg--create-symbol 'reorg--get- name) nil
-				,(concat "Get the point of "
-					 (s-replace "-" " " (symbol-name name))
-					 ".")
-				,form)))))
+     ,@(cl-loop
+	for (name . form) in alist
+	append (list `(defun ,(reorg--create-symbol 'reorg--goto- name)
+			  (&optional no-update)
+			,(concat "Move point to "
+				 (s-replace "-" " " (symbol-name name))
+				 " and run navigation hook.")
+			(interactive)
+			(when-let ((point ,form))
+			  (if no-update
+			      (goto-char point)
+			    (reorg--goto-char point))))
+		     `(defun ,(reorg--create-symbol 'reorg--get- name) nil
+			,(concat "Get the point of "
+				 (s-replace "-" " " (symbol-name name))
+				 ".")
+			,form)))))
 
 (reorg--create-navigation-commands
- ((next-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t)))
-  (next-visible-heading . (reorg--get-next-prop nil nil nil (lambda (a b) t) t))
-  (previous-heading . (reorg--get-previous-prop nil nil nil (lambda (a b) t)))
-  (next-branch . (reorg--get-next-prop 'reorg-branch t nil nil nil))
-  (next-visible-branch . (reorg--get-next-prop 'reorg-branch t nil nil t))
-  (previous-visible-heading . (reorg--get-previous-prop nil nil nil (lambda (a b) t) t))
+ ((next-heading . (reorg--get-next-prop
+		   nil
+		   nil
+		   nil
+		   (lambda (a b) t)))
+  (next-visible-heading . (reorg--get-next-prop
+			   nil
+			   nil
+			   nil
+			   (lambda (a b) t) t))
+  (previous-heading . (reorg--get-previous-prop
+		       nil
+		       nil
+		       nil
+		       (lambda (a b) t)))
+  (next-branch . (reorg--get-next-prop
+		  'reorg-branch
+		  t
+		  nil
+		  nil
+		  nil))
+  (next-visible-branch . (reorg--get-next-prop
+			  'reorg-branch
+			  t
+			  nil
+			  nil
+			  t))
+  (previous-visible-heading . (reorg--get-previous-prop
+			       nil
+			       nil
+			       nil
+			       (lambda (a b) t) t))
   (next-sibling . (reorg--get-next-prop
 		   'reorg-level
 		   (reorg--get-view-prop 'reorg-level)
 		   (reorg--get-next-prop 'reorg-level
-					 (reorg--get-view-prop 'reorg-level)
+					 (reorg--get-view-prop
+					  'reorg-level)
 					 nil
 					 (lambda (a b)
 					   (< b a)))))
@@ -786,38 +818,45 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			(reorg--get-view-prop 'reorg-level)
 			nil
 			(lambda (a b) (< b a)))))
-  (next-clone . (reorg--get-next-prop 'id
-				      (reorg--get-view-prop 'id)))
-  (previous-clone . (reorg--get-previous-prop 'id
-					      (reorg--get-view-prop 'id)))
-  (next-parent . (reorg--get-next-prop 'reorg-level
-				       (reorg--get-view-prop 'reorg-level)
-				       nil
-				       (lambda (a b) (> a b))))
-  (parent . (reorg--get-previous-prop 'reorg-level
-				      (1- (reorg--get-view-prop 'reorg-level))))
+  (next-clone . (reorg--get-next-prop
+		 'id
+		 (reorg--get-view-prop 'id)))
+  (previous-clone . (reorg--get-previous-prop
+		     'id
+		     (reorg--get-view-prop 'id)))
+  (next-parent . (reorg--get-next-prop
+		  'reorg-level
+		  (reorg--get-view-prop 'reorg-level)
+		  nil
+		  (lambda (a b) (> a b))))
+  (parent . (reorg--get-previous-prop
+	     'reorg-level
+	     (1- (reorg--get-view-prop 'reorg-level))))
   (root . (and (/= 1 (reorg--get-view-prop 'reorg-level))
 	       (reorg--get-previous-prop 'reorg-level 1)))
   (next-child . (and
-		 (reorg--get-view-prop 'reorg-branch)
-		 (reorg--get-next-prop 'reorg-level
-				       (1+ (reorg--get-view-prop 'reorg-level))
-				       (reorg--get-next-prop 'reorg-level
-							     (reorg--get-view-prop 'reorg-level)
-							     nil
-							     (lambda (a b)
-							       (>= a b))))))
-  (next-visible-child
-   .
-   (and
-    (reorg--get-view-prop 'reorg-branch)
-    (reorg--get-next-prop 'reorg-level
+		 (reorg--get-view-prop
+		  'reorg-branch)
+		 (reorg--get-next-prop
+		  'reorg-level
+		  (1+ (reorg--get-view-prop 'reorg-level))
+		  (reorg--get-next-prop
+		   'reorg-level
+		   (reorg--get-view-prop 'reorg-level)
+		   nil
+		   (lambda (a b)
+		     (>= a b))))))
+  (next-visible-child . (and
+			 (reorg--get-view-prop 'reorg-branch)
+			 (reorg--get-next-prop
+			  'reorg-level
 			  (1+ (reorg--get-view-prop 'reorg-level))
-			  (reorg--get-next-prop 'reorg-level
-						(reorg--get-view-prop 'reorg-level)
-						nil
-						(lambda (a b)
-						  (>= a b)))
+			  (reorg--get-next-prop
+			   'reorg-level
+			   (reorg--get-view-prop 'reorg-level)
+			   nil
+			   (lambda (a b)
+			     (>= a b)))
 			  nil
 			  t)))))
 
@@ -832,11 +871,10 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
   (interactive)
   (let ((module
 	 (completing-read "Select module: " (reorg-list-modules))))
-    (cl-loop for (name . func) in (alist-get (intern module) reorg--parser-list)
+    (cl-loop for (name . func) in (alist-get (intern module)
+					     reorg--parser-list)
 	     collect name into results
 	     finally (message (format "%s" results)))))
-
-
 (defun reorg--get-longest-line-length ()
   "get longest line length"
   (save-excursion
@@ -990,7 +1028,9 @@ data to be inserted into buffer."
 		(cons 'group-id
 		      (md5
 		       (concat 
-			(pp-to-string (plist-get inherited-props :parent-template))
+			(pp-to-string (plist-get
+				       inherited-props
+				       :parent-template))
 			(pp-to-string (plist-get inherited-props :header)))))
 		(cons 'id id)))))
     (let ((format-results (or (plist-get template :format-results)
@@ -1413,20 +1453,25 @@ point where the leaf should be inserted (ie, insert before)"
 			  (reorg--goto-parent)
 			  (reorg--get-view-prop 'result-sorters))))) 
 	  (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
-	    (cl-loop with point = (point)
-		     when (cl-loop for (func . pred) in result-sorters
-				   unless (equal (funcall `(lambda (x) (let-alist x ,func))
-							  leaf-data)
-						 (funcall `(lambda (x) (let-alist x ,func))
-							  (reorg--get-view-prop)))
-				   return (funcall pred
-						   (funcall `(lambda (x) (let-alist x ,func))
-							    leaf-data)
-						   (funcall `(lambda (x) (let-alist x ,func))
-							    (reorg--get-view-prop))))
-		     return (point)
-		     while (reorg--goto-next-leaf-sibling)
-		     finally (goto-char (line-beginning-position 2)))))
+	    (cl-loop
+	     with point = (point)
+	     when (cl-loop for (func . pred) in result-sorters
+			   unless (equal (funcall
+					  `(lambda (x) (let-alist x ,func))
+					  leaf-data)
+					 (funcall
+					  `(lambda (x) (let-alist x ,func))
+					  (reorg--get-view-prop)))
+			   return (funcall pred
+					   (funcall
+					    `(lambda (x) (let-alist x ,func))
+					    leaf-data)
+					   (funcall
+					    `(lambda (x) (let-alist x ,func))
+					    (reorg--get-view-prop))))
+	     return (point)
+	     while (reorg--goto-next-leaf-sibling)
+	     finally (goto-char (line-beginning-position 2)))))
       (reorg--goto-next-heading))))
 
 (defun reorg--get-next-group-id-change ()
@@ -1482,13 +1527,16 @@ point where the leaf should be inserted (ie, insert before)"
 			(group-id (alist-get 'group-id header-props))
 			(id (alist-get 'id header-props)))
 		   (unless (or (reorg--goto-id header-props)
-			       (equal id (reorg--get-view-prop 'id)))		   
+			       (equal id (reorg--get-view-prop 'id)))
 		     (if (reorg--find-first-header-group-member header-props)
-			 (unless (reorg--find-header-location-within-groups header)
+			 (unless (reorg--find-header-location-within-groups
+				  header)
 			   (reorg--insert-header-at-point header))
 		       (reorg--insert-header-at-point header t))))
 	      finally (progn (setq point (point))
-			     (when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+			     (when (eq 'leaf (alist-get
+					      'reorg-field-type
+					      leaf-props))
 			       (reorg--find-leaf-location leaf)
 			       (reorg--insert-header-at-point leaf))
 			     (goto-char point))))
@@ -1529,29 +1577,7 @@ returns:
       (doloop tree)
       (reverse paths))))
 
-
-
-
-
-;;; name constructors
-
-(defun reorg--get-parser-func-name (class name)
-  "Create `reorg--CLASS--parse-NAME' symbol."
-  (reorg--create-symbol 'reorg--
-			class
-			'--parse-
-			name))
-
-(defun reorg--get-display-func-name (class name)
-  "Create `reorg--CLASS--display-NAME' symbol."
-  (reorg--create-symbol 'reorg--
-			class
-			'--display-
-			name))
-
-;;; class macro
-
-
+;;; parser and getter
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
