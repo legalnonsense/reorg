@@ -305,7 +305,6 @@ But in this tempalte, only the second would use the formatter (the first would h
 #+end_src
 Finally the =.stars= symbol you have seen refers to org-mode style stars showing the depth in the outline. It can be included or omitted. (Group headings always have leading stars, because Reorg relies on functions from =outline-mode= to handle folding. This reliance is out of laziness; in reality there is no need for Reorg's folding or display to be confined to an outline and that code should be written as it would help free Reorg from  org-mode styled outline trees.)
 
-But, we have the next best thing because you can also customize the bullets for the headers using the =:bullet= keyword but I don't feel like getting into that. Try it yourself and Reorg's bullet package will change the display of the leading stars (but, in the buffer, they are still leading stars). 
 **** :sort-results
 Currently, groups can only sorted by a single function. But results can be multi-sorted.
 
@@ -316,7 +315,10 @@ Currently, groups can only sorted by a single function. But results can be multi
 #+end_src
 Result sorters are inherited through the subtree. If additional result sorters appear within a subtree, they are added to the previously declared sorters such that the previous declarations have a higher precedence. 
 
-**** :overrides and :post-overrides
+**** :bullet 
+**** hidden options
+***** =:overrides= and =:post-overrides=
+***** =:action-function=
 *** Capturing data into the outline and dynamic updates: org-capture as an example 
 **** Write an org-capture hook to parse the new entry 
 **** Drop the entry into the outline in the correct place(s)
@@ -552,13 +554,13 @@ When a Reorg buffer is displayed in a side window, it can automatically render t
 **** Creating keyboard shortcuts
 When you define a keyboard shortcut in a class, it will apply any entry in the outline that belongs to that class. See reorg-org.el, reorg-files.el, and other modules to see how this works. 
 ** Status of the project
-This is by no means complete. If you read the code you will see that. 
-** Planned 
+This is a hobby. I am a lawyer and not a programmer. I rushed to publish this because my work is about to ramp up and my free time disappear. I do not know if it will continue once I get this past the point that it is ready for me to use on a daily basis. Further development depends on reception. If you think this is useful please let me know. 
+** Planned features  
 *** Write a JSON module
 Seems like a json module would allow Reorg to work with just about anything that exports data, and to interact with anything that imports data. Another option is to work with CSV files. 
 *** Changing views on the fly
-**** Hoisting headings / Inverting the outline
-**** Infinite outlines (not sure what I meant by this)
+**** Hoisting headings / Inverting the outline / multiple views 
+**** Infinite outlines (not sure what I meant by this but sounds interesting)
 
 
 
