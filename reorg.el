@@ -97,6 +97,7 @@
 (require 'reorg-leo)
 (require 'reorg-email)
 (require 'reorg-elisp)
+(require 'reorg-completion)
 
 ;;; testing requires
 (require 'reorg-test)

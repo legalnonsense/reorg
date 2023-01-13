@@ -11,7 +11,7 @@ Mix different kinds of data (e.g., org-mode, email, files, etc.) in the same out
 
 Create modules to expand capabilities to display and interact with /any/ kind of data
 
-** _Example: Orgmode_
+** Example: Orgmode
 Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-sidebar][org-sidebar]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it uses none of those things). 
 
 For example, take the following orgmode file which contains a few notes, TODO items, and dates. 
@@ -320,7 +320,7 @@ Result sorters are inherited through the subtree. If additional result sorters a
 *** Capturing data into the outline and dynamic updates: org-capture as an example 
 **** Write an org-capture hook to parse the new entry 
 **** Drop the entry into the outline in the correct place(s)
-** Extending Reorg to handle different types of data 
+** Developing new modules 
 A class is created using the =reorg-create-class= macro. Here are two examples of class definitions. First, the class definition for org files:
 
 #+begin_src emacs-lisp :results silent
