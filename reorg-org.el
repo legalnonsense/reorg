@@ -410,7 +410,8 @@ if there is not one."
 	  ("i" . reorg-org--org-priority)
 	  ("g" . reorg-org--reload-heading))
  :getter (with-current-buffer (find-file SOURCE)
-           (org-map-entries #'PARSER)))
+	   (widen)
+	   (org-map-entries #'PARSER)))
 
 ;; (org-ql-select SOURCE nil :action #'PARSER))
 

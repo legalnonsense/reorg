@@ -699,6 +699,19 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			  nil
 			  t)))))
 
+(defun reorg-list-modules ()
+  "Let the modules available."
+  (interactive)
+  (cl-loop for (module . parsers) in reorg--parser-list
+	   collect module))
 
+(defun reorg-list-data-types ()
+  "list data types for a given module"
+  (interactive)
+  (let ((module
+	 (completing-read "Select module: " (reorg-list-modules))))
+    (cl-loop for (name . func) in (alist-get (intern module) reorg--parser-list)
+	     collect name into results
+	     finally (message (format "%s" results)))))
 
 (provide 'reorg)
