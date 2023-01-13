@@ -1583,5 +1583,4 @@ in the form of (CLASS . SOURCE)."
 	   append (funcall (car (alist-get class reorg--getter-list))
 			   source)))
 
-
 (provide 'reorg)
