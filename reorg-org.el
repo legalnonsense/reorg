@@ -252,13 +252,14 @@ RANGE is non-nil, only look for timestamp ranges."
   ;; 				 (or (save-excursion (outline-next-heading))
   ;; 				     (point-max))
   ;; 				 'first-section nil nil nil nil)))
-  (string-trim 
-   (save-excursion 
-     (buffer-substring-no-properties
-      (reorg-org--goto-end-of-meta-data)
-      (if (re-search-forward outline-regexp nil t)
-	  (point-at-bol)
-	(point-max))))))
+  (save-excursion
+    (when (reorg-org--goto-end-of-meta-data)
+      (string-trim 
+       (buffer-substring-no-properties
+	(point)
+	(if (re-search-forward outline-regexp nil t)
+	    (point-at-bol)
+	  (point-max)))))))
 
 ;;; macros 
 

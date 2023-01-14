@@ -65,40 +65,4 @@
 ;; 	(remove #'reorg-company
 ;; 		company-backends)))
 
-(defun reorg-capf--annotation (candidate)
-  "Get annotation"
-  (setq candidate (intern (substring candidate 1)))
-  (when-let ((results (cl-loop for (key . rest) in reorg--parser-list
-			       append (cl-loop for (k . v) in rest
-					       when (equal k candidate)
-					       collect key))))
-    (concat "["
-	    (substring 
-	     (cl-loop for result in results
-		      concat (concat (symbol-name result) " "))
-	     0 -1)
-	    "]")))
-
-(defun reorg-capf ()
-  "capf for reorg template"
-  (let (start end collection props)
-    (when (looking-back "\\.[.|[:word:]]+")
-      (let* ((two-dots-p (s-starts-with-p ".." (match-string 0)))
-	     (start (match-beginning 0))
-	     (end (if two-dots-p
-		      (1- (match-end 0))
-		    (match-end 0))))
-	(list start
-	      end 
-	      (sort
-	       (delete-dups
-		(cl-loop for (class . rest) in reorg--parser-list
-			 append (cl-loop for (type . func) in rest
-					 collect
-					 (concat "." (symbol-name type)))))
-
-	       #'string<)
-	      :annotation-function
-	      #'reorg-capf--annotation)))))
-
 (provide 'reorg-completion)

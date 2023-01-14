@@ -225,6 +225,59 @@ numbers, strings, symbols."
 
 ;;; code 
 
+;;;; utilities
+
+(defun reorg--turn-dot-to-display-string (elem data)
+  "turn .symbol to a string using a display function."
+  (if (and (symbolp elem)
+	   (string-match "\\`\\." (symbol-name elem)))
+      (let* ((sym (intern (substring (symbol-name elem) 1)))
+	     (fu (reorg--get-display-func-name
+		  (alist-get 'class data)
+		  (substring (symbol-name elem) 1))))
+	(cond ((eq sym 'stars)
+	       (make-string (alist-get 'reorg-level data) ?*))
+	      ((fboundp fu) (funcall fu data))
+	      (t
+	       (funcall `(lambda ()
+			   (let-alist ',data
+			     ,elem))))))
+    elem))
+
+(defun reorg--get-all-tree-paths (tree leaf-func)
+  "Get a list of all paths in tree.
+LEAF-FUNC is a function run on each member to determine
+whether it terminates the branch.
+
+For example:
+
+(reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
+				(6 (7 (- 8 9))
+				   (10 (- 11)
+                                        (- 12)))))
+			   (lambda (x) (eq '- (car x))))
+returns:
+
+((1 2 - 3 4 5)
+ (1 6 7 - 8 9)
+ (1 6 10 - 11)
+ (1 6 10 - 12))
+"  
+  (let (paths)
+    (cl-labels ((doloop (tree &optional path)
+			(cond ((funcall leaf-func tree)
+			       (push (append (reverse path) tree) paths))
+			      ((or (stringp (car tree))
+				   (numberp (car tree))
+				   (symbolp (car tree)))
+			       (push (car tree) path)
+			       (cl-loop for child in (cdr tree)
+					do (doloop child path)))
+			      (tree (cl-loop for child in tree
+					     do (doloop child path))))))
+      (doloop tree)
+      (reverse paths))))
+
 ;;;; window control
 
 (defun reorg--open-side-window ()
@@ -286,18 +339,7 @@ switch to that buffer in the window."
 					      do (recurse entry))))))
       (recurse data))))
 
-(defun reorg--get-all-sources-from-template (template)
-  "Walk the template tree and make a list of all unique template
-sources.  This is used for updating the reorg tree, e.g., as part
-of an org-capture hook to make sure the captured entry belongs to
-one of the sources."
-  (cl-labels ((get-sources (template)
-			   (append (cl-loop for each in template
-					    when (plist-get each :sources)
-					    append (plist-get each :sources)
-					    append (get-sources (plist-get template :children)))
-				   (plist-get template :sources))))
-    (-uniq (get-sources template))))
+
 
 
 ;;;###autoload
@@ -528,6 +570,31 @@ one of the sources."
 
 ;;;; utilities
 
+(defun reorg--at-dot-search (data)
+  "Return alist of symbols inside DATA that start with a `.@'.
+Perform a deep search and return a alist of any symbol
+same symbol without the `@'.
+
+See `let-alist--deep-dot-search'."
+  (cond
+   ((symbolp data)
+    (let ((name (symbol-name data)))
+      (when (string-match "\\`\\.@" name)
+	;; Return the cons cell inside a list, so it can be appended
+	;; with other results in the clause below.
+	(list (intern (replace-match "" nil nil name))))))
+   ;; (list (cons data (intern (replace-match "" nil nil name)))))))
+   ((vectorp data)
+    (apply #'nconc (mapcar #'reorg--at-dot-search data)))
+   ((not (consp data)) nil)
+   ((eq (car data) 'let-alist)
+    ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
+    ;; inner body because they don’t refer to the alist currently
+    ;; being processed.  See Bug#24641.
+    (reorg--at-dot-search (cadr data)))
+   (t (append (reorg--at-dot-search (car data))
+	      (reorg--at-dot-search (cdr data))))))
+
 (defun reorg--add-number-suffix (num)
   "create the suffix for a number"
   (pcase (if (numberp num) 
@@ -549,17 +616,6 @@ then return PROP with no colon prefix."
     (`(t t) (intern (substring (symbol-name prop) 1)))
     (`(nil nil) (intern (concat ":" (symbol-name prop))))
     (_ prop)))
-
-(defun reorg-edits--get-field-bounds ()
-  "Get the bounds of the field at point."
-  (let ((match (save-excursion (text-property--find-end-forward
-				(point)
-				'reorg-data
-				(reorg--get-view-prop)
-				#'equal))))
-    (cons
-     (prop-match-beginning match)
-     (prop-match-end match))))
 
 ;;;; finding functions
 
@@ -719,7 +775,7 @@ DOES NOT RUN 'reorg--navigation-hooks'."
   (run-hooks 'reorg--navigation-hook)
   (point))
 
-;;; Navigation commands 
+;;;; Navigation commands 
 
 (defmacro reorg--create-navigation-commands (alist)
   "Create navigation commands. ALIST is a list in the form of (NAME . FORM)
@@ -838,21 +894,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			  nil
 			  t)))))
 
-(defun reorg-list-modules ()
-  "Let the modules available."
-  (interactive)
-  (cl-loop for (module . parsers) in reorg--parser-list
-	   collect module))
 
-(defun reorg-list-data-types ()
-  "list data types for a given module"
-  (interactive)
-  (let ((module
-	 (completing-read "Select module: " (reorg-list-modules))))
-    (cl-loop for (name . func) in (alist-get (intern module)
-					     reorg--parser-list)
-	     collect name into results
-	     finally (message (format "%s" results)))))
 (defun reorg--get-longest-line-length ()
   "get longest line length"
   (save-excursion
@@ -1292,47 +1334,7 @@ See `let-alist--deep-dot-search'."
       (walk code)
       (cl-delete-duplicates acc))))
 
-(defun reorg--at-dot-search (data)
-  "Return alist of symbols inside DATA that start with a `.@'.
-Perform a deep search and return a alist of any symbol
-same symbol without the `@'.
-
-See `let-alist--deep-dot-search'."
-  (cond
-   ((symbolp data)
-    (let ((name (symbol-name data)))
-      (when (string-match "\\`\\.@" name)
-	;; Return the cons cell inside a list, so it can be appended
-	;; with other results in the clause below.
-	(list (intern (replace-match "" nil nil name))))))
-   ;; (list (cons data (intern (replace-match "" nil nil name)))))))
-   ((vectorp data)
-    (apply #'nconc (mapcar #'reorg--at-dot-search data)))
-   ((not (consp data)) nil)
-   ((eq (car data) 'let-alist)
-    ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
-    ;; inner body because they don’t refer to the alist currently
-    ;; being processed.  See Bug#24641.
-    (reorg--at-dot-search (cadr data)))
-   (t (append (reorg--at-dot-search (car data))
-	      (reorg--at-dot-search (cdr data))))))
-
-(defun reorg--turn-dot-to-display-string (elem data)
-  "turn .symbol to a string using a display function."
-  (if (and (symbolp elem)
-	   (string-match "\\`\\." (symbol-name elem)))
-      (let* ((sym (intern (substring (symbol-name elem) 1)))
-	     (fu (reorg--get-display-func-name
-		  (alist-get 'class data)
-		  (substring (symbol-name elem) 1))))
-	(cond ((eq sym 'stars)
-	       (make-string (alist-get 'reorg-level data) ?*))
-	      ((fboundp fu) (funcall fu data))
-	      (t
-	       (funcall `(lambda ()
-			   (let-alist ',data
-			     ,elem))))))
-    elem))
+;;;; outline navigation 
 
 (defun reorg--goto-next-sibling-same-group (&optional data)
   "goot next sibing same group"
@@ -1369,19 +1371,7 @@ See `let-alist--deep-dot-search'."
       (reorg--goto-char point)
       nil)))
 
-(defun reorg--delete-header-at-point ()
-  "delete the header at point"
-  (delete-region (point-at-bol)
-		 (line-beginning-position 2)))
 
-(defun reorg--insert-header-at-point (header-string &optional next-line)
-  "insert header at point"
-  (when next-line
-    (forward-line))
-  (save-excursion 
-    (insert header-string))
-  (reorg-dynamic-bullets--fontify-heading)
-  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--find-header-location-within-groups (header-string)
   "assume the point is on the first header in the group"
@@ -1421,6 +1411,10 @@ See `let-alist--deep-dot-search'."
 	  (point)
 	(goto-char point)
 	nil))))
+
+
+
+
 
 (defun reorg--find-leaf-location (leaf-string &optional result-sorters)
   "find the location for LEAF-DATA among the current leaves. put the
@@ -1463,6 +1457,8 @@ point where the leaf should be inserted (ie, insert before)"
 			(lambda (a b)
 			  (not (equal a b)))))
 
+;;;; outline creation and management 
+
 (defun reorg--update-heading-at-point ()
   "update the current heading"
   (interactive)
@@ -1473,6 +1469,20 @@ point where the leaf should be inserted (ie, insert before)"
 				     nil
 				     (reorg--get-view-prop 'class)))
    reorg--current-template))
+
+(defun reorg--delete-header-at-point ()
+  "delete the header at point"
+  (delete-region (point-at-bol)
+		 (line-beginning-position 2)))
+
+(defun reorg--insert-header-at-point (header-string &optional next-line)
+  "insert header at point"
+  (when next-line
+    (forward-line))
+  (save-excursion 
+    (insert header-string))
+  (reorg-dynamic-bullets--fontify-heading)
+  (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--insert-new-heading (data template)
   "insert an individual heading"
@@ -1524,40 +1534,6 @@ point where the leaf should be inserted (ie, insert before)"
     (org-indent-refresh-maybe (point-min) (point-max) nil))
   (run-hooks 'reorg--navigation-hook))
 
-(defun reorg--get-all-tree-paths (tree leaf-func)
-  "Get a list of all paths in tree.
-LEAF-FUNC is a function run on each member to determine
-whether it terminates the branch.
-
-For example:
-
-(reorg--get-all-tree-paths '((1 (2 (- 3 4 5))
-				(6 (7 (- 8 9))
-				   (10 (- 11)
-                                        (- 12)))))
-			   (lambda (x) (eq '- (car x))))
-returns:
-
-((1 2 - 3 4 5)
- (1 6 7 - 8 9)
- (1 6 10 - 11)
- (1 6 10 - 12))
-"  
-  (let (paths)
-    (cl-labels ((doloop (tree &optional path)
-			(cond ((funcall leaf-func tree)
-			       (push (append (reverse path) tree) paths))
-			      ((or (stringp (car tree))
-				   (numberp (car tree))
-				   (symbolp (car tree)))
-			       (push (car tree) path)
-			       (cl-loop for child in (cdr tree)
-					do (doloop child path)))
-			      (tree (cl-loop for child in tree
-					     do (doloop child path))))))
-      (doloop tree)
-      (reverse paths))))
-
 ;;; parser and getter
 
 (defun reorg--parser (data class &optional type)
@@ -1582,5 +1558,85 @@ in the form of (CLASS . SOURCE)."
   (cl-loop for (class . source) in sources
 	   append (funcall (car (alist-get class reorg--getter-list))
 			   source)))
+
+;;;; meta functions
+
+(defun reorg-edits--get-field-bounds ()
+  "Get the bounds of the field at point."
+  (let ((match (save-excursion (text-property--find-end-forward
+				(point)
+				'reorg-data
+				(reorg--get-view-prop)
+				#'equal))))
+    (cons
+     (prop-match-beginning match)
+     (prop-match-end match))))
+
+(defun reorg--get-all-sources-from-template (template)
+  "Walk the template tree and make a list of all unique template
+sources.  This is used for updating the reorg tree, e.g., as part
+of an org-capture hook to make sure the captured entry belongs to
+one of the sources."
+  (cl-labels ((get-sources (template)
+			   (append (cl-loop for each in template
+					    when (plist-get each :sources)
+					    append (plist-get each :sources)
+					    append (get-sources (plist-get template :children)))
+				   (plist-get template :sources))))
+    (-uniq (get-sources template))))
+
+(defun reorg-list-modules ()
+  "Let the modules available."
+  (interactive)
+  (cl-loop for (module . parsers) in reorg--parser-list
+	   collect module))
+
+(defun reorg-list-data-types ()
+  "list data types for a given module"
+  (interactive)
+  (let ((module
+	 (completing-read "Select module: " (reorg-list-modules))))
+    (cl-loop for (name . func) in (alist-get (intern module)
+					     reorg--parser-list)
+	     collect name into results
+	     finally (message (format "%s" results)))))
+
+(defun reorg-capf--annotation (candidate)
+  "Get annotation for reorg-capf candidates"
+  (setq candidate (intern (substring candidate 1)))
+  (when-let ((results (cl-loop for (key . rest) in reorg--parser-list
+			       append (cl-loop for (k . v) in rest
+					       when (equal k candidate)
+					       collect key))))
+    (concat "["
+	    (substring 
+	     (cl-loop for result in results
+		      concat (concat (symbol-name result) " "))
+	     0 -1)
+	    "]")))
+
+(defun reorg-capf ()
+  "capf for reorg template"
+  (let (start end collection props)
+    (when (looking-back "\\.[.|[:word:]]+")
+      (let* ((two-dots-p (s-starts-with-p ".." (match-string 0)))
+	     (start (match-beginning 0))
+	     (end (if two-dots-p
+		      (1- (match-end 0))
+		    (match-end 0))))
+	(list start
+	      end 
+	      (sort
+	       (delete-dups
+		(cl-loop for (class . rest) in reorg--parser-list
+			 append (cl-loop for (type . func) in rest
+					 collect
+					 (concat "." (symbol-name type)))))
+
+	       #'string<)
+	      :annotation-function
+	      #'reorg-capf--annotation)))))
+
+
 
 (provide 'reorg)
