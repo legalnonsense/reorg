@@ -88,14 +88,12 @@
 
 (defvar reorg--render-func-list nil "")
 
-
-
 ;;; reorg requires
 
 ;; TODO rename to reorg-bullets
 (require 'reorg-dynamic-bullets)
 
-;;; macro helper functions 
+;;;; macro helper functions 
 
 (defun reorg--create-symbol (&rest args)
   "Create a symbol from ARGS which can be
@@ -216,8 +214,7 @@ numbers, strings, symbols."
 	      (fmakunbound ',display-func)
 	      (fmakunbound ',parsing-func))))))
 
-;;; Reorg modules 
-
+;;;;  requires
 
 ;; need to call the above macros before requiring
 ;; these files
@@ -228,18 +225,11 @@ numbers, strings, symbols."
 (require 'reorg-leo)
 (require 'reorg-email)
 (require 'reorg-elisp)
-
-;;; completion at point function
-
-(require 'reorg-completion)
-
-;;; testing require
-
 (require 'reorg-test)
 
 ;;; code 
 
-;;;; convenience functions
+;;;; user convenience functions
 
 (defmacro reorg--create-string-comparison-funcs ()
   "Create string comparison functions that ignore case:
@@ -270,7 +260,7 @@ are convenience functions for writing templates."
     ((pred (s-ends-with-p "3")) "rd")
     (_ "th")))
 
-;;;; utilities
+;;;; programmer utilities
 
 (defun reorg--add-remove-colon (prop &optional remove)
   "PROP is a symbol with or without a colon prefix.
@@ -456,43 +446,6 @@ switch to that buffer in the window."
   (reorg--render-source)
   (when (reorg--buffer-in-side-window-p)
     (reorg--select-main-window)))
-
-;;;; opening 
-
-;;;###autoload
-(defun reorg-open-in-current-window (&optional template point)
-  "open the reorg buffer here"
-  (interactive)
-  (reorg-open (or template reorg--current-template) point)
-  (window-buffer nil reorg-buffer-name))
-
-;;;###autoload
-(defun reorg-open-sidebar (&optional template point)
-  "open reorg in sidebar"
-  (interactive)
-  (reorg-open (or template reorg--current-template) point)
-  (reorg--open-side-window)
-  (reorg--select-tree-window))
-
-;;;###autoload 
-(defun reorg-open (template &optional point)
-  "Open TEMPLATE in Reorg, but do not switch to
-the buffer."
-  (interactive)
-  (when (get-buffer reorg-buffer-name)
-    (kill-buffer reorg-buffer-name))
-  (with-current-buffer (get-buffer-create reorg-buffer-name)
-    (erase-buffer)
-    (reorg--insert-all
-     (reorg--get-group-and-sort nil template 1 nil))
-    (setq reorg--current-sources
-	  (reorg--get-all-sources-from-template template)
-	  reorg--current-template
-	  template)
-    (reorg-mode)
-    (reorg--goto-char (or point (point-min)))))
-
-
 
 ;;;; Box cursor line overlay 
 
@@ -1021,39 +974,7 @@ point where the leaf should be inserted (ie, insert before)"
   "maybe render if we are in a tree window."
   (reorg--select-window-run-func-maybe 'main #'reorg--render-source t))
 
-;;;; opening/closing/reloading commands 
-
-(defun reorg-reload ()
-  "reload the current template"
-  (interactive)
-  (if (reorg--buffer-in-side-window-p)
-      (reorg-open-sidebar nil (point))
-    (reorg-open-in-current-window nil (point))))
-
-(defun reorg--close-tree-buffer ()
-  "Close the tree buffer."
-  (interactive)
-  (let* ((window (seq-find
-		  (lambda (x)
-		    (window-parameter x 'reorg))
-		  (window-at-side-list nil reorg-buffer-side)))
-	 (buffer (window-buffer window)))
-    (mapc #'delete-window
-	  (seq-filter (lambda (x) (window-parameter x 'reorg))
-		      (window-at-side-list nil reorg-buffer-side)))))
-
-(defun reorg--toggle-tree-buffer ()
-  "toggle tree buffer"
-  (interactive)
-  (if (seq-find
-       (lambda (x)
-	 (window-parameter x 'reorg))
-       (window-at-side-list nil reorg-buffer-side))
-      (reorg--close-tree-buffer)
-    (reorg--open-side-window)
-    (reorg--select-tree-window)))
-
-;;;; outline creation and management 
+;;;; outline drawing
 
 (defun reorg-views--delete-leaf ()
   "delete the heading at point"
@@ -1164,7 +1085,7 @@ assume the point is at a branch."
     (org-indent-refresh-maybe (point-min) (point-max) nil))
   (run-hooks 'reorg--navigation-hook))
 
-;;; parser and getter
+;;; Data processessing 
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
@@ -1188,8 +1109,6 @@ in the form of (CLASS . SOURCE)."
   (cl-loop for (class . source) in sources
 	   append (funcall (car (alist-get class reorg--getter-list))
 			   source)))
-
-;;;; core grouping, sorting, and rendering code 
 
 (defun reorg--seq-group-by (form sequence)
   "Apply FORM to each element of SEQUENCE and group
@@ -1524,8 +1443,7 @@ TODO stop treating them differently, i.e., allow leafs to have leaves."
        (alist-get (alist-get 'class data) ;; extra props 
 		  reorg--extra-prop-list)))))
 
-
-;;;; meta functions
+;;; metadata functions
 
 (defun reorg--get-all-sources-from-template (template)
   "Walk the template tree and make a list of all unique template
@@ -1602,7 +1520,7 @@ one of the sources."
 			(line-beginning-position))))
       length)))
 
-;;;; completion functions 
+;;;; template helper completion functions 
 
 (defun reorg-capf--annotation (candidate)
   "Get annotation for reorg-capf candidates"
@@ -1640,8 +1558,73 @@ one of the sources."
 	      :annotation-function
 	      #'reorg-capf--annotation)))))
 
+;;;; opening and closing reorg 
+
+;;;###autoload
+(defun reorg-open-in-current-window (&optional template point)
+  "open the reorg buffer here"
+  (interactive)
+  (reorg-open (or template reorg--current-template) point)
+  (window-buffer nil reorg-buffer-name))
+
+;;;###autoload
+(defun reorg-open-sidebar (&optional template point)
+  "open reorg in sidebar"
+  (interactive)
+  (reorg-open (or template reorg--current-template) point)
+  (reorg--open-side-window)
+  (reorg--select-tree-window))
+
+;;;###autoload 
+(defun reorg-open (template &optional point)
+  "Open TEMPLATE in Reorg, but do not switch to
+the buffer."
+  (interactive)
+  (when (get-buffer reorg-buffer-name)
+    (kill-buffer reorg-buffer-name))
+  (with-current-buffer (get-buffer-create reorg-buffer-name)
+    (erase-buffer)
+    (reorg--insert-all
+     (reorg--get-group-and-sort nil template 1 nil))
+    (setq reorg--current-sources
+	  (reorg--get-all-sources-from-template template)
+	  reorg--current-template
+	  template)
+    (reorg-mode)
+    (reorg--goto-char (or point (point-min)))))
 
 
+
+
+(defun reorg-reload ()
+  "reload the current template"
+  (interactive)
+  (if (reorg--buffer-in-side-window-p)
+      (reorg-open-sidebar nil (point))
+    (reorg-open-in-current-window nil (point))))
+
+(defun reorg--close-tree-buffer ()
+  "Close the tree buffer."
+  (interactive)
+  (let* ((window (seq-find
+		  (lambda (x)
+		    (window-parameter x 'reorg))
+		  (window-at-side-list nil reorg-buffer-side)))
+	 (buffer (window-buffer window)))
+    (mapc #'delete-window
+	  (seq-filter (lambda (x) (window-parameter x 'reorg))
+		      (window-at-side-list nil reorg-buffer-side)))))
+
+(defun reorg--toggle-tree-buffer ()
+  "toggle tree buffer"
+  (interactive)
+  (if (seq-find
+       (lambda (x)
+	 (window-parameter x 'reorg))
+       (window-at-side-list nil reorg-buffer-side))
+      (reorg--close-tree-buffer)
+    (reorg--open-side-window)
+    (reorg--select-tree-window)))
 
 ;;;; major mode
 
