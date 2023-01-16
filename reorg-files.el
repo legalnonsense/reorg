@@ -9,14 +9,14 @@
  :keymap (("x" . (lambda () (interactive) (message "adf")))
 	  ("e" . (lambda ()
 		   (interactive)
-		   (let ((file (reorg--get-view-prop 'fullname)))
+		   (let ((file (reorg--get-prop 'fullname)))
 		     (reorg--select-main-window)
 		     (find-file file))))
 
 	  ("y" . (lambda () (interactive) (message "yyyy")))
-	  ("d" . (lambda () (interactive) (dired (reorg--get-view-prop 'parent))))
+	  ("d" . (lambda () (interactive) (dired (reorg--get-prop 'parent))))
 	  ("o" . (lambda () (interactive)
-		   (xdg-open (reorg--get-view-prop 'path))))))
+		   (xdg-open (reorg--get-prop 'path))))))
 
 ;; (defun reorg--files--get-from-source
 ;;     (&rest sources) 

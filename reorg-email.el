@@ -3,7 +3,7 @@
 (reorg-create-class-type
  :name email
  :render-func (lambda ()
-		(let ((data (reorg--get-view-prop 'mu4e-data)))
+		(let ((data (reorg--get-prop 'mu4e-data)))
 		  (reorg--select-main-window)
 		  (mu4e-view data)
 		  (reorg--select-tree-window)))

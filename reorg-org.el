@@ -8,8 +8,8 @@ update the heading at point."
   (declare (indent defun))
   `(progn
      (let ((data nil)
-	   (buffer (reorg--get-view-prop 'buffer))
-	   (id (reorg--get-view-prop 'id)))
+	   (buffer (reorg--get-prop 'buffer))
+	   (id (reorg--get-prop 'id)))
        (org-with-remote-undo buffer
 	 (with-current-buffer buffer 
 	   (let ((old-point (point))
@@ -117,11 +117,11 @@ buffer in which the bookmark was found."
   "Open org-agenda if the heading at point
 contains a timestamp."
   (interactive "P")
-  (when (reorg--get-view-prop 'ts)
-    (let ((date (list (reorg--get-view-prop 'ts-month-num)
-		      (reorg--get-view-prop 'ts-day)
+  (when (reorg--get-prop 'ts)
+    (let ((date (list (reorg--get-prop 'ts-month-num)
+		      (reorg--get-prop 'ts-day)
 		      (string-to-number
-		       (reorg--get-view-prop 'ts-year)))))
+		       (reorg--get-prop 'ts-year)))))
       (org-agenda-list nil (calendar-absolute-from-gregorian date) 'day))))
 
 ;;; Convenience functions / specialized parsing functions
@@ -274,8 +274,8 @@ RANGE is non-nil, only look for timestamp ranges."
 
 (defmacro reorg-org--with-point-at-orig-entry (id buffer &rest body)
   "Execute BODY with point at the heading with ID at point."
-  `(when-let ((id (or ,id (reorg--get-view-prop 'id))))
-     (with-current-buffer (or ,buffer (reorg--get-view-prop 'buffer))
+  `(when-let ((id (or ,id (reorg--get-prop 'id))))
+     (with-current-buffer (or ,buffer (reorg--get-prop 'buffer))
        (reorg-org--with-restore-state
 	(goto-char (point-min))
 	;; NOTE: Can't use `org-id-goto' here or it will keep the
@@ -295,8 +295,8 @@ RANGE is non-nil, only look for timestamp ranges."
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((id (or id (reorg--get-view-prop 'id))))
-    (reorg--select-main-window (or buffer (reorg--get-view-prop 'buffer)))
+  (let ((id (or id (reorg--get-prop 'id))))
+    (reorg--select-main-window (or buffer (reorg--get-prop 'buffer)))
     (let ((old-point (point))
 	  (search-invisible t))
       (widen)
@@ -314,8 +314,8 @@ the point and return nil."
 ;;   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 ;; then narrow to that heading and return t.  If no heading is found, don't move
 ;; the point and return nil."
-;;   (let ((id (or id (reorg--get-view-prop 'id))))
-;;     (with-current-buffer (or buffer (reorg--get-view-prop 'buffer))
+;;   (let ((id (or id (reorg--get-prop 'id))))
+;;     (with-current-buffer (or buffer (reorg--get-prop 'buffer))
 ;;       (let ((old-point (point))
 ;; 	    (search-invisible t))
 ;; 	(widen)

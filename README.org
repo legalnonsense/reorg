@@ -340,11 +340,11 @@ Second, the class definition for files from the file system:
                     collect (PARSER each))
    :keymap (("e" . (lambda ()
                      (interactive)
-                     (let ((file (reorg--get-view-prop 'fullname)))
+                     (let ((file (reorg--get-prop 'fullname)))
                        (reorg--select-main-window)
                        (find-file file))))
             ("o" . (lambda () (interactive)
-                     (xdg-open (reorg--get-view-prop 'path))))))
+                     (xdg-open (reorg--get-prop 'path))))))
 #+end_src
 A class definition has two required components: the name of the new class and a “getter.” It also has two optional components: a render (=:render-func=)function and a keymap (=:keymap=).
 

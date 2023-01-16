@@ -123,7 +123,7 @@ to be refreshed. Two options are:
 
 (defun reorg-dynamic-bullets--heading-folded-p ()
   "Is the current heading folded?"
-  (and (reorg--get-view-prop 'reorg-branch)
+  (and (reorg--get-prop 'reorg-branch)
        (not
 	(reorg--get-next-visible-child))))
 
@@ -137,7 +137,7 @@ to be refreshed. Two options are:
 ;;   "Create a string to be displayed in lieu of the headings' leading stars."
 ;;   (let ((folded (reorg-dynamic-bullets--heading-folded-p))
 ;; 	(children (reorg--get-next-child))
-;; 	(body (reorg--get-view-prop 'body)))
+;; 	(body (reorg--get-prop 'body)))
 ;;     (propertize 
 ;;      (cond ((and children folded body)
 ;; 	    reorg-dynamic-bullets-folded-body-text-bullet)
@@ -156,36 +156,36 @@ to be refreshed. Two options are:
 
 (defun reorg-dynamic-bullets--create-heading-bullet ()
   "Create a string to be displayed in lieu of the headings' leading stars."
-  (let (;;(branch (reorg--get-view-prop 'reorg-branch))
-	(branch (and (reorg--get-view-prop 'reorg-branch)
+  (let (;;(branch (reorg--get-prop 'reorg-branch))
+	(branch (and (reorg--get-prop 'reorg-branch)
 		     (reorg--get-next-child)))
 	(folded (reorg-dynamic-bullets--heading-folded-p))
 	(body nil))
-    ;; (body (reorg--get-view-prop 'body)))
+    ;; (body (reorg--get-prop 'body)))
     (propertize 
      (cond ((and branch folded body)
-	    (or (reorg--get-view-prop 'folded-bullet)
-		(reorg--get-view-prop 'bullet)
+	    (or (reorg--get-prop 'folded-bullet)
+		(reorg--get-prop 'bullet)
 		reorg-dynamic-bullets-folded-body-text-bullet))
 	   ((and branch folded)
-	    (or (reorg--get-view-prop 'folded-bullet)
-		(reorg--get-view-prop 'bullet)
+	    (or (reorg--get-prop 'folded-bullet)
+		(reorg--get-prop 'bullet)
 		reorg-dynamic-bullets-folded-no-body-text-bullet))
 	   ((and branch body)
-	    (or (reorg--get-view-prop 'unfolded-bullet)
-		(reorg--get-view-prop 'bullet)
+	    (or (reorg--get-prop 'unfolded-bullet)
+		(reorg--get-prop 'bullet)
 		reorg-dynamic-bullets-unfolded-no-body-text-bullet))
 	   (branch
-	    (or (reorg--get-view-prop 'unfolded-bullet)
-		(reorg--get-view-prop 'bullet)
+	    (or (reorg--get-prop 'unfolded-bullet)
+		(reorg--get-prop 'bullet)
 		reorg-dynamic-bullets-unfolded-no-body-text-bullet))
 	   (body
-	    (or (reorg--get-view-prop 'leaf-bullet)
-		(reorg--get-view-prop 'bullet)
+	    (or (reorg--get-prop 'leaf-bullet)
+		(reorg--get-prop 'bullet)
 		reorg-dynamic-bullets-leaf-body-text-bullet))
 	   (t
-	    (or (reorg--get-view-prop 'leaf-bullet)
-		(reorg--get-view-prop 'bullet)
+	    (or (reorg--get-prop 'leaf-bullet)
+		(reorg--get-prop 'bullet)
 		reorg-dynamic-bullets-leaf-no-body-text-bullet)))
      'face
      'reorg-dynamic-bullets-face)))

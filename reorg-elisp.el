@@ -4,8 +4,8 @@
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((marker (reorg--get-view-prop 'marker)))
-    (reorg--select-main-window (or buffer (reorg--get-view-prop 'buffer)))
+  (let ((marker (reorg--get-prop 'marker)))
+    (reorg--select-main-window (or buffer (reorg--get-prop 'buffer)))
     (widen)
     (goto-char marker)
     (recenter)
@@ -17,7 +17,7 @@ the point and return nil."
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((marker (reorg--get-view-prop 'marker)))
+  (let ((marker (reorg--get-prop 'marker)))
     (reorg--select-main-window (marker-buffer marker))
     (widen)
     (goto-char marker)
@@ -29,7 +29,7 @@ the point and return nil."
  :name elisp
  :render-func reorg-elisp--render-source
  :keymap (("w" . (lambda () (interactive)
-		   (kill-new (reorg--get-view-prop 'form-name))))
+		   (kill-new (reorg--get-prop 'form-name))))
 	  ("x" . (lambda () (interactive)
 		   (reorg-elisp--with-point-at
 		    #'eval-defun))))

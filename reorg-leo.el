@@ -2,8 +2,8 @@
 
 (defun reorg-leo--render-func (&optional id buffer)
   "render func"
-  (let ((id (or id (reorg--get-view-prop 'id)))
-	(buffer (or buffer (reorg--get-view-prop 'buffer))))
+  (let ((id (or id (reorg--get-prop 'id)))
+	(buffer (or buffer (reorg--get-prop 'buffer))))
     (reorg--select-main-window buffer)
     ;; (switch-to-buffer buffer) 
     (widen)
