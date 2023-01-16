@@ -1,39 +1,23 @@
 ;; -*- lexical-binding: t; -*-
 
-(defun reorg-elisp--render-source (&optional buffer narrow) 
+(defun reorg-elisp--render-source () 
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((marker (reorg--get-prop 'marker)))
-    (reorg--select-main-window (or buffer (reorg--get-prop 'buffer)))
+  (when-let ((marker (reorg--get-prop 'marker))
+	     (buffer (reorg--get-prop 'buffer)))
+    (reorg--select-main-window buffer)
     (widen)
     (goto-char marker)
     (recenter)
-    (when narrow 
-      (narrow-to-defun))
     (reorg--select-tree-window)))
-
-(defun reorg-elisp--with-point-at (func) 
-  "Move to buffer and find heading with ID.  If NARROW is non-nil,
-then narrow to that heading and return t.  If no heading is found, don't move
-the point and return nil."
-  (let ((marker (reorg--get-prop 'marker)))
-    (reorg--select-main-window (marker-buffer marker))
-    (widen)
-    (goto-char marker)
-    (recenter)
-    (funcall-interactively func nil)))
-
 
 (reorg-create-class-type
  :name elisp
  :render-func reorg-elisp--render-source
  :keymap (("w" . (lambda () (interactive)
-		   (kill-new (reorg--get-prop 'form-name))))
-	  ("x" . (lambda () (interactive)
-		   (reorg-elisp--with-point-at
-		    #'eval-defun))))
- 
+		   (kill-new (reorg--get-prop 'form-name))
+		   (message (concat "Copied " (reorg--get-prop 'form-name))))))
  :getter (progn (when (f-directory-p SOURCE)
 		  (setq SOURCE
 			(directory-files SOURCE t (rx
@@ -61,7 +45,9 @@ the point and return nil."
 					(let (results)
 					  (beginning-of-defun)
 					  (when-let* ((contents (thing-at-point 'defun)))
-					    (setq results (PARSER (s-trim contents))))
+					    (setq results (PARSER (s-trim
+								   (org-no-properties
+								    contents)))))
 					  (end-of-defun)
 					  results))))))))
 
@@ -94,15 +80,6 @@ the point and return nil."
  :class elisp
  :name marker
  :parse (point-marker))
-
-;; (reorg-create-data-type
-;;  :class elisp
-;;  :name callees
-;;  :parse (reorg--code-search
-;; 	 (lambda (x)
-;; 	   (and (functionp x)
-;; 		(s-starts-with-p "reorg" (symbol-name x))))
-;; 	 (read data)))
 
 (reorg-create-data-type
  :class elisp

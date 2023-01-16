@@ -1,5 +1,26 @@
 ;; -*- lexical-binding: t; -*-
 
+(defun reorg--test-json-foodtruck ()
+  (interactive)
+  (reorg-open-sidebar '( :sources ((json . "~/.emacs.d/lisp/reorg/TEST/bbb8-hzi6.json"))
+			 :group .applicant
+			 :format-results (.permit " " .dayofweekstr)
+			 :sort-results ((.dayofweekstr . string<)))))
+
+
+(defun reorg--test-json ()
+  (interactive)
+  (reorg-open-sidebar '( :sources ((json-1 . "~/.emacs.d/lisp/reorg/TEST/y77d-th95.json"))
+			 :group (if .year (substring .year 0 4) "Unknown year")
+			 :sort-groups string>
+			 :format-results (.mass "\t" .name " " .geolocation.type)
+			 :sort-results (((if .mass (string-to-number .mass) "") . <))
+			 :children (( :group (if .mass
+						 (if (> (string-to-number .mass) 1000)
+						     "Mass > 1000"
+						   "Mass <= 1000")
+					       "Mass Unknown")
+				      :sort-groups string<)))))
 
 (defun reorg--set-up-capture-test ()
   "set up capture testing"
@@ -101,44 +122,43 @@
 
 (defun reorg-elisp-test ()
   (interactive)
-  (setq reorg-elisp-test '( :sources ((elisp . "~/.emacs.d/lisp/reorg/"))
-			    :children (( :group (pcase .form-type
-						  ((or "defun" "cl-defun") "Functions")
-						  ((or "defmacro" "cl-defmacro") "Macros")
-						  (_ nil))
+  (reorg-open-sidebar `( :sources ((elisp . ,(buffer-file-name)))
+			 :children (( :group (pcase .form-type
+					       ((or "defun" "cl-defun") "Functions")
+					       ((or "defmacro" "cl-defmacro") "Macros")
+					       (_ nil))
+				      :sort-groups reorg-string<
+				      :sort-results (((f-filename .file) . reorg-string<)
+						     (.form-name . reorg-string<))
+				      :children
+				      (( :group (if (s-contains-p "--" .form-name)
+						    "Private"
+						  "Public")
 					 :sort-groups reorg-string<
-					 :sort-results (((f-filename .file) . reorg-string<)
-							(.form-name . reorg-string<))
-					 :children
-					 (( :group (if (s-contains-p "--" .form-name)
-						       "Private"
-						     "Public")
-					    :sort-groups reorg-string<
-					    :format-results ((replace-regexp-in-string (rx "reorg-"
-											   (zero-or-one "-"))
-										       ""
-										       .form-name)
-							     (propertize " " 'display
-									 `(space . (:align-to 70)))
-							     (f-filename .file)
-							     ))))
-				       ( :group (when (member .form-type '("defcustom"
-									   "defvar"
-									   "defconst"))
-						  "Variables")
-					 :children (( :group (when (member .form-type '("defcustom"
-											"defvar"
-											"defconst"))
-							       .form-type)
-						      :format-results ((replace-regexp-in-string (rx "reorg-"
-												     (zero-or-one "-"))
-												 ""
-												 .form-name)
-								       (propertize " " 'display
-										   `(space . (:align-to 70)))
-								       (f-filename .file)
-								       )))))))
-  (reorg-open reorg-elisp-test))
+					 :format-results ((replace-regexp-in-string (rx "reorg-"
+											(zero-or-one "-"))
+										    ""
+										    .form-name)
+							  (propertize " " 'display
+								      `(space . (:align-to 70)))
+							  (f-filename .file)
+							  ))))
+				    ( :group (when (member .form-type '("defcustom"
+									"defvar"
+									"defconst"))
+					       "Variables")
+				      :children (( :group (when (member .form-type '("defcustom"
+										     "defvar"
+										     "defconst"))
+							    .form-type)
+						   :format-results ((replace-regexp-in-string (rx "reorg-"
+												  (zero-or-one "-"))
+											      ""
+											      .form-name)
+								    (propertize " " 'display
+										`(space . (:align-to 70)))
+								    (f-filename .file)
+								    ))))))))
 
 
 (defun reorg-test-1 ()
@@ -627,7 +647,7 @@
 
 (defun reorg-test--file-view ()
   (interactive)
-  (reorg-open-main-window
+  (reorg-open-sidebar
    '(
      :sources ((files . "find ~/Desktop -type f"))
      :children (( :group "By extension"
@@ -635,11 +655,11 @@
 			       :sort-groups (lambda (a b) (string< (downcase a)
 								   (downcase b)))
 			       :sort-results (((downcase .filename) . string<))
-			       :format-results (.filename)))
-		  ( :group "by parent"
-		    :children (( :group (when .depth (number-to-string .depth ))
-				 :sort-groups string<
-				 :format-results (.stars " " .fullname)))))))))
+			       :format-results (.filename))))
+		( :group "by parent"
+		  :children (( :group (when .depth (number-to-string .depth ))
+			       :sort-groups string<
+			       :format-results (.stars " " .fullname))))))))
 
 
 

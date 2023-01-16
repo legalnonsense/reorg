@@ -306,19 +306,12 @@ RANGE is non-nil, only look for timestamp ranges."
   "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((id (or id (reorg--get-prop 'id))))
-    (reorg--select-main-window (or buffer (reorg--get-prop 'buffer)))
-    (let ((old-point (point))
-	  (search-invisible t))
-      (widen)
-      (org-show-all)
-      (goto-char (point-min))
-      (if (re-search-forward id nil t)
-	  (progn (goto-char (match-beginning 0))
-		 (org-back-to-heading)
-		 (when (not no-narrow)
-		   (reorg-org--source--narrow-to-heading)))
-	(goto-char old-point)))
+  (let ((marker (reorg--get-prop 'marker)))
+    (reorg--select-main-window (marker-buffer marker))
+    (widen)
+    (org-show-all)
+    (goto-char marker)
+    (reorg-org--source--narrow-to-heading)
     (reorg--select-tree-window)))
 
 ;; (defun reorg--org--goto-source (&optional buffer id no-narrow)
@@ -610,6 +603,11 @@ if there is not one."
 	  (concat "/" data)))
 
 (reorg-create-data-type
+ :name marker
+ :class org
+ :parse (point-marker))
+
+(reorg-create-data-type
  :name timestamp-ia
  :class org
  :parse (when (reorg-org--timestamp-parser t)
@@ -627,10 +625,10 @@ if there is not one."
  :parse (when (reorg-org--timestamp-parser nil t)
 	  (org-no-properties (reorg-org--timestamp-parser nil t))))
 
-(reorg-create-data-type
- :name id
- :class org
- :parse (org-id-get-create))
+;; (reorg-create-data-type
+;;  :name id
+;;  :class org
+;;  :parse (org-id-get-create))
 
 (reorg-create-data-type
  :name category-inherited

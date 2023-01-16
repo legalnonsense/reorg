@@ -1,5 +1,30 @@
 ;; -*- lexical-binding: t; -*-
 
+;; Copyright (C) 2023 Jeff Filipovits
+
+;; Author: Jeff Filipovits <jrfilipovits@gmail.com>
+;; Url: https://github.com/legalnonsense/reorg
+;; Version: 0.0.1
+
+;;; License:
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;; TODO re-write so that all data is stored in a hashtable
+;; and the only thing stored in a text property is the key
+;; to the hash table 
+
 ;;; requires
 
 (eval-when-compile
@@ -58,12 +83,8 @@
 
 ;;; variables 
 
-;; TODO move into the 'reorg-data text property 
+;; TODO move into the 'reorg-data text property
 (defvar reorg--field-property-name 'reorg-field-name "")
-
-;; TODO re-write so that all data is stored in a hashtable
-;; and the only thing stored in a text property is the key
-;; to the hash table 
 
 (defvar reorg--extra-prop-list nil "")
 
@@ -221,6 +242,7 @@ numbers, strings, symbols."
 ;; TODO figure out if there is a way to avoid this
 ;; maybe `with-eval-when-compile'? 
 (require 'reorg-org)
+(require 'reorg-json)
 (require 'reorg-files)
 (require 'reorg-leo)
 (require 'reorg-email)
@@ -243,8 +265,6 @@ are convenience functions for writing templates."
 			    (if a (downcase a) "")
 			    (if b (downcase b) ""))))))
 
-;; TODO do I need some kind of (eval-when-compile)
-;; here or something? 
 (reorg--create-string-comparison-funcs)
 
 (defun reorg--add-number-suffix (num)
@@ -260,17 +280,6 @@ are convenience functions for writing templates."
     ((pred (s-ends-with-p "3")) "rd")
     (_ "th")))
 
-;;;; programmer utilities
-
-(defun reorg--add-remove-colon (prop &optional remove)
-  "PROP is a symbol with or without a colon prefix.
-Returns PROP with a colon prefix. If REMOVE is t,
-then return PROP with no colon prefix."
-  (pcase `(,remove ,(keywordp prop))
-    (`(t t) (intern (substring (symbol-name prop) 1)))
-    (`(nil nil) (intern (concat ":" (symbol-name prop))))
-    (_ prop)))
-
 (defun reorg--sort-by-list (a b seq &optional predicate list-predicate)
   "Apply PREDICATE (default `<') to the respective indices in sequence
 SEQ for the value of A and value of B.  A and B are members of SEQ if
@@ -284,12 +293,16 @@ LIST-PREDICATE."
      ((null b-loc) t)
      (t (funcall (or predicate #'<) a-loc b-loc)))))
 
-(defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
-  "turn .@symbol into .symbol."
-  (if (and (symbolp elem)
-	   (string-match "\\`\\.@" (symbol-name elem)))
-      (intern (concat "." (substring (symbol-name elem) 2)))
-    elem))
+;;;; programmer utilities
+
+(defun reorg--add-remove-colon (prop &optional remove)
+  "PROP is a symbol with or without a colon prefix.
+Returns PROP with a colon prefix. If REMOVE is t,
+then return PROP with no colon prefix."
+  (pcase `(,remove ,(keywordp prop))
+    (`(t t) (intern (substring (symbol-name prop) 1)))
+    (`(nil nil) (intern (concat ":" (symbol-name prop))))
+    (_ prop)))
 
 (defun reorg--walk-tree (tree func &optional data)
   "Apply func to each element of tree and return the results.
@@ -328,31 +341,6 @@ Otherwise call FUNC with no arguments."
 ;; 			     (walk (cdr code) )))))
 ;;       (walk code)
 ;;       (cl-delete-duplicates acc))))
-
-(defun reorg--at-dot-search (data)
-  "Return alist of symbols inside DATA that start with a `.@'.
-Perform a deep search and return a alist of any symbol
-same symbol without the `@'.
-
-See `let-alist--deep-dot-search'."
-  (cond
-   ((symbolp data)
-    (let ((name (symbol-name data)))
-      (when (string-match "\\`\\.@" name)
-	;; Return the cons cell inside a list, so it can be appended
-	;; with other results in the clause below.
-	(list (intern (replace-match "" nil nil name))))))
-   ;; (list (cons data (intern (replace-match "" nil nil name)))))))
-   ((vectorp data)
-    (apply #'nconc (mapcar #'reorg--at-dot-search data)))
-   ((not (consp data)) nil)
-   ((eq (car data) 'let-alist)
-    ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
-    ;; inner body because they don’t refer to the alist currently
-    ;; being processed.  See Bug#24641.
-    (reorg--at-dot-search (cadr data)))
-   (t (append (reorg--at-dot-search (car data))
-	      (reorg--at-dot-search (cdr data))))))
 
 (defun reorg--get-all-tree-paths (tree leaf-func)
   "Get a list of all paths in tree.
@@ -436,7 +424,7 @@ switch to that buffer in the window."
 		    (reorg--get-prop 'class)
 		    reorg--render-func-list)))
     (funcall func)
-    ;;FIXME this is redundant code with `reorg--goto-source'
+    ;;FIXME this is redundant. see `reorg--goto-source'
     (when (reorg--buffer-in-side-window-p)
       (reorg--select-tree-window))))
 
@@ -677,7 +665,17 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 (reorg--create-navigation-commands
  ;; If you want to debug, just pp macro expand, and instrument
  ;; the defun in a scratch buffer. 
- ((next-heading . (reorg--get-next-prop
+ ((first-leaf . (reorg--get-next-prop 'reorg-field-type
+				      'leaf
+				      (let ((sib (reorg--get-next-sibling))
+					    (par (reorg--get-next-parent)))
+					(if (and sib par)
+					    (if (< sib par) sib par)
+					  (if sib sib par)))))
+  (next-leaf-sibling . (reorg--get-next-prop 'reorg-field-type
+					     'leaf
+					     (reorg--get-next-parent)))
+  (next-heading . (reorg--get-next-prop
 		   nil
 		   nil
 		   nil
@@ -767,6 +765,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			     (>= a b)))
 			  nil
 			  t)))))
+
 (defun reorg--move-to-next-entry-follow ()
   "move to next entry"
   (interactive)
@@ -830,8 +829,6 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 
 ;;;; insertion code
 
-;;TODO move these into `reorg--create-navigation-commands'
-
 (defun reorg--goto-next-sibling-same-group (&optional data)
   "goot next sibing same group"
   (let ((id (or
@@ -839,21 +836,21 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 	     (reorg--get-prop 'group-id))))
     (reorg--goto-next-prop 'group-id id)))
 
-(defun reorg--goto-next-leaf-sibling ()
-  "goto next sibling"
-  (reorg--goto-next-prop 'reorg-field-type
-			 'leaf
-			 (reorg--get-next-parent)))
+;; (defun reorg--goto-next-leaf-sibling ()
+;;   "goto next sibling"
+;;   (reorg--goto-next-prop 'reorg-field-type
+;; 			   'leaf
+;; 			   (reorg--get-next-parent)))
 
-(defun reorg--goto-first-leaf ()
-  "goto the first leaf of the current group"
-  (reorg--goto-next-prop 'reorg-field-type
-			 'leaf
-			 (let ((sib (reorg--get-next-sibling))
-			       (par (reorg--get-next-parent)))
-			   (if (and sib par)
-			       (if (< sib par) sib par)
-			     (if sib sib par)))))
+;; (defun reorg--goto-first-leaf ()
+;;   "goto the first leaf of the current group"
+;;   (reorg--goto-next-prop 'reorg-field-type
+;; 			 'leaf
+;; (let ((sib (reorg--get-next-sibling))
+;; 	(par (reorg--get-next-parent)))
+;;   (if (and sib par)
+;; 	(if (< sib par) sib par)
+;;     (if sib sib par)))))		
 
 (defun reorg--goto-id (header &optional group)
   "goto ID that matches the header string"
@@ -1099,10 +1096,12 @@ parser for that data type."
 		      (alist-get class
 				 reorg--parser-list))
 		     data))
-    (cl-loop with DATA = nil
-	     for (type . func) in (alist-get class reorg--parser-list)
-	     collect (cons type (funcall func data DATA)) into DATA
-	     finally return DATA)))
+    (if (= 1 (length (alist-get class reorg--parser-list)))
+	data
+      (cl-loop with DATA = nil
+	       for (type . func) in (alist-get class reorg--parser-list)
+	       collect (cons type (funcall func data DATA)) into DATA
+	       finally return DATA))))
 
 (defun reorg--seq-group-by (form sequence)
   "Apply FORM to each element of SEQUENCE and group
@@ -1152,7 +1151,7 @@ as used by `let-alist'."
 				  template
 				  level
 				  ignore-sources
-				  &rest
+				  &optional
 				  inherited-props)
   "Apply TEMPLATE to DATA and apply the :action-function 
 specified in the template or `reorg--grouper-action-function'
@@ -1182,6 +1181,7 @@ to the results."
 				       :parent-template))
 			(pp-to-string (plist-get inherited-props :header)))))
 		(cons 'id id)))))
+    (setq xxx inherited-props)
     (let ((format-results (or (plist-get template :format-results)
 			      (plist-get inherited-props :format-results)
 			      reorg-headline-format))
@@ -1241,7 +1241,9 @@ to the results."
 			    level
 			    ignore-sources
 			    (list :header nil
+				  :format-results format-results
 				  :parent-id nil
+				  :sort-results result-sorters
 				  :parent-template template
 				  :bullet bullet
 				  :face face)))
@@ -1283,11 +1285,14 @@ to the results."
 			   child
 			   (1+ level)
 			   ignore-sources
-			   (list :header header
-				 :parent-template template
-				 :parent-id (alist-get 'id metadata)
-				 :bullet bullet
-				 :face face))))))
+			   (list 
+			    :header header
+			    :parent-template template
+			    :format-results format-results
+			    :sort-results result-sorters
+			    :parent-id (alist-get 'id metadata)
+			    :bullet bullet
+			    :face face))))))
 	      ((plist-get template :children)
 	       (cl-loop for child in (plist-get template :children)
 			collect
@@ -1296,7 +1301,7 @@ to the results."
 			 child
 			 (1+ level)
 			 ignore-sources
-			 (progn 
+			 (progn
 			   (setq metadata (get-header-metadata nil
 							       group
 							       result-sorters
@@ -1342,8 +1347,40 @@ to the results."
 			    (plist-get template :overrides)
 			    (plist-get template :post-overrides))))))))))))
 
+(defun reorg--at-dot-search (data)
+  "Return alist of symbols inside DATA that start with a `.@'.
+Perform a deep search and return a alist of any symbol
+same symbol without the `@'.
+
+See `let-alist--deep-dot-search'."
+  (cond
+   ((symbolp data)
+    (let ((name (symbol-name data)))
+      (when (string-match "\\`\\.@" name)
+	;; Return the cons cell inside a list, so it can be appended
+	;; with other results in the clause below.
+	(list (intern (replace-match "" nil nil name))))))
+   ;; (list (cons data (intern (replace-match "" nil nil name)))))))
+   ((vectorp data)
+    (apply #'nconc (mapcar #'reorg--at-dot-search data)))
+   ((not (consp data)) nil)
+   ((eq (car data) 'let-alist)
+    ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
+    ;; inner body because they don’t refer to the alist currently
+    ;; being processed.  See Bug#24641.
+    (reorg--at-dot-search (cadr data)))
+   (t (append (reorg--at-dot-search (car data))
+	      (reorg--at-dot-search (cdr data))))))
+
+(defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
+  "turn .@symbol into .symbol."
+  (if (and (symbolp elem)
+	   (string-match "\\`\\.@" (symbol-name elem)))
+      (intern (concat "." (substring (symbol-name elem) 2)))
+    elem))
+
 (defun reorg--turn-dot-to-display-string (elem data)
-  "turn .symbol to a string using the reorg-display
+  "turn .symbol to a string using the display
 function created by the `reorg-create-data-type' macro."
   (if (and (symbolp elem)
 	   (string-match "\\`\\." (symbol-name elem)))
@@ -1365,7 +1402,8 @@ function created by the `reorg-create-data-type' macro."
 				      &optional
 				      level
 				      overrides
-				      post-overrides)
+				      post-overrides
+				      text-props)
   "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  OVERRIDES
 overrides text properties to DATA, POST-OVERRIDES overrides
@@ -1580,8 +1618,23 @@ one of the sources."
   (reorg--open-side-window)
   (reorg--select-tree-window))
 
+(defun reorg-open-raw-data (&optional template point data)
+  (interactive)
+  (when (get-buffer reorg-buffer-name)
+    (kill-buffer reorg-buffer-name))
+  (with-current-buffer (get-buffer-create reorg-buffer-name)
+    (erase-buffer)
+    (reorg--insert-all
+     (reorg--get-group-and-sort data template 1 t))
+    (setq reorg--current-sources
+	  (reorg--get-all-sources-from-template template)
+	  reorg--current-template
+	  template)
+    (reorg-mode)
+    (reorg--goto-char (or point (point-min)))))
+
 ;;;###autoload 
-(defun reorg-open (template &optional point)
+(defun reorg-open (template &optional point data)
   "Open TEMPLATE in Reorg, but do not switch to
 the buffer."
   (interactive)
@@ -1590,16 +1643,13 @@ the buffer."
   (with-current-buffer (get-buffer-create reorg-buffer-name)
     (erase-buffer)
     (reorg--insert-all
-     (reorg--get-group-and-sort nil template 1 nil))
+     (reorg--get-group-and-sort data template 1 nil))
     (setq reorg--current-sources
 	  (reorg--get-all-sources-from-template template)
 	  reorg--current-template
 	  template)
     (reorg-mode)
     (reorg--goto-char (or point (point-min)))))
-
-
-
 
 (defun reorg-reload ()
   "reload the current template"
