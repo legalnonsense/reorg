@@ -939,10 +939,11 @@ Does not run 'reorg--navigation-hooks'."
 		   predicate
 		   visible-only)))
 
-(defun reorg--goto-char (point)
+(defun reorg--goto-char (point &optional no-hook)
   "Goto POINT and run hook funcs."
   (goto-char point)
-  (run-hooks 'reorg--navigation-hook)
+  (unless no-hook 
+    (run-hooks 'reorg--navigation-hook))
   (point))
 
 ;;;; core grouping, sorting, and rendering code 
