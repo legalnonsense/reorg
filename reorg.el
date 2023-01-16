@@ -828,7 +828,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
     (while (reorg--goto-next-branch)
       (funcall func))))
 
-;;;; outline navigation 
+;;;; insertion code
 
 ;;TODO move these into `reorg--create-navigation-commands'
 
@@ -947,6 +947,7 @@ point where the leaf should be inserted (ie, insert before)"
 			  (not (equal a b)))))
 
 ;;;; window selector
+
 (defun reorg--buffer-in-side-window-p ()
   "Is the reorg buffer in a side window?"
   (cl-loop for window in (window-at-side-list nil reorg-buffer-side)
@@ -975,7 +976,7 @@ point where the leaf should be inserted (ie, insert before)"
   "maybe render if we are in a tree window."
   (reorg--select-window-run-func-maybe 'main #'reorg--render-source t))
 
-;;;; outline drawing
+;;;; outline management 
 
 (defun reorg-views--delete-leaf ()
   "delete the heading at point"
@@ -983,8 +984,8 @@ point where the leaf should be inserted (ie, insert before)"
 		 (line-beginning-position 2)))
 
 (defun reorg--delete-headers-maybe ()
-  "delete headers at point if it has no children.
-assume the point is at a branch." 
+  "Delete header, and its parents, at point if there
+are no children.  Assume the point is at a branch." 
   (cl-loop with p = nil
 	   if (reorg--get-next-child)
 	   return t
@@ -1000,7 +1001,6 @@ assume the point is at a branch."
   (reorg--map-all-branches
    #'reorg--delete-headers-maybe))
 
-
 (defun reorg--insert-all (data)
   "Insert grouped and sorted data into outline."
   (let (results)
@@ -1011,24 +1011,14 @@ assume the point is at a branch."
 					      do (recurse entry))))))
       (recurse data))))
 
-(defun reorg--update-heading-at-point ()
-  "update the current heading"
-  (interactive)
-  (reorg--insert-new-heading
-   (reorg--with-point-at-orig-entry nil
-				    nil
-				    (reorg--parser
-				     nil
-				     (reorg--get-prop 'class)))
-   reorg--current-template))
-
 (defun reorg--delete-header-at-point ()
   "delete the header at point"
   (delete-region (point-at-bol)
 		 (line-beginning-position 2)))
 
 (defun reorg--insert-header-at-point (header-string &optional next-line)
-  "insert header at point"
+  "Insert HEADER-STRING at point.  If NEXT-LINE is non-nil,
+insert it on the next line.  Run navigation hook after insertion."
   (when next-line
     (forward-line))
   (save-excursion 
@@ -1037,7 +1027,10 @@ assume the point is at a branch."
   (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--insert-new-heading (data template)
-  "insert an individual heading"
+  "Parse DATA according to TEMPLATE, delete old headers
+that contained DATA, and insert the new header(s)
+into the appropriate place(s) in the outline."
+  ;; FIXME this is buggy. 
   (save-excursion 
     (goto-char (point-min))
     (reorg--map-id (alist-get 'id data)
@@ -1086,7 +1079,14 @@ assume the point is at a branch."
     (org-indent-refresh-maybe (point-min) (point-max) nil))
   (run-hooks 'reorg--navigation-hook))
 
-;;; Data processessing 
+;;; core functions (fetching, parsing, grouping, sorting, formatting)
+
+(defun reorg--getter (sources)
+  "Get entries from SOURCES, whih is an alist
+in the form of (CLASS . SOURCE)."
+  (cl-loop for (class . source) in sources
+	   append (funcall (car (alist-get class reorg--getter-list))
+			   source)))
 
 (defun reorg--parser (data class &optional type)
   "Call each parser in CLASS on DATA and return
@@ -1104,13 +1104,6 @@ parser for that data type."
 	     collect (cons type (funcall func data DATA)) into DATA
 	     finally return DATA)))
 
-(defun reorg--getter (sources)
-  "Get entries from SOURCES, whih is an alist
-in the form of (CLASS . SOURCE)."
-  (cl-loop for (class . source) in sources
-	   append (funcall (car (alist-get class reorg--getter-list))
-			   source)))
-
 (defun reorg--seq-group-by (form sequence)
   "Apply FORM to each element of SEQUENCE and group
 the results.  See `seq-group-by'. Do not group
@@ -1119,15 +1112,14 @@ the function with a single argument.  If FORM
 is not a function, then create an anonymous function
 that wraps FORM in a `let-alist' and makes all of the
 data in each element of SEQENCE available using
-dotted notation. 
-
-(There must be a better way than using a back-quoted
-lambda, but this is the path I started down and it
-seems to work.)"
+dotted notation."
   (seq-reduce
    (lambda (acc elt)
      (let* ((key (if (functionp form)
 		     (funcall form elt)
+		   ;; There must be a better way than using a back-quoted
+		   ;; lambda, but this is the path I started down and it
+		   ;; seems to work.
 		   (funcall `(lambda (e)
 			       (let-alist e ,form))
 			    elt)))
@@ -1451,29 +1443,29 @@ TODO stop treating them differently, i.e., allow leafs to have leaves."
 sources.  This is used for updating the reorg tree, e.g., as part
 of an org-capture hook to make sure the captured entry belongs to
 one of the sources."
-  (cl-labels ((get-sources (template)
-			   (append (cl-loop for each in template
-					    when (plist-get each :sources)
-					    append (plist-get each :sources)
-					    append (get-sources (plist-get template :children)))
-				   (plist-get template :sources))))
-    (-uniq (get-sources template))))
+  (cl-labels ((get-sources
+	       (template)
+	       (append (cl-loop for each in template
+				when (plist-get each :sources)
+				append (plist-get each :sources)
+				append (get-sources (plist-get template
+							       :children)))
+		       (plist-get template :sources))))
+    (seq-uniq (get-sources template))))
 
-(defun reorg-list-modules ()
+(defun reorg--list-modules ()
   "Let the modules available."
-  (interactive)
   (cl-loop for (module . parsers) in reorg--parser-list
 	   collect module))
 
 (defun reorg-list-data-types ()
-  "list data types for a given module"
-  (interactive)
+  "List data types for a given module"
   (let ((module
-	 (completing-read "Select module: " (reorg-list-modules))))
+	 (completing-read "Select module: " (reorg--list-modules))))
     (cl-loop for (name . func) in (alist-get (intern module)
 					     reorg--parser-list)
 	     collect name into results
-	     finally (message (format "%s" results)))))
+	     return results)))
 
 (defun reorg--get-longest-line-length ()
   "get longest line length in the outline"
@@ -1486,7 +1478,7 @@ one of the sources."
 
 (defun reorg--line-length ()
   "get the line length including align-to"
-  (interactive)
+  ;; TODO I am not sure if this works or whether this is useful
   (save-excursion 
     (goto-char (line-beginning-position))
     (let ((point (point))
@@ -1558,6 +1550,18 @@ one of the sources."
 	       #'string<)
 	      :annotation-function
 	      #'reorg-capf--annotation)))))
+
+(defun reorg-enable-completion (&optional disable)
+  "Enable completion using dot prefixes for data types."
+  (interactive)
+  (if disable
+      (delete #'reorg-capf completion-at-point-functions)
+    (add-to-list 'completion-at-point-functions #'reorg-capf)))
+
+(defun reorg-disable-completion ()
+  "Disable completion at point."
+  (interactive)
+  (reorg-enable-completion t))
 
 ;;;; opening and closing reorg 
 
@@ -1635,7 +1639,7 @@ the buffer."
     (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "<left>") #'reorg--goto-parent)
-    (define-key map (kbd "g") #'reorg--update-heading-at-point)
+    (define-key map (kbd "g") #'reorg-org--update-heading-at-point)
     (define-key map (kbd "G") (lambda () (interactive)
 				(reorg--close-tree-buffer)
 				(kill-buffer reorg-buffer-name)
@@ -1676,8 +1680,8 @@ the buffer."
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
   (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
   (global-set-key (kbd reorg-toggle-shortcut) #'reorg--toggle-tree-buffer)
-  (goto-char (point-min))
-  (run-hooks 'reorg--navigation-hook))
+  (reorg--goto-char 1))
+
 
 (provide 'reorg)
 

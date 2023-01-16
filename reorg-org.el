@@ -2,6 +2,17 @@
 
 ;;; syncing function
 
+(defun reorg-org--update-heading-at-point ()
+  "update the current heading"
+  (interactive)
+  (reorg--insert-new-heading
+   (reorg--with-point-at-orig-entry nil
+				    nil
+				    (reorg--parser
+				     nil
+				     (reorg--get-prop 'class)))
+   reorg--current-template))
+
 (defmacro reorg-org--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
 update the heading at point."
