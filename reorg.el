@@ -503,8 +503,9 @@ supplied, get that property from 'reorg-data'."
 				       limit
 				       predicate
 				       visible-only)
-  "Aassume we are getting 'reorg-data and PROPERTY is the key of that alist.
-Does not run 'reorg--navigation-hooks'." 
+  "Assume we are getting 'reorg-data and PROPERTY is the key of that alist.
+Does not run 'reorg--navigation-hooks'."
+  ;; There must be a better way.
   (cond
    ((eobp)
     nil)
@@ -674,6 +675,8 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			,form)))))
 
 (reorg--create-navigation-commands
+ ;; If you want to debug, just pp macro expand, and instrument
+ ;; the defun in a scratch buffer. 
  ((next-heading . (reorg--get-next-prop
 		   nil
 		   nil
@@ -764,25 +767,6 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			     (>= a b)))
 			  nil
 			  t)))))
-
-
-(defmacro reorg--map-id (id &rest body)
-  "Execute BODY at each entry that matches ID."
-  `(org-with-wide-buffer 
-    (goto-char (point-min))
-    (let ((id ,id))
-      (while (reorg--goto-next-prop 'id id)
-	,@body))))
-
-(defun reorg--map-all-branches (func)
-  "map all headings"
-  (save-excursion 
-    (goto-char (point-min))
-    (while (reorg--goto-next-branch)
-      (funcall func))))
-
-
-
 (defun reorg--move-to-next-entry-follow ()
   "move to next entry"
   (interactive)
@@ -826,6 +810,23 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
   (reorg--render-source)
   (reorg--select-tree-window)
   (run-hooks 'reorg--navigation-hook))
+
+;;;; mapping functions
+
+(defmacro reorg--map-id (id &rest body)
+  "Execute BODY at each entry that matches ID."
+  `(org-with-wide-buffer 
+    (goto-char (point-min))
+    (let ((id ,id))
+      (while (reorg--goto-next-prop 'id id)
+	,@body))))
+
+(defun reorg--map-all-branches (func)
+  "map all headings"
+  (save-excursion 
+    (goto-char (point-min))
+    (while (reorg--goto-next-branch)
+      (funcall func))))
 
 ;;;; outline navigation 
 
