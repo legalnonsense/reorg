@@ -260,7 +260,8 @@ are convenience functions for writing templates."
   `(progn 
      ,@(cl-loop for each in '("<" ">" "=" )
 		collect `(defun ,(intern (concat "reorg-string" each)) (a b)
-			   ,(concat "like string" each " but ignore case")
+			   ,(concat "like string" each " but ignore case"
+				    "and allow nils")
 			   (,(intern (concat "string" each))
 			    (if a (downcase a) "")
 			    (if b (downcase b) ""))))))

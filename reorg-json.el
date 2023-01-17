@@ -33,7 +33,7 @@
 		    do (goto-char (match-beginning 0))
 		    collect (append (list (cons 'marker (point-marker))
 					  (cons 'file file)
-					  (cons 'class 'json-1)
+					  (cons 'class 'json)
 					  (cons 'buffer buffer))
 				    (json-read))
 		    do (goto-char (point-at-eol)))))

@@ -45,7 +45,7 @@
 
 (defun reorg--test-json ()
   (interactive)
-  (reorg-open-sidebar '( :sources ((json-1 . "~/.emacs.d/lisp/reorg/TEST/y77d-th95.json"))
+  (reorg-open-sidebar '( :sources ((json . "~/.emacs.d/lisp/reorg/TEST/y77d-th95.json"))
 			 :group (if .year (substring .year 0 4) "Unknown year")
 			 :sort-groups string>
 			 :format-results (.mass "\t" .name " " .geolocation.type)
