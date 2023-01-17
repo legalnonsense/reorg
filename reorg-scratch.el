@@ -1,9 +1,42 @@
 ;; ;; -*- lexical-binding: t; -*-
 
 
+(defun xxx (seq)
+  (cl-loop for each in seq
+	   with results = nil
+	   with num = (length seq)
+	   do (cl-loop with done = 0
+		       for x from 0		       
+		       if (< x (length (alist-get 'parent-dirs each)))
+		       do (push
+			   each
+			   (alist-get (intern (nth x (alist-get 'parent-dirs each))) results))
+		       else do (cl-incf done)
+		       when (= done num)
+		       return results)
+	   finally return results))
 
-(setq xxx-seq '(((reorg-level . 8) (dirp) (id . "2473fecf-ed14-474d-86f6-129396268fc1") (parent . "/home/jeff/.emacs.d/lisp/reorg/TEST") (fullname . "/home/jeff/.emacs.d/lisp/reorg/TEST/second-example-screenshot.png") (filename . "second-example-screenshot.png") (extension . "png") (parent-dirs "home" "jeff" ".emacs.d" "lisp" "reorg" "TEST") (path . "/home/jeff/.emacs.d/lisp/reorg/TEST/second-example-screenshot.png") (depth . 7) (class . files) (group-id . "7e0e9cba-1314-459f-b923-48447dbc74d6") (parent-id . "7e0e9cba-1314-459f-b923-48447dbc74d6") (reorg-headline . "second-example-screenshot.png;; => ") (reorg-class . files) (parent-id . "7e0e9cba-1314-459f-b923-48447dbc74d6") (reorg-field-type . leaf))
-		((reorg-level . 8) (dirp) (id . "b0a84306-7e51-4e6d-9c1f-e5e92e5a14d0") (parent . "/home/jeff/.emacs.d/lisp/reorg/TESTS") (fullname . "/home/jeff/.emacs.d/lisp/reorg/TESTS/elgantt-test.org") (filename . "elgantt-test.org") (extension . "org") (parent-dirs "home" "jeff" ".emacs.d" "lisp" "reorg" "TESTS") (path . "/home/jeff/.emacs.d/lisp/reorg/TESTS/elgantt-test.org") (depth . 7) (class . files) (group-id . "a345aa14-a3d8-42c3-a923-191da66c4af8") (parent-id . "a345aa14-a3d8-42c3-a923-191da66c4af8") (reorg-headline . "elgantt-test.org;; => ") (reorg-class . files) (parent-id . "a345aa14-a3d8-42c3-a923-191da66c4af8") (reorg-field-type . leaf))))
+(defun xxx (seq n)
+  (let ((groups (reorg--seq-group-by (lambda (x) (nth n (alist-get 'parent-dirs x))) seq)))
+    (if groups
+	(cl-loop for each in groups
+		 append (cons (car each) 
+			      (xxx (cdr each) (1+ n))))
+      seq)))
+
+
+(xxx xxx-seq 0) ;;;test 
+(alist-get 'parent-dirs (car xxx-seq))
+(setq xxx-seq `(((parent-dirs . ("home" "jeff" ".emacs.d" "lisp" "reorg" "TEST"))
+		 (name . "1"))
+		((parent-dirs . ("home" "jeff" ".emacs.d" "lisp" "reorg" "TESTS"))
+		 (name . "2"))
+		((parent-dirs . ("home" "jeff" "legal" "whatever"))
+		 (name . "3"))
+		((parent-dirs . ("home" "jeff" "legal" "xxx"))
+		 (name . "4"))
+		((parent-dirs . ("etc" "something" "legal" "xxx"))
+		 (name . "5"))))
 
 
 (defun reorg--get-group-and-sort* (data
@@ -87,7 +120,9 @@ to the results."
 					 (setf (alist-get at-dot ppp) x)
 					 ppp))
 			      finally return data))))
-	       ;; NEW CODE GOES HERE. 
+	       ;; NEW CODE GOES HERE.
+	       ;; if group contains .!
+	       ;; recurse.
 	       (reorg--seq-group-by (reorg--walk-tree
 				     group
 				     #'reorg--turn-at-dot-to-dot
