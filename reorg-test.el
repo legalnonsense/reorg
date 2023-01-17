@@ -1,5 +1,40 @@
 ;; -*- lexical-binding: t; -*-
 
+
+
+;;; files 
+
+(defun reorg--test-file-tree ()
+  (interactive)
+  (reorg-open-sidebar
+   `( :sources ((files . "~/.emacs.d/lisp/reorg"))
+      :group "test"
+      :format-results (.filename)
+      :sort-results ((.filename . reorg-string<))
+      :children (( :group .!parent-dirs)))))
+
+
+
+
+;; (defun reorg--test-file-dir-tree ()
+;;   (interactive)
+;;   (reorg-open-sidebar
+;;    `( :sources ((files . "~/.emacs.d/lisp/reorg"))
+;;       :group "test"
+;;       :format-results (.filename)
+;;       :sort-results ((.filename . reorg-string<))
+;;       :children
+;;       (( :group (nth 0 .parent-dirs)
+;; 	 :children
+;; 	 (( :group (nth 1 .parent-dirs)
+;; 	    :children
+;; 	    (( :group (nth 2 .parent-dirs)
+;; 	       :children (( :group (nth 3 .parent-dirs))))))))))))
+
+
+
+;;; JSON testing
+
 (defun reorg--test-json-foodtruck ()
   (interactive)
   (reorg-open-sidebar '( :sources ((json . "~/.emacs.d/lisp/reorg/TEST/bbb8-hzi6.json"))
@@ -21,6 +56,8 @@
 						   "Mass <= 1000")
 					       "Mass Unknown")
 				      :sort-groups string<)))))
+
+;;; org-mode testing
 
 (defun reorg--set-up-capture-test ()
   "set up capture testing"

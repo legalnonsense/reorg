@@ -3,7 +3,9 @@
 (reorg-create-class-type
  :name files
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
-					     SOURCE)
+					     (concat 
+					      "find "
+					      SOURCE))
 				       t)
 		  collect (PARSER each))
  :keymap (("x" . (lambda () (interactive) (message "adf")))
@@ -36,6 +38,13 @@
 ;; 		    (reorg--parser each 'files))))
 
 (reorg-create-data-type
+ :name dirp
+ :class files
+ :parse (f-dir-p data))
+
+
+
+(reorg-create-data-type
  :name depth 
  :class files
  :parse (f-depth data))
@@ -44,6 +53,11 @@
  :name path
  :class files
  :parse data)
+
+(reorg-create-data-type
+ :name parent-dirs
+ :class files 
+ :parse (butlast (s-split "/" data t)))
 
 (reorg-create-data-type
  :name extension
@@ -69,5 +83,7 @@
  :name id
  :class files
  :parse (org-id-uuid))
+
+
 
 (provide 'reorg-files)
