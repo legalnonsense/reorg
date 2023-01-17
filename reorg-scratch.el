@@ -29,7 +29,26 @@
 		((parent-dirs . ("etc" "something" "legal" "xxx"))
 		 (name . "5"))))
 
-(defun reorg--drill-group (seq &optional n)
+(reorg--drill-group xxx-seq nil #'string<) ;;;test 
+
+(defun reorg--drill-group (seq &optional n sorter)
+  (let ((groups (reorg--seq-group-by
+		 (lambda (x)
+		   (nth (or n 0) (alist-get 'parent-dirs x)))
+		 seq)))
+    (if groups
+	(progn 
+	  (when sorter
+  	    (setq groups (seq-sort-by #'car
+				      sorter
+				      groups)))
+	  (cl-loop for each in groups
+		   collect (cons (car each) 
+				 (reorg--drill-group (cdr each) (1+ (or n 0)) sorter))))
+      ;; children need to be called here
+      seq)))
+
+(defun reorg--drill-group* (seq &optional n)
   (let ((groups (reorg--seq-group-by
 		 (lambda (x)
 		   (nth (or n 0) (alist-get 'parent-dirs x)))
@@ -40,17 +59,13 @@
 			       (xxx (cdr each) (1+ (or n 0)))))
       seq)))
 
-(reorg--drill-group xxx-seq) ;;;test 
 
-
-
-
-(defun reorg--get-group-and-sort* (data
-				   template
-				   level
-				   ignore-sources
-				   &optional
-				   inherited-props)
+(defun reorg--get-group-and-sort (data
+				  template
+				  level
+				  ignore-sources
+				  &optional
+				  inherited-props)
   "Apply TEMPLATE to DATA and apply the :action-function 
 specified in the template or `reorg--grouper-action-function'
 to the results."
@@ -111,7 +126,7 @@ to the results."
 	      ((and (pred symbolp)
 		    g
 		    (guard (s-starts-with-p ".!" (symbol-name g))))
-	       ;; INSERT DRILL CODE		 
+	       (error "Drill code"))
 	      ((pred (not null))
 	       (when-let ((at-dots (seq-uniq 
 				    (reorg--at-dot-search

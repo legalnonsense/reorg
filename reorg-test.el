@@ -1,10 +1,8 @@
 ;; -*- lexical-binding: t; -*-
 
+;;; drill code
 
-
-;;; files 
-
-(defun reorg--test-file-tree ()
+(defun reorg--test-drill-code ()
   (interactive)
   (reorg-open-sidebar
    `( :sources ((files . "~/.emacs.d/lisp/reorg"))
@@ -12,6 +10,8 @@
       :format-results (.filename)
       :sort-results ((.filename . reorg-string<))
       :children (( :group .!parent-dirs)))))
+
+(reorg--test-drill-code)
 
 
 
