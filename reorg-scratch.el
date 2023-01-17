@@ -31,13 +31,14 @@
 
 (reorg--drill-group xxx-seq nil #'string<) ;;;test 
 
+
 (defun reorg--drill-group (seq &optional n sorter)
   (let ((groups (reorg--seq-group-by
 		 (lambda (x)
 		   (nth (or n 0) (alist-get 'parent-dirs x)))
 		 seq)))
     (if groups
-	(progn
+	(progn 
 	  (when sorter
   	    (setq groups (seq-sort-by #'car
 				      sorter
