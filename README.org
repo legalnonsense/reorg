@@ -11,7 +11,7 @@ Mix different kinds of data (e.g., org-mode, email, files, etc.) in the same out
 
 Create modules to expand capabilities to display and interact with /any/ kind of data
 
-** Example: Orgmode
+** Example: Org-mode
 Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-sidebar][org-sidebar]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it uses none of those things). 
 
 For example, take the following orgmode file which contains a few notes, TODO items, and dates. 
@@ -322,6 +322,7 @@ Result sorters are inherited through the subtree. If additional result sorters a
 *** Capturing data into the outline and dynamic updates: org-capture as an example 
 **** Write an org-capture hook to parse the new entry 
 **** Drop the entry into the outline in the correct place(s)
+
 ** Developing new modules 
 A class is created using the =reorg-create-class= macro. Here are two examples of class definitions. First, the class definition for org files:
 
@@ -382,6 +383,43 @@ Then the class getter would be defined this way:
                     collect (PARSER each))
 #+end_src
 As you can see, =SOURCE= simply refers to the anticipated input from the template.
+**** Without using the =PARSER=
+** Using Reorg without custom modules
+#+begin_src emacs-lisp :results silent
+(reorg-create-class-type
+ :name json
+ :getter (with-current-buffer (find-file-noselect SOURCE)
+	   (let ((json-array-type 'list)
+		 (json-key-type 'symbol)
+		 (json-object-type 'alist)
+		 (json-null nil)
+		 (json-false nil)
+		 (file (buffer-file-name)))
+	     (save-excursion 
+	       (goto-char (point-min))
+	       (cl-loop for each in (json-read)
+			collect (append (list (cons 'file file)) each))))))
+#+end_src
+
+
+
+#+begin_src emacs-lisp :results silent
+(reorg-open-sidebar '( :sources ((json . "~/.emacs.d/lisp/reorg/TEST/y77d-th95.json"))
+		       :group (if .year (substring .year 0 4) "Unknown year")
+		       :sort-groups string>
+		       :format-results (.mass "\t" .name " " .geolocation.type)
+		       :sort-results (((if .mass (string-to-number .mass) "") . <))
+		       :children (( :group (if .mass
+					       (if (> (string-to-number .mass) 1000)
+						   "Mass > 1000"
+						 "Mass <= 1000")
+					     "Mass Unknown")
+				    :sort-groups string<))))
+#+end_src
+
+
+
+
 
 **** Specifying how and when to use the =PARSER=
 Within the class creation macro, =PARSER= refers to a function that parsers the data. For the purposes of writing a class definition, you do not worry about /how/ you are parsing the data; only worry about /when/ you are parsing it. (We’ll deal with writing the parsers later using a separate macro called =reorg-create-data-type=, /see infra/.)
