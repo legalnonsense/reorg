@@ -1,42 +1,48 @@
 ;; ;; -*- lexical-binding: t; -*-
 
 
-(defun xxx (seq)
-  (cl-loop for each in seq
-	   with results = nil
-	   with num = (length seq)
-	   do (cl-loop with done = 0
-		       for x from 0		       
-		       if (< x (length (alist-get 'parent-dirs each)))
-		       do (push
-			   each
-			   (alist-get (intern (nth x (alist-get 'parent-dirs each))) results))
-		       else do (cl-incf done)
-		       when (= done num)
-		       return results)
-	   finally return results))
+;; (defun xxx (seq)
+;;   (cl-loop for each in seq
+;; 	   with results = nil
+;; 	   with num = (length seq)
+;; 	   do (cl-loop with done = 0
+;; 		       for x from 0		       
+;; 		       if (< x (length (alist-get 'parent-dirs each)))
+;; 		       do (push
+;; 			   each
+;; 			   (alist-get (intern (nth x (alist-get 'parent-dirs each))) results))
+;; 		       else do (cl-incf done)
+;; 		       when (= done num)
+;; 		       return results)
+;; 	   finally return results))
 
-(defun xxx (seq n)
-  (let ((groups (reorg--seq-group-by (lambda (x) (nth n (alist-get 'parent-dirs x))) seq)))
-    (if groups
-	(cl-loop for each in groups
-		 append (cons (car each) 
-			      (xxx (cdr each) (1+ n))))
-      seq)))
-
-
-(xxx xxx-seq 0) ;;;test 
-(alist-get 'parent-dirs (car xxx-seq))
 (setq xxx-seq `(((parent-dirs . ("home" "jeff" ".emacs.d" "lisp" "reorg" "TEST"))
 		 (name . "1"))
-		((parent-dirs . ("home" "jeff" ".emacs.d" "lisp" "reorg" "TESTS"))
+		((parent-dirs . ("home" "jeff" ".emacs.d" "lisp" "reorg" "TEST"))
 		 (name . "2"))
 		((parent-dirs . ("home" "jeff" "legal" "whatever"))
 		 (name . "3"))
 		((parent-dirs . ("home" "jeff" "legal" "xxx"))
 		 (name . "4"))
+		((parent-dirs . ("home" "jeff" "something"))
+		 (name . "6"))
 		((parent-dirs . ("etc" "something" "legal" "xxx"))
 		 (name . "5"))))
+
+(defun reorg--drill-group (seq &optional n)
+  (let ((groups (reorg--seq-group-by
+		 (lambda (x)
+		   (nth (or n 0) (alist-get 'parent-dirs x)))
+		 seq)))
+    (if groups
+	(cl-loop for each in groups
+		 collect (cons (car each) 
+			       (xxx (cdr each) (1+ (or n 0)))))
+      seq)))
+
+(reorg--drill-group xxx-seq) ;;;test 
+
+
 
 
 (defun reorg--get-group-and-sort* (data
@@ -73,7 +79,6 @@ to the results."
 				       :parent-template))
 			(pp-to-string (plist-get inherited-props :header)))))
 		(cons 'id id)))))
-    (setq xxx inherited-props)
     (let ((format-results (or (plist-get template :format-results)
 			      (plist-get inherited-props :format-results)
 			      reorg-headline-format))
@@ -103,6 +108,10 @@ to the results."
 	       (reorg--seq-group-by group data))
 	      ((pred stringp)
 	       (list (cons group data)))
+	      ((and (pred symbolp)
+		    g
+		    (guard (s-starts-with-p ".!" (symbol-name g))))
+	       ;; INSERT DRILL CODE		 
 	      ((pred (not null))
 	       (when-let ((at-dots (seq-uniq 
 				    (reorg--at-dot-search
@@ -120,9 +129,6 @@ to the results."
 					 (setf (alist-get at-dot ppp) x)
 					 ppp))
 			      finally return data))))
-	       ;; NEW CODE GOES HERE.
-	       ;; if group contains .!
-	       ;; recurse.
 	       (reorg--seq-group-by (reorg--walk-tree
 				     group
 				     #'reorg--turn-at-dot-to-dot
