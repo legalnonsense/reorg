@@ -159,43 +159,44 @@
 
 (defun reorg-elisp-test ()
   (interactive)
-  (reorg-open-sidebar `( :sources ((elisp . ,(buffer-file-name)))
-			 :children (( :group (pcase .form-type
-					       ((or "defun" "cl-defun") "Functions")
-					       ((or "defmacro" "cl-defmacro") "Macros")
-					       (_ nil))
-				      :sort-groups reorg-string<
-				      :sort-results (((f-filename .file) . reorg-string<)
-						     (.form-name . reorg-string<))
-				      :children
-				      (( :group (if (s-contains-p "--" .form-name)
-						    "Private"
-						  "Public")
-					 :sort-groups reorg-string<
-					 :format-results ((replace-regexp-in-string (rx "reorg-"
-											(zero-or-one "-"))
-										    ""
-										    .form-name)
-							  (propertize " " 'display
-								      `(space . (:align-to 70)))
-							  (f-filename .file)
-							  ))))
-				    ( :group (when (member .form-type '("defcustom"
-									"defvar"
-									"defconst"))
-					       "Variables")
-				      :children (( :group (when (member .form-type '("defcustom"
-										     "defvar"
-										     "defconst"))
-							    .form-type)
-						   :format-results ((replace-regexp-in-string (rx "reorg-"
-												  (zero-or-one "-"))
-											      ""
-											      .form-name)
-								    (propertize " " 'display
-										`(space . (:align-to 70)))
-								    (f-filename .file)
-								    ))))))))
+  (reorg-open-sidebar
+   `( :sources ((elisp . ,(buffer-file-name)))
+      :children (( :group (pcase .form-type
+			    ((or "defun" "cl-defun") "Functions")
+			    ((or "defmacro" "cl-defmacro") "Macros")
+			    (_ nil))
+		   :sort-groups reorg-string<
+		   :sort-results (((f-filename .file) . reorg-string<)
+				  (.form-name . reorg-string<))
+		   :children
+		   (( :group (if (s-contains-p "--" .form-name)
+				 "Private"
+			       "Public")
+		      :sort-groups reorg-string<
+		      :format-results ((replace-regexp-in-string (rx "reorg-"
+								     (zero-or-one "-"))
+								 ""
+								 .form-name)
+				       (propertize " " 'display
+						   `(space . (:align-to 70)))
+				       (f-filename .file)
+				       ))))
+		 ( :group (when (member .form-type '("defcustom"
+						     "defvar"
+						     "defconst"))
+			    "Variables")
+		   :children (( :group (when (member .form-type '("defcustom"
+								  "defvar"
+								  "defconst"))
+					 .form-type)
+				:format-results ((replace-regexp-in-string (rx "reorg-"
+									       (zero-or-one "-"))
+									   ""
+									   .form-name)
+						 (propertize " " 'display
+							     `(space . (:align-to 70)))
+						 (f-filename .file)
+						 ))))))))
 
 
 (defun reorg-test-1 ()
