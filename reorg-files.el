@@ -5,7 +5,8 @@
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
 					     (concat 
 					      "find "
-					      SOURCE))
+					      SOURCE
+					      " -type f"))
 				       t)
 		  collect (PARSER each))
  :keymap (("x" . (lambda () (interactive) (message "adf")))

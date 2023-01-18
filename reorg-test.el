@@ -387,7 +387,7 @@
 						      .date
 						      "\t\t"
 						      .subject))
-				   ( :sources ((files . "find ~/legal/Dropbox/Allums\\,\\ Matthew/docket -type f"))
+				   ( :sources ((files . "~/legal/Dropbox/Allums\\,\\ Matthew/docket"))
 				     :group "Files"
 				     :children (( :group "By extension"
 						  :children (( :group .extension

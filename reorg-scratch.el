@@ -143,120 +143,116 @@ to the results."
 			  ;; TODO stop calling them "at-dots"
 			  group (reorg--walk-tree group
 						  #'reorg--turn-at-dot-to-dot
-						  data)))))
+						  data))))
+		 ((guard (null group))
+		  (cl-loop for child in (plist-get template :children)
+			   collect (reorg--get-group-and-sort
+				    data
+				    child
+				    level
+				    ignore-sources
+				    (list :header nil
+					  :format-results format-results
+					  :parent-id nil
+					  :sort-results result-sorters
+					  :parent-template template
+					  :bullet bullet
+					  :face face)))
+		  nil))
 	       results (reorg--seq-group-by group
 					    data))
-	 
-	 (if (null results)
-	     (progn
-	       ;; this happens a lot
-	       ;; but why do we want it do?
-	       ;; if there are no results, who cares? 
-	       (cl-loop for child in (plist-get template :children)
-			collect (reorg--get-group-and-sort
-				 data
-				 child
-				 level
-				 ignore-sources
-				 (list :header nil
-				       :format-results format-results
-				       :parent-id nil
-				       :sort-results result-sorters
-				       :parent-template template
-				       :bullet bullet
-				       :face face))))
-	   (when header-sort
-	     (setq results 
-		   (cond ((functionp header-sort)
-			  (seq-sort-by #'car
-				       header-sort
-				       results))
-			 (t (seq-sort-by #'car
-					 `(lambda (x)
-					    (let-alist x
-					      ,header-sort))
-					 results)))))
-	   ;; If there are children, recurse 
-	   (cond ((and (plist-get template :children)
-		       results)
-		  (cl-loop
-		   for (header . children) in results
-		   append
-		   (cons
-		    (funcall action-function
-			     (setq metadata
-				   (get-header-metadata header))
-			     nil
-			     level
-			     (list 
-			      (cons 'header header)
-			      (cons 'bullet bullet)
-			      (cons 'reorg-face face)))
-		    (cl-loop for child in (plist-get template :children)
-			     collect 
-			     (reorg--get-group-and-sort			  
-			      children
-			      child
-			      (1+ level)
-			      ignore-sources
-			      (list 
-			       :header header
-			       :parent-template template
-			       :format-results format-results
-			       :sort-results result-sorters
-			       :parent-id (alist-get 'id metadata)
-			       :bullet bullet
-			       :face face))))))
-		 ;; if results are nil, but there are children.
-		 ;; WHY WOULD WE KEEP GOING? 
-		 ((plist-get template :children)
-		  (debug nil "results are nil again!?")
+	 (when header-sort
+	   (setq results 
+		 (cond ((functionp header-sort)
+			(seq-sort-by #'car
+				     header-sort
+				     results))
+		       (t (seq-sort-by #'car
+				       `(lambda (x)
+					  (let-alist x
+					    ,header-sort))
+				       results)))))
+	 ;; If there are children, recurse 
+	 (cond ((and (plist-get template :children)
+		     results)
+		(cl-loop
+		 for (header . children) in results
+		 append
+		 (cons
+		  (funcall action-function
+			   (setq metadata
+				 (get-header-metadata header))
+			   nil
+			   level
+			   (list 
+			    (cons 'header header)
+			    (cons 'bullet bullet)
+			    (cons 'reorg-face face)))
 		  (cl-loop for child in (plist-get template :children)
-			   collect
-			   (reorg--get-group-and-sort
-			    data
+			   collect 
+			   (reorg--get-group-and-sort			  
+			    children
 			    child
 			    (1+ level)
 			    ignore-sources
-			    (progn
-			      (setq metadata (get-header-metadata nil))
-			      (cl-loop for (key . val) in metadata
-				       append (list (reorg--add-remove-colon key)
-						    val))))))
-		 ;; If there are no children, finish the recursion 
-		 (t 
-		  (cl-loop for (header . children) in results
-			   append
-			   (cons				
+			    (list 
+			     :header header
+			     :parent-template template
+			     :format-results format-results
+			     :sort-results result-sorters
+			     :parent-id (alist-get 'id metadata)
+			     :bullet bullet
+			     :face face))))))
+	       ;; if results are nil, but there are children.
+	       ;; WHY WOULD WE KEEP GOING? 
+	       ((plist-get template :children)
+		(debug nil "results are nil")
+		(cl-loop for child in (plist-get template :children)
+			 collect
+			 (reorg--get-group-and-sort
+			  data
+			  child
+			  (1+ level)
+			  ignore-sources
+			  (progn
+			    (setq metadata (get-header-metadata nil))
+			    (cl-loop for (key . val) in metadata
+				     append (list (reorg--add-remove-colon key)
+						  val))))))
+	       ;; If there are no children, finish the recursion 
+	       (t 
+		(cl-loop for (header . children) in results
+			 append
+			 (cons				
+			  (funcall
+			   action-function
+			   (setq metadata
+				 (get-header-metadata header))
+			   nil
+			   level
+			   (plist-get template :overrides)
+			   (plist-get template :post-overrides))
+			  (list 
+			   (cl-loop
+			    with
+			    children = 
+			    (if result-sorters
+				(reorg--multi-sort result-sorters
+						   children)
+			      children)
+			    for result in children
+			    collect
 			    (funcall
 			     action-function
-			     (setq metadata
-				   (get-header-metadata header))
-			     nil
-			     level
+			     (append result
+				     (list
+				      ;; I am not proud of any of this.
+				      (cons 'group-id
+					    (alist-get 'id metadata))
+				      (cons 'parent-id
+					    (alist-get 'id metadata))))
+			     format-results
+			     (1+ level)
 			     (plist-get template :overrides)
-			     (plist-get template :post-overrides))
-			    (list 
-			     (cl-loop
-			      with
-			      children = 
-			      (if result-sorters
-				  (reorg--multi-sort result-sorters
-						     children)
-				children)
-			      for result in children
-			      collect
-			      (funcall
-			       action-function
-			       (append result
-				       (list
-					;; I am not proud of any of this.
-					(cons 'group-id
-					      (alist-get 'id metadata))
-					(cons 'parent-id
-					      (alist-get 'id metadata))))
-			       format-results
-			       (1+ level)
-			       (plist-get template :overrides)
-			       (plist-get template :post-overrides))))))))))))))
+			     (plist-get template :post-overrides))))))))))))))
 
