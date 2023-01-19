@@ -26,10 +26,12 @@
 		 (name . "4"))
 		((parent-dirs . ("home" "jeff" "something"))
 		 (name . "6"))
+		((parent-dirs . ("home" "jarff" "something"))
+		 (name . "6"))
 		((parent-dirs . ("etc" "something" "legal" "xxx"))
 		 (name . "5"))))
 
-(reorg--drill-group xxx-seq 'parent-dirs nil #'string<) ;;;test 
+(reorg--drill-group xxx-seq 'parent-dirs nil #'string>) ;;;test 
 
 
 (defun reorg--drill-group (seq prop &optional n sorter)
@@ -67,11 +69,11 @@
   "Apply TEMPLATE to DATA and apply the :action-function 
 specified in the template or `reorg--grouper-action-function'
 to the results."
-  (reorg--check-template-keys)    
+  (reorg--check-template-keys template)    
   (let ((format-results (or (plist-get template :format-results)
 			    (plist-get inherited-props :format-results)))
-	(result-sorters (or (append (plist-get inherited-props :sort-results)
-				    (plist-get template :sort-results))))
+	(sort-results (or (append (plist-get inherited-props :sort-results)
+				  (plist-get template :sort-results))))
 	(sources (plist-get template :sources))
 	(action-function (or (plist-get inherited-props :action-function)
 			     reorg--grouper-action-function))
@@ -81,7 +83,7 @@ to the results."
 		  (plist-get inherited-props :face)
 		  reorg-default-face))
 	(group (plist-get template :group))
-	(header-sort (plist-get template :sort-groups))
+	(sort-groups (plist-get template :sort-groups))
 	results metadata)
     (cl-labels ((get-header-metadata
 		 (header)
@@ -89,7 +91,7 @@ to the results."
 		  (cons 'branch-name header)
 		  (cons 'reorg-branch t)
 		  (cons 'branch-type 'branch)
-		  (cons 'result-sorters result-sorters)
+		  (cons 'sort-results sort-results)
 		  (cons 'bullet bullet)
 		  (cons 'reorg-level level)
 		  (cons 'id (org-id-new))
@@ -109,25 +111,36 @@ to the results."
 				(lambda (x)
 				  (nth (or n 0) (alist-get prop x)))
 				seq)))
-		   (if groups
-		       (progn 
-			 (when header-sort
-  			   (setq groups (seq-sort-by #'car
-						     header-sort
-						     groups)))
-			 (cl-loop for each in groups
-				  collect (cons (funcall action-function
-							 (setq metadata
-							       (get-header-metadata
-								(car each)))
-							 level
-							 (plist-get template :overrides)
-							 (plist-get template :post-overrides))
-						(drill!
-						 (cdr each)
-						 prop
-						 (1+ (or n 0))))))
-		     seq))))
+		   (if (not groups)
+		       (reorg--get-group-and-sort
+			seq
+			(plist-get template :children)
+			(1+ level)
+			ignore-sources
+			(list 
+			 :header header
+			 :parent-template template
+			 :format-results format-results
+			 :sort-results sort-results
+			 :parent-id (alist-get 'id metadata)
+			 :bullet bullet
+			 :face face))  
+		     (when sort-groups
+  		       (setq groups (seq-sort-by #'car
+						 sort-groups
+						 groups)))
+		     (cl-loop for each in groups
+			      collect (cons (funcall action-function
+						     (setq metadata
+							   (get-header-metadata
+							    (car each)))
+						     level
+						     (plist-get template :overrides)
+						     (plist-get template :post-overrides))
+					    (drill!
+					     (cdr each)
+					     prop
+					     (1+ (or n 0)))))))))
       ;; (setq inherited-props (car inherited-props))
       ;; I believe this was needed because I used &rest in the parameters 
       (when (and sources (not ignore-sources))
@@ -159,139 +172,108 @@ to the results."
 	  (setq group (reorg--walk-tree group
 					#'reorg--turn-at-dot-to-dot
 					data))))
-      ;; process .! or call group-by 
-      (if (and (symbolp group)
-	       (s-starts-with-p ".!" (symbol-name group)))
-	  ;; drills
-	  (error "Drill code")
-	;; dealing with non-drills 
+      ;; process .!
+      (if-let ((bit
+		(and (symbolp group)
+		     (s-starts-with-p ".!" (symbol-name group))
+		     (intern (substring (symbol-name group) 2)))))
+	  (drill! data bit)
+	;; no .! encountered 
 	(setq results (reorg--seq-group-by group
 					   data))
-	(when header-sort
+	(when sort-groups
 	  (setq results 
-		(cond ((functionp header-sort)
+		(cond ((functionp sort-groups)
 		       (seq-sort-by #'car
-				    header-sort
+				    sort-groups
 				    results))
 		      (t (seq-sort-by #'car
 				      `(lambda (x)
 					 (let-alist x
-					   ,header-sort))
-				      results))))))
-
-      ;; the problem here is that if it was drilled we have this:
-
-      ;; (("etc"
-      ;; 	("something"
-      ;; 	 ("legal"
-      ;; 	  ("xxx"
-      ;; 	   ((parent-dirs "etc" "something" "legal" "xxx")
-      ;; 	    (name . "5"))))))
-      ;;  ("home"
-      ;; 	("jeff"
-      ;; 	 (".emacs.d"
-      ;; 	  ("lisp"
-      ;; 	   ("reorg"
-      ;; 	    ("TEST"
-      ;; 	     ((parent-dirs "home" "jeff" ".emacs.d" "lisp" "reorg" "TEST")
-      ;; 	      (name . "1"))
-      ;; 	     ((parent-dirs "home" "jeff" ".emacs.d" "lisp" "reorg" "TEST")
-      ;; 	      (name . "2"))))))
-      ;; 	 ("legal"
-      ;; 	  ("whatever"
-      ;; 	   ((parent-dirs "home" "jeff" "legal" "whatever")
-      ;; 	    (name . "3")))
-      ;; 	  ("xxx"
-      ;; 	   ((parent-dirs "home" "jeff" "legal" "xxx")
-      ;; 	    (name . "4"))))
-      ;; 	 ("something"
-      ;; 	  ((parent-dirs "home" "jeff" "something")
-      ;; 	   (name . "6"))))))
-
-      ;; and we only want to recurse on the leaf nodes
-      ;; how to we detect the leaf nodes? 
-
-      
-      ;; If there are children, recurse 
-      (cond ((and (plist-get template :children)
-		  results)
-	     (cl-loop
-	      for (header . children) in results
-	      append
-	      (cons
-	       (funcall action-function
-			(setq metadata
-			      (get-header-metadata header))
-			nil
-			level
-			(list 
-			 (cons 'header header)
-			 (cons 'bullet bullet)
-			 (cons 'reorg-face face)))
+					   ,sort-groups))
+				      results)))))
+	;; If there are template children, recurse 
+	(cond ((and (plist-get template :children)
+		    results)
+	       (cl-loop
+		for (header . children) in results
+		append
+		(cons
+		 (funcall action-function
+			  (setq metadata
+				(get-header-metadata header))
+			  nil
+			  level
+			  (list 
+			   (cons 'header header)
+			   (cons 'bullet bullet)
+			   (cons 'reorg-face face)))
+		 (cl-loop for child in (plist-get template :children)
+			  collect 
+			  (reorg--get-group-and-sort			  
+			   children
+			   child
+			   (1+ level)
+			   ignore-sources
+			   (list 
+			    :header header
+			    :parent-template template
+			    :format-results format-results
+			    :sort-results sort-results
+			    :parent-id (alist-get 'id metadata)
+			    :bullet bullet
+			    :face face))))))
+	      ;; if results are nil, but there are children.
+	      ;; Q. WHY WOULD WE KEEP GOING?
+	      ;; A. Because the template could declare
+	      ;;    additional sources. 
+	      ((plist-get template :children)
 	       (cl-loop for child in (plist-get template :children)
-			collect 
-			(reorg--get-group-and-sort			  
-			 children
+			collect
+			(reorg--get-group-and-sort
+			 data
 			 child
 			 (1+ level)
 			 ignore-sources
-			 (list 
-			  :header header
-			  :parent-template template
-			  :format-results format-results
-			  :sort-results result-sorters
-			  :parent-id (alist-get 'id metadata)
-			  :bullet bullet
-			  :face face))))))
-	    ;; if results are nil, but there are children.
-	    ;; WHY WOULD WE KEEP GOING? 
-	    ((plist-get template :children)
-	     (cl-loop for child in (plist-get template :children)
-		      collect
-		      (reorg--get-group-and-sort
-		       data
-		       child
-		       (1+ level)
-		       ignore-sources
-		       (progn
-			 (setq metadata (get-header-metadata nil))
-			 (cl-loop for (key . val) in metadata
-				  append (list (reorg--add-remove-colon key)
-					       val))))))
-	    ;; If there are no children, finish the recursion 
-	    (t 
-	     (cl-loop for (header . children) in results
-		      append
-		      (cons				
-		       (funcall
-			action-function
-			(setq metadata
-			      (get-header-metadata header))
-			nil
-			level
-			(plist-get template :overrides)
-			(plist-get template :post-overrides))
-		       (list 
-			(cl-loop
-			 with
-			 children = 
-			 (if result-sorters
-			     (reorg--multi-sort result-sorters
-						children)
-			   children)
-			 for result in children
-			 collect
+			 (progn
+			   (setq metadata (get-header-metadata nil))
+			   (cl-loop for (key . val) in metadata
+				    append (list (reorg--add-remove-colon key)
+						 val))))))
+	      ;; If there are no children, finish the recursion 
+	      (t 
+	       (cl-loop for (header . children) in results
+			append
+			(cons				
 			 (funcall
 			  action-function
-			  (append result
-				  (list
-				   ;; I am not proud of any of this.
-				   (cons 'group-id
-					 (alist-get 'id metadata))
-				   (cons 'parent-id
-					 (alist-get 'id metadata))))
-			  format-results
-			  (1+ level)
+			  (setq metadata
+				(get-header-metadata header))
+			  nil
+			  level
 			  (plist-get template :overrides)
-			  (plist-get template :post-overrides))))))))))))))
+			  (plist-get template :post-overrides))
+			 (list 
+			  (cl-loop
+			   with
+			   children = 
+			   (if sort-results
+			       (reorg--multi-sort sort-results
+						  children)
+			     children)
+			   for result in children
+			   collect
+			   (funcall
+			    action-function
+			    (append result
+				    (list
+				     ;; I am not proud of any of this.
+				     (cons 'group-id
+					   (alist-get 'id metadata))
+				     (cons 'parent-id
+					   (alist-get 'id metadata))))
+			    format-results
+			    (1+ level)
+			    (plist-get template :overrides)
+			    (plist-get template :post-overrides)))))))))))))
 
