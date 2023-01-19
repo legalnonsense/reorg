@@ -149,7 +149,7 @@ to the results."
 	;; append new data to old (inherited) data 
 	(setq data (append data (reorg--getter sources))))
 
-      ;; dealing with arbitrary input
+      ;; dealing with .@
       (when (and (not (functionp group))
 		 (not (stringp group)))
 	;; process .@
@@ -172,7 +172,7 @@ to the results."
 	  (setq group (reorg--walk-tree group
 					#'reorg--turn-at-dot-to-dot
 					data))))
-      ;; process .!
+      ;; dealing with .!
       (if-let ((bit
 		(and (symbolp group)
 		     (s-starts-with-p ".!" (symbol-name group))
