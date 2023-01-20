@@ -20,24 +20,25 @@ update the heading at point."
   `(progn
      (let ((data nil)
 	   (buffer (reorg--get-prop 'buffer))
-	   (id (reorg--get-prop 'id)))
+	   (marker (reorg--get-prop 'marker)))
+       ;; (id (reorg--get-prop 'id)))
        (org-with-remote-undo buffer
 	 (with-current-buffer buffer 
 	   (let ((old-point (point))
 		 (search-invisible t))
 	     (widen)
 	     (ov-clear)
-	     (goto-char (point-min))
-	     (if (re-search-forward id nil t)
-		 (progn (goto-char (match-beginning 0))
-			(org-back-to-heading)
-			(reorg-org--source--narrow-to-heading))
-	       (goto-char old-point)))
-	   ,@body
-	   (setq data (reorg--parser nil 'org)))
-	 (with-current-buffer reorg-buffer-name 
-	   (save-excursion
-	     (reorg--insert-new-heading data reorg--current-template)))))))
+	     (goto-char marker)
+	     ;; (if (re-search-forward id nil t)
+	     ;; 	 (progn (goto-char (match-beginning 0))
+	     ;; 		(org-back-to-heading)
+	     ;; 		(reorg-org--source--narrow-to-heading))
+	     ;;   (goto-char old-point)))
+	     ,@body
+	     (setq data (reorg--parser nil 'org)))
+	   (with-current-buffer reorg-buffer-name 
+	     (save-excursion
+	       (reorg--insert-new-heading data reorg--current-template))))))))
 
 ;;; org-capture integration 
 
