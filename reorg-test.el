@@ -5,13 +5,13 @@
 (defun reorg--test-drill-code ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((files . "~/.emacs.d/lisp/reorg"))
-      :group "test"
+   `( :sources ((files . "find ~/legal/Dropbox/Adu -type f"))
+      :group "test"      
       :format-results (.filename)
-      :sort-results ((.filename . reorg-string<))
-      :children (( :group .!parent-dirs)))))
+      :children (( :group .!parent-dirs
+		   :sort-groups string<)))))
 
-(reorg--test-drill-code)
+
 
 
 
