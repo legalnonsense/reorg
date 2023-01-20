@@ -297,6 +297,7 @@
   (reorg-open reorg-template--test-all))
 
 (setq reorg-template--test-all '( :sources ((org . "~/tmp/tmp.org"))
+				  :format-results (.stars " " .headline)
 				  :children
 				  (( :group "By client"
 				     :children
