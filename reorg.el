@@ -112,7 +112,7 @@
 ;;; reorg requires
 
 ;; TODO rename to reorg-bullets
-(require 'reorg-dynamic-bullets)
+(require 'reorg-bullets)
 
 ;;;; macro helper functions 
 
@@ -767,6 +767,11 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			  nil
 			  t)))))
 
+(defun reorg--leaves-visible-p ()
+  "are the leaves of the heading visible?"
+  (when-let ((p (reorg--get-first-leaf)))
+    (not (invisible-p p))))
+
 (defun reorg--move-to-next-entry-follow ()
   "move to next entry"
   (interactive)
@@ -1021,7 +1026,7 @@ insert it on the next line.  Run navigation hook after insertion."
     (forward-line))
   (save-excursion 
     (insert header-string))
-  (reorg-dynamic-bullets--fontify-heading)
+  (reorg-bullets--fontify-heading)
   (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--insert-new-heading (data template)
@@ -1790,10 +1795,11 @@ the buffer."
 (define-derived-mode reorg-mode
   fundamental-mode
   "Reorg"
-  "Reorganize your life. \{keymap}"
+  "Reorganize your life."
+  :group 'reorg
   (setq cursor-type nil)
   (use-local-map reorg-main-mode-map)
-  (reorg-dynamic-bullets-mode)
+  (reorg-bullets-mode)
   (if (fboundp #'org-visual-indent-mode)
       (org-visual-indent-mode)
     (org-indent-mode))
