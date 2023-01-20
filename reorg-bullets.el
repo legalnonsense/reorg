@@ -292,8 +292,8 @@ This function searches the region for the headline regexp and calls
 ;;;; Hooks and advice
 
 (defun reorg-bullets--add-hook-or-advice (hook-or-func
-						  func
-						  &optional remove)
+					  func
+					  &optional remove)
   "If HOOK-OR-FUNC is a hook, add FUNC as a local hook.
 If HOOK-OF-FUNC is a function, add FUNC as advice after HOOK-OR-FUNC.
 if REMOVE is non-nil, remove the hook or advice."
@@ -325,5 +325,4 @@ if REMOVE is non-nil, remove the hook or advice."
 ;;;; Footer
 
 (provide 'reorg-bullets)
-
 ;;; reorg-bullets.el ends here
