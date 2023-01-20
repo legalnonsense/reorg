@@ -9,7 +9,10 @@
       :group "test"      
       :format-results (.filename)
       :children (( :group .!parent-dirs
-		   :sort-groups string<)))))
+		   :sort-groups string<
+		   :children (( 
+			       :group .extension)))))))
+
 
 
 

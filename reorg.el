@@ -1208,12 +1208,13 @@ to the results."
 				     (plist-get inherited-props
 						:header)))))))
 		(drill!
-		 (seq prop &optional n level)
+		 (seq prop &optional n level inherited-props)
 		 (setq level (or level 1))
 		 (let ((groups (reorg--seq-group-by
 				(lambda (x)
 				  (nth (or n 0) (alist-get prop x)))
 				seq)))
+		   
 		   (if groups
 		       (progn 
 			 (when sort-groups
@@ -1229,14 +1230,29 @@ to the results."
 						(drill! (cdr each)
 							prop
 							(1+ (or n 0))
-							(1+ level)))))
+							(1+ level)
+							(list :header nil
+							      :format-results format-results
+							      :parent-id (alist-get 'id metadata)
+							      :sort-results sort-results
+							      :parent-template template
+							      :bullet bullet
+							      :face face)))))
 		     (if (plist-get template :children)
 			 (cl-loop for child in (plist-get template :children)
 				  collect (reorg--get-group-and-sort
 					   seq
 					   child
-					   (1+ level)
-					   ignore-sources))
+					   level
+					   ignore-sources
+					   (list :header nil
+						 :format-results format-results
+						 :parent-id (alist-get 'id metadata)
+						 :sort-results sort-results
+						 :parent-template template
+						 :bullet bullet
+						 :face face)
+					   ))
 		       (when sort-results
 			 (setq seq 
 			       (reorg--multi-sort sort-results
@@ -1247,7 +1263,6 @@ to the results."
 				 action-function
 				 (append each
 					 (list
-					  ;; I am not proud of any of this.
 					  (cons 'group-id
 						(alist-get 'id metadata))
 					  (cons 'parent-id
@@ -1291,7 +1306,7 @@ to the results."
 		     (s-starts-with-p ".!" (symbol-name group))
 		     (intern (substring (symbol-name group) 2)))))
 	  ;; off-load everthing to the drill! function 
-	  (drill! data bit nil level)
+	  (drill! data bit nil level inherited-props)
 	;; all that follows is for when there is no drill bit 
 	(setq results
 	      (pcase group 
