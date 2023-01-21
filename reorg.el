@@ -1029,6 +1029,15 @@ insert it on the next line.  Run navigation hook after insertion."
   (reorg-bullets--fontify-heading)
   (run-hooks 'reorg--navigation-hook))
 
+(defun reorg--delete-entries (id)
+  "Delete all heads that are associated with ID."
+  (reorg--map-id id
+		 (let ((parent (reorg--get-parent)))
+		   (reorg-views--delete-leaf)
+		   (when parent
+		     (goto-char parent)
+		     (reorg--delete-headers-maybe)))))
+
 (defun reorg--insert-new-heading (data template)
   "Parse DATA according to TEMPLATE, delete old headers
 that contained DATA, and insert the new header(s)
@@ -1036,12 +1045,6 @@ into the appropriate place(s) in the outline."
   ;; FIXME this is buggy. 
   (save-excursion 
     (goto-char (point-min))
-    (reorg--map-id (alist-get 'id data)
-		   (let ((parent (reorg--get-parent)))
-		     (reorg-views--delete-leaf)
-		     (when parent
-		       (goto-char parent)
-		       (reorg--delete-headers-maybe))))
     (cl-loop with header-groups = (reorg--get-all-tree-paths
 				   (reorg--get-group-and-sort
 				    (list data) template 1 t)

@@ -20,7 +20,8 @@ update the heading at point."
   `(progn
      (let ((data nil)
 	   (buffer (reorg--get-prop 'buffer))
-	   (marker (reorg--get-prop 'marker)))
+	   (marker (reorg--get-prop 'marker))
+	   (id (reorg--get-prop 'id)))
        ;; (id (reorg--get-prop 'id)))
        (org-with-remote-undo buffer
 	 (with-current-buffer buffer 
@@ -36,9 +37,11 @@ update the heading at point."
 	     ;;   (goto-char old-point)))
 	     ,@body
 	     (setq data (reorg--parser nil 'org)))
-	   (with-current-buffer reorg-buffer-name 
+	   (with-current-buffer reorg-buffer-name
 	     (save-excursion
-	       (reorg--insert-new-heading data reorg--current-template))))))))
+	       (save-restriction
+		 (reorg--delete-entries id)
+		 (reorg--insert-new-heading data reorg--current-template)))))))))
 
 ;;; org-capture integration 
 
@@ -626,10 +629,11 @@ if there is not one."
  :parse (when (reorg-org--timestamp-parser nil t)
 	  (org-no-properties (reorg-org--timestamp-parser nil t))))
 
-;; (reorg-create-data-type
-;;  :name id
-;;  :class org
-;;  :parse (org-id-get-create))
+(reorg-create-data-type
+ :name id
+ :class org
+ :parse (org-id-new))
+ ;; :parse (org-id-get-create))
 
 (reorg-create-data-type
  :name category-inherited
