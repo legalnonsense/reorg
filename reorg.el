@@ -1310,7 +1310,7 @@ to the results."
 	(setq group (reorg--walk-tree group
 				      #'reorg--turn-at-dot-to-dot
 				      data)))
-      ;; dealing with .!
+      ;; dealing with .!      
       (if-let ((bit (and (symbolp group)
 			 (s-starts-with-p ".!" (symbol-name group))
 			 (intern (substring (symbol-name group) 2)))))
@@ -1651,10 +1651,11 @@ one of the sources."
 (defun reorg-capf--annotation (candidate)
   "Get annotation for reorg-capf candidates"
   (setq candidate (intern (substring candidate 1)))
-  (when-let ((results (cl-loop for (key . rest) in reorg--parser-list
-			       append (cl-loop for (k . v) in rest
-					       when (equal k candidate)
-					       collect key))))
+  (when-let ((results
+	      (cl-loop for (key . rest) in reorg--parser-list
+		       append (cl-loop for (k . v) in rest
+				       when (equal k candidate)
+				       collect key))))
     (concat "["
 	    (substring 
 	     (cl-loop for result in results
@@ -1815,7 +1816,6 @@ the buffer."
   :group 'reorg
   (setq cursor-type nil)
   (use-local-map reorg-main-mode-map)
-  (reorg-bullets-mode)
   ;; (if (fboundp #'org-visual-indent-mode)
   ;;     (org-visual-indent-mode)
   ;; (org-indent-mode)
@@ -1827,6 +1827,9 @@ the buffer."
   (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
   (global-set-key (kbd reorg-toggle-shortcut) #'reorg--toggle-tree-buffer)
   (reorg--goto-char 1))
+
+(add-hook 'reorg-mode-hook #'reorg-bullets-mode)
+(add-hook 'reorg-mode-hook #'org-visual-indent-mode)
 
 
 (provide 'reorg)
