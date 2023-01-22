@@ -315,13 +315,13 @@ Otherwise call FUNC with no arguments."
   ;; I used it. 
   (cl-labels
       ((walk
-	(tree d) ;; FIXME Isnt' DATA available inside the closure? 
+	(tree)
 	(cl-loop for each in tree
 		 if (listp each)
-		 collect (walk each d)
+		 collect (walk each)
 		 else
-		 collect (if d
-			     (funcall func each d)
+		 collect (if data
+			     (funcall func each data)
 			   (funcall func each)))))
     (if (listp tree)
 	(walk tree data)
@@ -506,9 +506,9 @@ Does not run 'reorg--navigation-hooks'."
     nil)
    (t    
     (let ((origin (point))
-          (ended nil)
+	  (ended nil)
 	  (limit (or limit (point-max)))
-          pos)
+	  pos)
       (cl-loop with found = nil
 	       while (not ended)
 	       do (setq pos (next-single-property-change
@@ -557,9 +557,9 @@ Does not run 'reorg--navigation-hooks'."
     nil)
    (t    
     (let ((origin (point))
-          (ended nil)
+	  (ended nil)
 	  (limit (or limit (point-min)))
-          pos)
+	  pos)
       (cl-loop with found = nil
 	       with pos = nil 
 	       while (not ended)
@@ -1311,11 +1311,9 @@ to the results."
 				      #'reorg--turn-at-dot-to-dot
 				      data)))
       ;; dealing with .!
-
-      (if-let ((bit
-		(and (symbolp group)
-		     (s-starts-with-p ".!" (symbol-name group))
-		     (intern (substring (symbol-name group) 2)))))
+      (if-let ((bit (and (symbolp group)
+			 (s-starts-with-p ".!" (symbol-name group))
+			 (intern (substring (symbol-name group) 2)))))
 	  ;; off-load everthing to the drill! function 
 	  (drill! data bit nil level inherited-props)
 	;; all that follows is for when there is no drill bit 
@@ -1462,64 +1460,92 @@ to the results."
 			      (plist-get template :overrides)
 			      (plist-get template :post-overrides)))))))))))))
 
-  (defun reorg--at-dot-search (data)
-    "Return alist of symbols inside DATA that start with a `.@'.
+
+;; (defun reorg--code-search (prefix data)
+;;   "Return alist of symbols inside DATA that start with a PREFIX.
+;; Perform a deep search and return a alist of any symbol
+;; same symbol without the PREFIX.
+
+;; See `let-alist--deep-dot-search'."
+;;   (cond
+;;    ((symbolp data)
+;;     (let ((name (symbol-name data)))
+;;       (when (string-match prefix name)
+;; 	;; Return the cons cell inside a list, so it can be appended
+;; 	;; with other results in the clause below.
+;; 	(list (intern (replace-match "" nil nil name))))))
+;;    ;; (list (cons data (intern (replace-match "" nil nil name)))))))
+;;    ((vectorp data)
+;;     (apply #'nconc (mapcar #'reorg--code-search data)))
+;;    ((not (consp data)) nil)
+;;    ((eq (car data) 'let-alist)
+;;     ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
+;;     ;; inner body because they don’t refer to the alist currently
+;;     ;; being processed.  See Bug#24641.
+;;     ( (cadr data)))
+;;    (t (append (reorg--code-search prefix (car data))
+;; 	      (reorg--code-search prefix (cdr data))))))
+
+;; (reorg--code-search "\\.!" '(.!aaa (list .!test)))
+
+(defun reorg--at-dot-search (data)
+  "Return alist of symbols inside DATA that start with a `.@'.
 Perform a deep search and return a alist of any symbol
 same symbol without the `@'.
 
 See `let-alist--deep-dot-search'."
-    (cond
-     ((symbolp data)
-      (let ((name (symbol-name data)))
-	(when (string-match "\\`\\.@" name)
-	  ;; Return the cons cell inside a list, so it can be appended
-	  ;; with other results in the clause below.
-	  (list (intern (replace-match "" nil nil name))))))
-     ;; (list (cons data (intern (replace-match "" nil nil name)))))))
-     ((vectorp data)
-      (apply #'nconc (mapcar #'reorg--at-dot-search data)))
-     ((not (consp data)) nil)
-     ((eq (car data) 'let-alist)
-      ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
-      ;; inner body because they don’t refer to the alist currently
-      ;; being processed.  See Bug#24641.
-      (reorg--at-dot-search (cadr data)))
-     (t (append (reorg--at-dot-search (car data))
-		(reorg--at-dot-search (cdr data))))))
+  (cond
+   ((symbolp data)
+    (let ((name (symbol-name data)))
+      (when (string-match "\\`\\.@" name)
+	;; Return the cons cell inside a list, so it can be appended
+	;; with other results in the clause below.
+	(list (intern (replace-match "" nil nil name))))))
+   ;; (list (cons data (intern (replace-match "" nil nil name)))))))
+   ((vectorp data)
+    (apply #'nconc (mapcar #'reorg--at-dot-search data)))
+   ((not (consp data)) nil)
+   ((eq (car data) 'let-alist)
+    ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
+    ;; inner body because they don’t refer to the alist currently
+    ;; being processed.  See Bug#24641.
+    (reorg--at-dot-search (cadr data)))
+   (t (append (reorg--at-dot-search (car data))
+	      (reorg--at-dot-search (cdr data))))))
 
-  (defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
-    "turn .@symbol into .symbol."
-    (if (and (symbolp elem)
-	     (string-match "\\`\\.@" (symbol-name elem)))
-	(intern (concat "." (substring (symbol-name elem) 2)))
-      elem))
+(defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
+  "turn .@symbol into .symbol."
+  (if (and (symbolp elem)
+	   (string-match "\\`\\.@" (symbol-name elem)))
+      (intern (concat "." (substring (symbol-name elem) 2)))
+    elem))
 
-  (defun reorg--turn-dot-to-display-string (elem data)
-    "turn .symbol to a string using the display
+(defun reorg--turn-dot-to-display-string (elem data)
+  "turn .symbol to a string using the display
 function created by the `reorg-create-data-type' macro."
-    (if (and (symbolp elem)
-	     (string-match "\\`\\." (symbol-name elem)))
-	(let* ((sym (intern (substring (symbol-name elem) 1)))
-	       (fu (reorg--get-display-func-name
-		    (alist-get 'class data)
-		    (substring (symbol-name elem) 1))))
-	  (cond ((eq sym 'stars)
-		 (make-string (alist-get 'reorg-level data) ?*))
-		((fboundp fu) (funcall fu data))
-		(t
-		 (funcall `(lambda ()
-			     (let-alist ',data
-			       ,elem))))))
-      elem))
+  (if (and (symbolp elem)
+	   (string-match "\\`\\." (symbol-name elem)))
+      (let* ((sym (intern (substring (symbol-name elem) 1)))
+	     (fu (reorg--get-display-func-name
+		  (alist-get 'class data)
+		  (substring (symbol-name elem) 1))))
+	(cond ((eq sym 'stars)
+	       (make-string (alist-get 'reorg-level data) ?*))
+	      ((fboundp fu) (funcall fu data))
+	      (t
+	       (funcall `(lambda ()
+			   (let-alist ',data
+			     ,elem))))))
+    elem))
 
-  (defun reorg--create-headline-string (data
-					format-string
-					&optional
-					level
-					overrides
-					post-overrides
-					text-props)
-    "Create a headline string from DATA using FORMAT-STRING as the
+(defun reorg--create-headline-string (data
+				      format-string
+				      &optional
+				      level
+				      overrides
+				      post-overrides
+				      text-props)
+  "Create a headline string from DATA using FORMAT-STRING as the
 template.  Use LEVEL number of leading stars.  OVERRIDES
 overrides text properties to DATA, POST-OVERRIDES overrides
 text properties stored in the text property reorg-data.
@@ -1531,268 +1557,268 @@ string or to nil.
 
 This function treats branches and leaves of the outline differently.
 TODO stop treating them differently, i.e., allow leafs to have leaves."
-    (cl-flet ((create-stars (num &optional data)
-			    (make-string (if (functionp num)
-					     (funcall num data)
-					   num)
-					 ?*)))
-      ;; update the DATA that will be stored in
-      ;; `reorg-data'    
-      (push (cons 'reorg-level level) data)
-      ;; DATA overrides 
-      (cl-loop for (prop . val) in overrides
-	       do (setf (alist-get prop data)
-			(if (let-alist--deep-dot-search val)
-			    (funcall `(lambda ()
-					(let-alist ',data 
-					  ,val)))
-			  val)))
-      (let (headline-text)
-	(apply
-	 #'propertize
-	 ;; get the headline text 
-	 (setq headline-text
-	       (if (alist-get 'reorg-branch data)
-		   (concat (create-stars level)
-			   " "
-			   (alist-get 'branch-name data)
-			   "\n")
-		 (let* ((new (reorg--walk-tree
-			      format-string
-			      #'reorg--turn-dot-to-display-string
-			      data))
-			(result (funcall `(lambda (data)
-					    (concat ,@new "\n"))
-					 data)))
-		   result)))
-	 'reorg-data ;; property1
-	 (progn (setq data (append data
-				   (list
-				    (cons 'reorg-headline
-					  headline-text)
-				    (cons 'reorg-class
-					  (alist-get 'class data))
-				    (cons 'parent-id
-					  (alist-get 'parent-id data))
-				    (cons 'reorg-field-type
-					  (if (alist-get
-					       'reorg-branch data)
-					      'branch 'leaf)))))
-		;; reorg-data overrides 
-		(cl-loop for (prop . val) in post-overrides
-			 do (setf (alist-get prop data)
-				  (alist-get prop post-overrides)))
-		data)
-	 reorg--field-property-name ;; property2
-	 (if (alist-get 'reorg-branch data)
-	     'branch 'leaf)
-	 (alist-get (alist-get 'class data) ;; extra props 
-		    reorg--extra-prop-list)))))
+  (cl-flet ((create-stars (num &optional data)
+			  (make-string (if (functionp num)
+					   (funcall num data)
+					 num)
+				       ?*)))
+    ;; update the DATA that will be stored in
+    ;; `reorg-data'    
+    (push (cons 'reorg-level level) data)
+    ;; DATA overrides 
+    (cl-loop for (prop . val) in overrides
+	     do (setf (alist-get prop data)
+		      (if (let-alist--deep-dot-search val)
+			  (funcall `(lambda ()
+				      (let-alist ',data 
+					,val)))
+			val)))
+    (let (headline-text)
+      (apply
+       #'propertize
+       ;; get the headline text 
+       (setq headline-text
+	     (if (alist-get 'reorg-branch data)
+		 (concat (create-stars level)
+			 " "
+			 (alist-get 'branch-name data)
+			 "\n")
+	       (let* ((new (reorg--walk-tree
+			    format-string
+			    #'reorg--turn-dot-to-display-string
+			    data))
+		      (result (funcall `(lambda (data)
+					  (concat ,@new "\n"))
+				       data)))
+		 result)))
+       'reorg-data ;; property1
+       (progn (setq data (append data
+				 (list
+				  (cons 'reorg-headline
+					headline-text)
+				  (cons 'reorg-class
+					(alist-get 'class data))
+				  (cons 'parent-id
+					(alist-get 'parent-id data))
+				  (cons 'reorg-field-type
+					(if (alist-get
+					     'reorg-branch data)
+					    'branch 'leaf)))))
+	      ;; reorg-data overrides 
+	      (cl-loop for (prop . val) in post-overrides
+		       do (setf (alist-get prop data)
+				(alist-get prop post-overrides)))
+	      data)
+       reorg--field-property-name ;; property2
+       (if (alist-get 'reorg-branch data)
+	   'branch 'leaf)
+       (alist-get (alist-get 'class data) ;; extra props 
+		  reorg--extra-prop-list)))))
 
 ;;; metadata functions
 
-  (defun reorg--get-all-sources-from-template (template)
-    "Walk the template tree and make a list of all unique template
+(defun reorg--get-all-sources-from-template (template)
+  "Walk the template tree and make a list of all unique template
 sources.  This is used for updating the reorg tree, e.g., as part
 of an org-capture hook to make sure the captured entry belongs to
 one of the sources."
-    (cl-labels ((get-sources
-		 (template)
-		 (append (cl-loop for each in template
-				  when (plist-get each :sources)
-				  append (plist-get each :sources)
-				  append (get-sources (plist-get template
-								 :children)))
-			 (plist-get template :sources))))
-      (seq-uniq (get-sources template))))
+  (cl-labels ((get-sources
+	       (template)
+	       (append (cl-loop for each in template
+				when (plist-get each :sources)
+				append (plist-get each :sources)
+				append (get-sources (plist-get template
+							       :children)))
+		       (plist-get template :sources))))
+    (seq-uniq (get-sources template))))
 
-  (defun reorg--list-modules ()
-    "Let the modules available."
-    (cl-loop for (module . parsers) in reorg--parser-list
-	     collect module))
+(defun reorg--list-modules ()
+  "Let the modules available."
+  (cl-loop for (module . parsers) in reorg--parser-list
+	   collect module))
 
-  (defun reorg-list-data-types ()
-    "List data types for a given module"
-    (let ((module
-	   (completing-read "Select module: " (reorg--list-modules))))
-      (cl-loop for (name . func) in (alist-get (intern module)
-					       reorg--parser-list)
-	       collect name into results
-	       return results)))
+(defun reorg-list-data-types ()
+  "List data types for a given module"
+  (let ((module
+	 (completing-read "Select module: " (reorg--list-modules))))
+    (cl-loop for (name . func) in (alist-get (intern module)
+					     reorg--parser-list)
+	     collect name into results
+	     return results)))
 
 ;;;; template helper completion functions 
 
-  (defun reorg-capf--annotation (candidate)
-    "Get annotation for reorg-capf candidates"
-    (setq candidate (intern (substring candidate 1)))
-    (when-let ((results (cl-loop for (key . rest) in reorg--parser-list
-				 append (cl-loop for (k . v) in rest
-						 when (equal k candidate)
-						 collect key))))
-      (concat "["
-	      (substring 
-	       (cl-loop for result in results
-			concat (concat (symbol-name result) " "))
-	       0 -1)
-	      "]")))
+(defun reorg-capf--annotation (candidate)
+  "Get annotation for reorg-capf candidates"
+  (setq candidate (intern (substring candidate 1)))
+  (when-let ((results (cl-loop for (key . rest) in reorg--parser-list
+			       append (cl-loop for (k . v) in rest
+					       when (equal k candidate)
+					       collect key))))
+    (concat "["
+	    (substring 
+	     (cl-loop for result in results
+		      concat (concat (symbol-name result) " "))
+	     0 -1)
+	    "]")))
 
-  (defun reorg-capf ()
-    "capf for reorg template"
-    (let (start end collection props)
-      (when (looking-back "\\.[.|[:word:]]+")
-	(let* ((two-dots-p (s-starts-with-p ".." (match-string 0)))
-	       (start (match-beginning 0))
-	       (end (if two-dots-p
-			(1- (match-end 0))
-		      (match-end 0))))
-	  (list start
-		end 
-		(sort
-		 (delete-dups
-		  (cl-loop for (class . rest) in reorg--parser-list
-			   append (cl-loop for (type . func) in rest
-					   collect
-					   (concat "." (symbol-name type)))))
+(defun reorg-capf ()
+  "capf for reorg template"
+  (let (start end collection props)
+    (when (looking-back "\\.[.|[:word:]]+")
+      (let* ((two-dots-p (s-starts-with-p ".." (match-string 0)))
+	     (start (match-beginning 0))
+	     (end (if two-dots-p
+		      (1- (match-end 0))
+		    (match-end 0))))
+	(list start
+	      end 
+	      (sort
+	       (delete-dups
+		(cl-loop for (class . rest) in reorg--parser-list
+			 append (cl-loop for (type . func) in rest
+					 collect
+					 (concat "." (symbol-name type)))))
 
-		 #'string<)
-		:annotation-function
-		#'reorg-capf--annotation)))))
+	       #'string<)
+	      :annotation-function
+	      #'reorg-capf--annotation)))))
 
-  (defun reorg-enable-completion (&optional disable)
-    "Enable completion using dot prefixes for data types."
-    (interactive)
-    (if disable
-	(delete #'reorg-capf completion-at-point-functions)
-      (add-to-list 'completion-at-point-functions #'reorg-capf)))
+(defun reorg-enable-completion (&optional disable)
+  "Enable completion using dot prefixes for data types."
+  (interactive)
+  (if disable
+      (delete #'reorg-capf completion-at-point-functions)
+    (add-to-list 'completion-at-point-functions #'reorg-capf)))
 
-  (defun reorg-disable-completion ()
-    "Disable completion at point."
-    (interactive)
-    (reorg-enable-completion t))
+(defun reorg-disable-completion ()
+  "Disable completion at point."
+  (interactive)
+  (reorg-enable-completion t))
 
 ;;;; opening and closing reorg 
 
 ;;;###autoload
-  (defun reorg-open-in-current-window (&optional template point)
-    "open the reorg buffer here"
-    (interactive)
-    (reorg-open (or template reorg--current-template) point)
-    (window-buffer nil reorg-buffer-name))
+(defun reorg-open-in-current-window (&optional template point)
+  "open the reorg buffer here"
+  (interactive)
+  (reorg-open (or template reorg--current-template) point)
+  (window-buffer nil reorg-buffer-name))
 
 ;;;###autoload
-  (defun reorg-open-sidebar (&optional template point)
-    "open reorg in sidebar"
-    (interactive)
-    (reorg-open (or template reorg--current-template) point)
-    (reorg--open-side-window)
-    (reorg--select-tree-window))
+(defun reorg-open-sidebar (&optional template point)
+  "open reorg in sidebar"
+  (interactive)
+  (reorg-open (or template reorg--current-template) point)
+  (reorg--open-side-window)
+  (reorg--select-tree-window))
 
-  (defun reorg-open-raw-data (&optional template point data)
-    (interactive)
-    (when (get-buffer reorg-buffer-name)
-      (kill-buffer reorg-buffer-name))
-    (with-current-buffer (get-buffer-create reorg-buffer-name)
-      (erase-buffer)
-      (reorg--insert-all
-       (reorg--get-group-and-sort data template 1 t))
-      (setq reorg--current-sources
-	    (reorg--get-all-sources-from-template template)
-	    reorg--current-template
-	    template)
-      (reorg-mode)
-      (reorg--goto-char (or point (point-min)))))
+(defun reorg-open-raw-data (&optional template point data)
+  (interactive)
+  (when (get-buffer reorg-buffer-name)
+    (kill-buffer reorg-buffer-name))
+  (with-current-buffer (get-buffer-create reorg-buffer-name)
+    (erase-buffer)
+    (reorg--insert-all
+     (reorg--get-group-and-sort data template 1 t))
+    (setq reorg--current-sources
+	  (reorg--get-all-sources-from-template template)
+	  reorg--current-template
+	  template)
+    (reorg-mode)
+    (reorg--goto-char (or point (point-min)))))
 
 ;;;###autoload 
-  (defun reorg-open (template &optional point data)
-    "Open TEMPLATE in Reorg, but do not switch to
+(defun reorg-open (template &optional point data)
+  "Open TEMPLATE in Reorg, but do not switch to
 the buffer."
-    (interactive)
-    (when (get-buffer reorg-buffer-name)
-      (kill-buffer reorg-buffer-name))
-    (with-current-buffer (get-buffer-create reorg-buffer-name)
-      (erase-buffer)
-      (reorg--insert-all
-       (reorg--get-group-and-sort data template 1 nil))
-      (setq reorg--current-sources
-	    (reorg--get-all-sources-from-template template)
-	    reorg--current-template
-	    template)
-      (reorg-mode)
-      (reorg--goto-char (or point (point-min)))))
+  (interactive)
+  (when (get-buffer reorg-buffer-name)
+    (kill-buffer reorg-buffer-name))
+  (with-current-buffer (get-buffer-create reorg-buffer-name)
+    (erase-buffer)
+    (reorg--insert-all
+     (reorg--get-group-and-sort data template 1 nil))
+    (setq reorg--current-sources
+	  (reorg--get-all-sources-from-template template)
+	  reorg--current-template
+	  template)
+    (reorg-mode)
+    (reorg--goto-char (or point (point-min)))))
 
-  (defun reorg-reload ()
-    "reload the current template"
-    (interactive)
-    (if (reorg--buffer-in-side-window-p)
-	(reorg-open-sidebar nil (point))
-      (reorg-open-in-current-window nil (point))))
+(defun reorg-reload ()
+  "reload the current template"
+  (interactive)
+  (if (reorg--buffer-in-side-window-p)
+      (reorg-open-sidebar nil (point))
+    (reorg-open-in-current-window nil (point))))
 
-  (defun reorg--close-tree-buffer ()
-    "Close the tree buffer."
-    (interactive)
-    (let* ((window (seq-find
-		    (lambda (x)
-		      (window-parameter x 'reorg))
-		    (window-at-side-list nil reorg-buffer-side)))
-	   (buffer (window-buffer window)))
-      (mapc #'delete-window
-	    (seq-filter (lambda (x) (window-parameter x 'reorg))
-			(window-at-side-list nil reorg-buffer-side)))))
+(defun reorg--close-tree-buffer ()
+  "Close the tree buffer."
+  (interactive)
+  (let* ((window (seq-find
+		  (lambda (x)
+		    (window-parameter x 'reorg))
+		  (window-at-side-list nil reorg-buffer-side)))
+	 (buffer (window-buffer window)))
+    (mapc #'delete-window
+	  (seq-filter (lambda (x) (window-parameter x 'reorg))
+		      (window-at-side-list nil reorg-buffer-side)))))
 
-  (defun reorg--toggle-tree-buffer ()
-    "toggle tree buffer"
-    (interactive)
-    (if (seq-find
-	 (lambda (x)
-	   (window-parameter x 'reorg))
-	 (window-at-side-list nil reorg-buffer-side))
-	(reorg--close-tree-buffer)
-      (reorg--open-side-window)
-      (reorg--select-tree-window)))
+(defun reorg--toggle-tree-buffer ()
+  "toggle tree buffer"
+  (interactive)
+  (if (seq-find
+       (lambda (x)
+	 (window-parameter x 'reorg))
+       (window-at-side-list nil reorg-buffer-side))
+      (reorg--close-tree-buffer)
+    (reorg--open-side-window)
+    (reorg--select-tree-window)))
 
 ;;;; major mode
 
-  (defvar reorg-main-mode-map 
-    (let ((map (make-keymap)))
-      (suppress-keymap map)
-      (define-key map (kbd "RET") #'reorg--goto-source)
-      (define-key map (kbd "u") #'reorg--goto-parent)
-      (define-key map (kbd "<left>") #'reorg--goto-parent)
-      (define-key map (kbd "g") #'reorg-org--update-heading-at-point)
-      (define-key map (kbd "G") (lambda () (interactive)
-				  (reorg--close-tree-buffer)
-				  (kill-buffer reorg-buffer-name)
-				  (save-excursion (reorg-open-main-window
-						   reorg--current-template))))
-      (define-key map (kbd "c") #'reorg--goto-next-clone)
-      (define-key map (kbd "R") #'reorg-reload)
-      (define-key map (kbd "f") #'reorg--goto-next-sibling)
-      (define-key map (kbd "b") #'reorg--goto-previous-sibling)
-      (define-key map (kbd "C") #'reorg--goto-previous-clone)
-      (define-key map (kbd "U") #'reorg--goto-next-parent)
-      (define-key map [remap undo] #'org-agenda-undo)
-      (define-key map (kbd "q") #'bury-buffer)
-      (define-key map (kbd "n") #'reorg--move-to-next-entry)
-      (define-key map (kbd "<down>") #'reorg--move-to-next-entry)
-      (define-key map (kbd "p") #'reorg--move-to-previous-entry)
-      (define-key map (kbd "<up>") #'reorg--move-to-previous-entry)
-      (define-key map (kbd "TAB") #'outline-cycle)
-      (define-key map (kbd "<backtab>") #'outline-cycle-buffer)
-      (define-key map (kbd "l") #'recenter-top-bottom)
-      map)
-    "keymap")
+(defvar reorg-main-mode-map 
+  (let ((map (make-keymap)))
+    (suppress-keymap map)
+    (define-key map (kbd "RET") #'reorg--goto-source)
+    (define-key map (kbd "u") #'reorg--goto-parent)
+    (define-key map (kbd "<left>") #'reorg--goto-parent)
+    (define-key map (kbd "g") #'reorg-org--update-heading-at-point)
+    (define-key map (kbd "G") (lambda () (interactive)
+				(reorg--close-tree-buffer)
+				(kill-buffer reorg-buffer-name)
+				(save-excursion (reorg-open-main-window
+						 reorg--current-template))))
+    (define-key map (kbd "c") #'reorg--goto-next-clone)
+    (define-key map (kbd "R") #'reorg-reload)
+    (define-key map (kbd "f") #'reorg--goto-next-sibling)
+    (define-key map (kbd "b") #'reorg--goto-previous-sibling)
+    (define-key map (kbd "C") #'reorg--goto-previous-clone)
+    (define-key map (kbd "U") #'reorg--goto-next-parent)
+    (define-key map [remap undo] #'org-agenda-undo)
+    (define-key map (kbd "q") #'bury-buffer)
+    (define-key map (kbd "n") #'reorg--move-to-next-entry)
+    (define-key map (kbd "<down>") #'reorg--move-to-next-entry)
+    (define-key map (kbd "p") #'reorg--move-to-previous-entry)
+    (define-key map (kbd "<up>") #'reorg--move-to-previous-entry)
+    (define-key map (kbd "TAB") #'outline-cycle)
+    (define-key map (kbd "<backtab>") #'outline-cycle-buffer)
+    (define-key map (kbd "l") #'recenter-top-bottom)
+    map)
+  "keymap")
 
-  (define-derived-mode reorg-mode
-    fundamental-mode
-    "Reorg"
-    "Reorganize your life."
-    :group 'reorg
-    (setq cursor-type nil)
-    (use-local-map reorg-main-mode-map)
-    (reorg-bullets-mode)
-    ;; (if (fboundp #'org-visual-indent-mode)
-    ;;     (org-visual-indent-mode)
-    (org-indent-mode))
+(define-derived-mode reorg-mode
+  fundamental-mode
+  "Reorg"
+  "Reorganize your life."
+  :group 'reorg
+  (setq cursor-type nil)
+  (use-local-map reorg-main-mode-map)
+  (reorg-bullets-mode)
+  ;; (if (fboundp #'org-visual-indent-mode)
+  ;;     (org-visual-indent-mode)
+  ;; (org-indent-mode)
   (toggle-truncate-lines 1)
   (setq-local cursor-type nil)
   ;; (reorg--map-all-branches #'reorg--delete-headers-maybe)  
