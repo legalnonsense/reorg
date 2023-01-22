@@ -98,9 +98,8 @@ to be refreshed. Two options are:
 
 (define-minor-mode reorg-bullets-mode
   "Display orgmode trees."
-  nil
-  " dbullets"
-  nil
+  :global nil
+  :lighter ""
   (if reorg-bullets-mode
       (progn 
 	(reorg-bullets--add-all-hooks-and-advice)
