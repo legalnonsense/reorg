@@ -307,12 +307,33 @@ then return PROP with no colon prefix."
     (`(nil nil) (intern (concat ":" (symbol-name prop))))
     (_ prop)))
 
+;; (defun reorg--walk-tree (tree func &optional data)
+;;   "Apply func to each element of tree and return the results.
+;; If DATA is provided, call FUNC with DATA as an argument.
+;; Otherwise call FUNC with no arguments."
+;;   ;; I am not sure why I put the data option here. I don't think
+;;   ;; I used it. 
+;;   (cl-labels
+;;       ((walk
+;; 	(tree &optional d)
+;; 	(cl-loop for each in tree
+;; 		 if (listp each)
+;; 		 collect (walk each d)
+;; 		 else
+;; 		 collect (if data
+;; 			     (funcall func each d)
+;; 			   (funcall func each)))))
+;;     (if (listp tree)
+;; 	(walk tree data)
+;;       (if data 
+;; 	  (funcall func tree data)
+;; 	(funcall func tree)))))
+
 (defun reorg--walk-tree (tree func &optional data)
   "Apply func to each element of tree and return the results.
 If DATA is provided, call FUNC with DATA as an argument.
 Otherwise call FUNC with no arguments."
-  ;; I am not sure why I put the data option here. I don't think
-  ;; I used it. 
+  ;; I am not sure why I put the data option here.
   (cl-labels
       ((walk
 	(tree)
@@ -320,14 +341,11 @@ Otherwise call FUNC with no arguments."
 		 if (listp each)
 		 collect (walk each)
 		 else
-		 collect (if data
-			     (funcall func each data)
-			   (funcall func each)))))
+		 collect (funcall func each data))))
     (if (listp tree)
-	(walk tree data)
-      (if data 
-	  (funcall func tree data)
-	(funcall func tree)))))
+	(walk tree)
+      (funcall func tree data))))
+
 
 ;; (defun reorg--code-search (func code)
 ;;   "Return alist of symbols inside CODE that match REGEXP.

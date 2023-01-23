@@ -2,11 +2,13 @@
 
 
 ;;; make it pretty
-(reorg-open-sidebar
- `( :sources ((org . "~/tmp/tmp.org"))
-    :bullet "nasdf"
-    :group (propertize "\ntest\n" 'face '((t ( :height 1.5))))
-    :format-results (.headline)))
+(defun reorg--beautification-test ()
+  (interactive)
+  (reorg-open-sidebar
+   `( :sources ((org . "~/tmp/tmp.org"))
+      :bullet "nasdf"
+      :group (propertize "\ntest\n" 'face '((t ( :height 1.5))))
+      :format-results (.headline))))
 
 ;;; drill code
 
