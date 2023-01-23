@@ -307,44 +307,44 @@ then return PROP with no colon prefix."
     (`(nil nil) (intern (concat ":" (symbol-name prop))))
     (_ prop)))
 
-;; (defun reorg--walk-tree (tree func &optional data)
-;;   "Apply func to each element of tree and return the results.
-;; If DATA is provided, call FUNC with DATA as an argument.
-;; Otherwise call FUNC with no arguments."
-;;   ;; I am not sure why I put the data option here. I don't think
-;;   ;; I used it. 
-;;   (cl-labels
-;;       ((walk
-;; 	(tree &optional d)
-;; 	(cl-loop for each in tree
-;; 		 if (listp each)
-;; 		 collect (walk each d)
-;; 		 else
-;; 		 collect (if data
-;; 			     (funcall func each d)
-;; 			   (funcall func each)))))
-;;     (if (listp tree)
-;; 	(walk tree data)
-;;       (if data 
-;; 	  (funcall func tree data)
-;; 	(funcall func tree)))))
-
 (defun reorg--walk-tree (tree func &optional data)
   "Apply func to each element of tree and return the results.
 If DATA is provided, call FUNC with DATA as an argument.
 Otherwise call FUNC with no arguments."
-  ;; I am not sure why I put the data option here.
+  ;; I am not sure why I put the data option here. I don't think
+  ;; I used it. 
   (cl-labels
       ((walk
-	(tree)
+	(tree &optional d)
 	(cl-loop for each in tree
 		 if (listp each)
-		 collect (walk each)
+		 collect (walk each d)
 		 else
-		 collect (funcall func each data))))
+		 collect (if data
+			     (funcall func each d)
+			   (funcall func each)))))
     (if (listp tree)
-	(walk tree)
-      (funcall func tree data))))
+	(walk tree data)
+      (if data 
+	  (funcall func tree data)
+	(funcall func tree)))))
+
+;; (defun reorg--walk-tree (tree func &optional data) ;
+;;   "Apply func to each element of tree and return the results.
+;; If DATA is provided, call FUNC with DATA as an argument.
+;; Otherwise call FUNC with no arguments."
+;;   ;; I am not sure why I put the data option here.
+;;   (cl-labels
+;;       ((walk
+;; 	(tree)
+;; 	(cl-loop for each in tree
+;; 		 if (listp each)
+;; 		 collect (walk each)
+;; 		 else
+;; 		 collect (funcall func each data))))
+;;     (if (listp tree)
+;; 	(walk tree)
+;;       (funcall func tree data))))
 
 
 ;; (defun reorg--code-search (func code)
@@ -1328,11 +1328,22 @@ to the results."
 	(setq group (reorg--walk-tree group
 				      #'reorg--turn-at-dot-to-dot
 				      data)))
-      ;; dealing with .!      
+      ;; dealing with .! 
       (if-let ((bit (and (symbolp group)
 			 (s-starts-with-p ".!" (symbol-name group))
 			 (intern (substring (symbol-name group) 2)))))
-	  ;; off-load everthing to the drill! function 
+	  ;; TODO change this so that the entire form is passed to
+	  ;; drill!, except with the ! removed
+
+	  ;; this code will remove the !
+	  
+	  ;; (reorg--walk-tree '((concat "x" "y") .test (format .!something))	  
+	  ;; 		    (lambda (x)		    
+	  ;; 		      (if (and (symbolp x)
+	  ;; 			       (s-starts-with-p ".!" (symbol-name x)))
+	  ;; 			  (intern (concat "." (substring (symbol-name x) 2)))
+	  ;; 			x)))
+	  
 	  (drill! data bit nil level inherited-props)
 	;; all that follows is for when there is no drill bit 
 	(setq results
