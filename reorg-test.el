@@ -19,15 +19,10 @@
       :bullet "ASDF"
       ;; :group .!parent-dirs
       :group (when .!parent-dirs
-	       (upcase .!parent-dirs))
+	       (substring 
+		(upcase .!parent-dirs) 1 2))
       :format-results ((make-string .depth ?\t)
 		       .filename))))
-
-
-
-
-
-
 
 ;; (defun reorg--test-file-dir-tree ()
 ;;   (interactive)
