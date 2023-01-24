@@ -15,12 +15,12 @@
 (defun reorg--test-drill-code ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((files . "find ~/legal/Dropbox/Adu -type f"))
-      :bullet "ASDF"
-      ;; :group .!parent-dirs
-      :group (when .!parent-dirs
-	       (substring 
-		(upcase .!parent-dirs) 1 2))
+   `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony/Appeal -type f"))
+      :bullet ,(propertize "ASDF" 'face '((t (:underline t))))
+      :group .!parent-dirs
+      ;; :group (when .!parent-dirs
+      ;; 	       (substring 
+      ;; 		(upcase .!parent-dirs) 1 2))
       :format-results ((make-string .depth ?\t)
 		       .filename))))
 

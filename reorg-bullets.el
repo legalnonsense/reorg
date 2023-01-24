@@ -185,9 +185,9 @@ to be refreshed. Two options are:
 	   (t
 	    (or (reorg--get-prop 'leaf-bullet)
 		(reorg--get-prop 'bullet)
-		reorg-bullets-leaf-no-body-text-bullet)))
-     'face
-     'reorg-bullets-face)))
+		reorg-bullets-leaf-no-body-text-bullet))))))
+     ;; 'face
+     ;; 'reorg-bullets-face)))
 
 ;;;;; Refreshing display
 

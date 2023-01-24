@@ -1233,76 +1233,74 @@ to the results."
 		(drill!
 		 (seq prop &optional n level inherited-props)
 		 (setq level (or level 1))
-		 (let ((groups (reorg--seq-group-by
-				`(lambda (x)
-				   (eval
-				    (reorg--walk-tree
-				     ',prop
-				     (lambda (xx)
-				       (reorg--turn-dot-bang-to-val xx ,(or n 0) x)))))
-				seq)))		   
-		   (if groups
-		       (progn 
-			 (when sort-groups
-  			   (setq groups (seq-sort-by #'car
-						     sort-groups
-						     groups)))
-			 (cl-loop
-			  for each in groups
-			  do (setq metadata
-				   (get-header-metadata
-				    (car each)
-				    (setq inherited-props
-					  (list :header nil
-						:format-results format-results
-						:parent-id (alist-get 'id metadata)
-						:sort-results sort-results
-						:parent-template template
-						:bullet bullet
-						:face face))))
-			  collect (progn				    
-				    (cons (reorg--create-headline-string
-					   metadata
-					   nil
-					   level)
-					  (drill! (cdr each)
-						  prop
-						  (1+ (or n 0))
-						  (1+ level)
-						  inherited-props)))))
-		     (if (plist-get template :children)
-			 (cl-loop for child in (plist-get template :children)
-				  collect (reorg--get-group-and-sort
-					   seq
-					   child
-					   level
-					   ignore-sources
-					   (list :header nil
-						 :format-results format-results
-						 :parent-id (alist-get 'id inherited-props)
-						 :sort-results sort-results
-						 :parent-template template
-						 :bullet bullet
-						 :face face)
-					   ))
-		       (when sort-results
-			 (setq seq 
-			       (reorg--multi-sort sort-results
-						  seq)))
-		       (cl-loop for each in seq
-				collect 
-				(funcall
-				 action-function
-				 (append each
-					 (list
-					  (cons 'group-id
-						(alist-get 'id metadata))
-					  (cons 'parent-id
-						(alist-get 'id metadata))))
-				 format-results
-				 (1+ level)
-				 (plist-get template :overrides)
-				 (plist-get template :post-overrides))))))))
+		 (if-let ((groups (reorg--seq-group-by
+				   `(lambda (x)
+				      (eval
+				       (reorg--walk-tree
+					',prop
+					(lambda (xx)
+					  (reorg--turn-dot-bang-to-val xx ,(or n 0) x)))))
+				   seq)))
+		     (progn 
+		       (when sort-groups
+  			 (setq groups (seq-sort-by #'car
+						   sort-groups
+						   groups)))
+		       (cl-loop
+			for each in groups
+			do (setq metadata
+				 (get-header-metadata
+				  (car each)
+				  (setq inherited-props
+					(list :header nil
+					      :format-results format-results
+					      :parent-id (alist-get 'id metadata)
+					      :sort-results sort-results
+					      :parent-template template
+					      :bullet bullet
+					      :face face))))
+			collect (progn				    
+				  (cons (reorg--create-headline-string
+					 metadata
+					 nil
+					 level)
+					(drill! (cdr each)
+						prop
+						(1+ (or n 0))
+						(1+ level)
+						inherited-props)))))
+		   (if (plist-get template :children)
+		       (cl-loop for child in (plist-get template :children)
+				collect (reorg--get-group-and-sort
+					 seq
+					 child
+					 level
+					 ignore-sources
+					 (list :header nil
+					       :format-results format-results
+					       :parent-id (alist-get 'id inherited-props)
+					       :sort-results sort-results
+					       :parent-template template
+					       :bullet bullet
+					       :face face)))
+		     (when sort-results
+		       (setq seq 
+			     (reorg--multi-sort sort-results
+						seq)))
+		     (cl-loop for each in seq
+			      collect 
+			      (funcall
+			       action-function
+			       (append each
+				       (list
+					(cons 'group-id
+					      (alist-get 'id metadata))
+					(cons 'parent-id
+					      (alist-get 'id metadata))))
+			       format-results
+			       (1+ level)
+			       (plist-get template :overrides)
+			       (plist-get template :post-overrides)))))))
       
       ;; (setq inherited-props (car inherited-props))
       ;; I believe this was needed because I used &rest in the parameters 
