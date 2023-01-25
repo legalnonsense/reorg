@@ -1282,7 +1282,7 @@ to the results."
 				collect (reorg--get-group-and-sort
 					 seq
 					 child
-					 level
+					 (1+ level)
 					 ignore-sources
 					 (list :header nil
 					       :format-results format-results
@@ -1339,21 +1339,7 @@ to the results."
 				      #'reorg--turn-dot-at-to-dot
 				      data)))
       ;; dealing with .! 
-      (if
-	  (reorg--dot-bang-search group)
-
-	  ;; TODO change this so that the entire form is passed to
-	  ;; drill!, except with the ! removed
-
-	  ;; this code will remove the !
-	  
-	  ;; (reorg--walk-tree '((concat "x" "y") .test (format .!something))	  
-	  ;; 		    (lambda (x)		    
-	  ;; 		      (if (and (symbolp x)
-	  ;; 			       (s-starts-with-p ".!" (symbol-name x)))
-	  ;; 			  (intern (concat "." (substring (symbol-name x) 2)))
-	  ;; 			x)))
-	  
+      (if (reorg--dot-bang-search group)
 	  (drill! data group nil level inherited-props)
 	;; all that follows is for when there is no drill bit 
 	(setq results
@@ -1363,26 +1349,23 @@ to the results."
 		((pred stringp)
 		 (list (cons group data)))
 		((pred (not null))
-		 (when-let ((at-dots (seq-uniq 
-				      (reorg--dot-at-search
-				       group))))
-		   (setq data (cl-loop
-			       for d in data 
-			       append
-			       (cl-loop
-				for at-dot in at-dots
-				if (listp (alist-get at-dot d))
-				return
-				(cl-loop for x in (alist-get at-dot d)
-					 collect
-					 (let ((ppp (copy-alist d)))
-					   (setf (alist-get at-dot ppp) x)
-					   ppp))
-				finally return data))))
-		 (reorg--seq-group-by (reorg--walk-tree
-				       group
-				       #'reorg--turn-dot-at-to-dot
-				       data)
+		 ;; (when-let ((at-dots (seq-uniq 
+		 ;; 		      (reorg--dot-at-search
+		 ;; 		       group))))
+		 ;;   (setq data (cl-loop
+		 ;; 	       for d in data 
+		 ;; 	       append
+		 ;; 	       (cl-loop
+		 ;; 		for at-dot in at-dots
+		 ;; 		if (listp (alist-get at-dot d))
+		 ;; 		return
+		 ;; 		(cl-loop for x in (alist-get at-dot d)
+		 ;; 			 collect
+		 ;; 			 (let ((ppp (copy-alist d)))
+		 ;; 			   (setf (alist-get at-dot ppp) x)
+		 ;; 			   ppp))
+		 ;; 		finally return data))))
+		 (reorg--seq-group-by group
 				      data))))
 	(if (null results)
 	    (cl-loop for child in (plist-get template :children)
