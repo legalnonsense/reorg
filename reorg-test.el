@@ -11,33 +11,36 @@
       :format-results (.headline))))
 
 ;;; drill code
-
+(insert (propertize " " 'display (svg-tag-make "asdf")))
 (defun reorg--test-drill-code ()
   (interactive)
   (reorg-open-sidebar
    `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony/Appeal -type f"))
-      :bullet ,(propertize "ASDF" 'face '((t (:underline t))))
-      :group .!parent-dirs
-      ;; :group (when .!parent-dirs
-      ;; 	       (substring 
-      ;; 		(upcase .!parent-dirs) 1 2))
+      :bullet ,(propertize "ZXCV" 'display (svg-tag-make "Open"))
+      :folded-bullet "CLOSE"
+      ;; :group .!parent-dirs
+      :group (when .!parent-dirs
+	       (substring
+		(concat .filename " "
+			(upcase .!parent-dirs) 1 2)))
       :format-results ((make-string .depth ?\t)
 		       .filename))))
 
-;; (defun reorg--test-file-dir-tree ()
-;;   (interactive)
-;;   (reorg-open-sidebar
-;;    `( :sources ((files . "~/.emacs.d/lisp/reorg"))
-;;       :group "test"
-;;       :format-results (.filename)
-;;       :sort-results ((.filename . reorg-string<))
-;;       :children
-;;       (( :group (nth 0 .parent-dirs)
-;; 	 :children
-;; 	 (( :group (nth 1 .parent-dirs)
-;; 	    :children
-;; 	    (( :group (nth 2 .parent-dirs)
-;; 	       :children (( :group (nth 3 .parent-dirs))))))))))))
+(defun reorg--test-file-dir-tree ()
+  (interactive)
+  (reorg-open-sidebar
+   `( :sources ((files . "~/.emacs.d/lisp/reorg"))
+      :group "test"
+      :format-results (.filename)
+      :sort-results ((.filename . reorg-string<))
+      :children
+      (( :group (nth 0 .parent-dirs)
+	 :children
+	 (( :group (nth 1 .parent-dirs)
+	    :children
+	    (( :group (nth 2 .parent-dirs)
+	       :children
+	       (( :group (nth 3 .parent-dirs))))))))))))
 
 
 

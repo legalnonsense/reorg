@@ -51,6 +51,7 @@
 				       :post-overrides
 				       :sort-results
 				       :bullet
+				       :folded-bullet
 				       :format-results
 				       :sort-groups)
   "Allowable template keys.")
@@ -1204,6 +1205,8 @@ to the results."
 			     reorg--grouper-action-function))
 	(bullet (or (plist-get template :bullet)
 		    (plist-get inherited-props :bullet)))
+	(folded-bullet (or (plist-get template :folded-bullet)
+			   (plist-get inherited-props :folded-bullet)))
 	(face (or (plist-get template :face)
 		  (plist-get inherited-props :face)
 		  reorg-default-face))
@@ -1218,6 +1221,7 @@ to the results."
 		  (cons 'branch-type 'branch)
 		  (cons 'sort-results sort-results)
 		  (cons 'bullet bullet)
+		  (cons 'folded-bullet folded-bullet)
 		  (cons 'reorg-level level)
 		  (cons 'id (org-id-new))
 		  (cons 'parent-id (plist-get inherited-props
@@ -1235,11 +1239,12 @@ to the results."
 		 (setq level (or level 1))
 		 (if-let ((groups (reorg--seq-group-by
 				   `(lambda (x)
-				      (eval
-				       (reorg--walk-tree
-					',prop
-					(lambda (xx)
-					  (reorg--turn-dot-bang-to-val xx ,(or n 0) x)))))
+				      (eval ;; I know.
+				       (let-alist x
+					 (reorg--walk-tree
+					  ',prop
+					  (lambda (xx)
+					    (reorg--turn-dot-bang-to-val xx ,(or n 0) x))))))
 				   seq)))
 		     (progn 
 		       (when sort-groups
@@ -1258,6 +1263,7 @@ to the results."
 					      :sort-results sort-results
 					      :parent-template template
 					      :bullet bullet
+					      :folded-bullet folded-bullet
 					      :face face))))
 			collect (progn				    
 				  (cons (reorg--create-headline-string
@@ -1282,6 +1288,7 @@ to the results."
 					       :sort-results sort-results
 					       :parent-template template
 					       :bullet bullet
+					       :folded-bullet folded-bullet
 					       :face face)))
 		     (when sort-results
 		       (setq seq 
@@ -1311,7 +1318,7 @@ to the results."
 	(setq data (append data (reorg--getter sources))))
       
       (when-let ((at-dots (seq-uniq 
-			   (reorg--at-dot-search
+			   (reorg--dot-at-search
 			    group))))
 	(setq data (cl-loop
 		    for d in data 
@@ -1327,7 +1334,7 @@ to the results."
 				ppp))
 		     finally return data)))
 	(setq group (reorg--walk-tree group
-				      #'reorg--turn-at-dot-to-dot
+				      #'reorg--turn-dot-at-to-dot
 				      data)))
       ;; dealing with .! 
       (if
@@ -1355,7 +1362,7 @@ to the results."
 		 (list (cons group data)))
 		((pred (not null))
 		 (when-let ((at-dots (seq-uniq 
-				      (reorg--at-dot-search
+				      (reorg--dot-at-search
 				       group))))
 		   (setq data (cl-loop
 			       for d in data 
@@ -1372,7 +1379,7 @@ to the results."
 				finally return data))))
 		 (reorg--seq-group-by (reorg--walk-tree
 				       group
-				       #'reorg--turn-at-dot-to-dot
+				       #'reorg--turn-dot-at-to-dot
 				       data)
 				      data))))
 	(if (null results)
@@ -1388,6 +1395,7 @@ to the results."
 				    :sort-results sort-results
 				    :parent-template template
 				    :bullet bullet
+				    :folded-bullet folded-bullet
 				    :face face)))
 	  (when sort-groups
 	    (setq results 
@@ -1420,12 +1428,14 @@ to the results."
 					  :sort-results sort-results
 					  :parent-id (alist-get 'id metadata)
 					  :bullet bullet
+					  :folded-bullet folded-bullet
 					  :face face))))
 			    nil
 			    level
 			    (list 
 			     (cons 'header header)
 			     (cons 'bullet bullet)
+			     (cons 'folded-bullet folded-bullet)
 			     (cons 'reorg-face face)))
 		   (cl-loop for child in (plist-get template :children)
 			    collect 
@@ -1441,6 +1451,7 @@ to the results."
 			      :sort-results sort-results
 			      :parent-id (alist-get 'id metadata)
 			      :bullet bullet
+			      :folded-bullet folded-bullet
 			      :face face))))))
 		((plist-get template :children)
 		 (cl-loop for child in (plist-get template :children)
@@ -1490,309 +1501,309 @@ to the results."
 			      (plist-get template :overrides)
 			      (plist-get template :post-overrides)))))))))))))
 
-(defun reorg--get-group-and-sort (data
-				  template
-				  level
-				  ignore-sources
-				  &optional
-				  inherited-props)
-  "Apply TEMPLATE to DATA and apply the :action-function 
-specified in the template or `reorg--grouper-action-function'
-to the results."
-  (reorg--check-template-keys template)    
-  (let ((format-results (or (plist-get template :format-results)
-			    (plist-get inherited-props :format-results)))
-	(sort-results (or (append (plist-get inherited-props :sort-results)
-				  (plist-get template :sort-results))))
-	(sources (plist-get template :sources))
-	(action-function (or (plist-get inherited-props :action-function)
-			     reorg--grouper-action-function))
-	(bullet (or (plist-get template :bullet)
-		    (plist-get inherited-props :bullet)))
-	(face (or (plist-get template :face)
-		  (plist-get inherited-props :face)
-		  reorg-default-face))
-	(group (plist-get template :group))
-	(sort-groups (plist-get template :sort-groups))
-	results metadata)
-    (cl-labels ((get-header-metadata
-		 (header inherited-props)
-		 (list
-		  (cons 'branch-name header)
-		  (cons 'reorg-branch t)
-		  (cons 'branch-type 'branch)
-		  (cons 'sort-results sort-results)
-		  (cons 'bullet bullet)
-		  (cons 'reorg-level level)
-		  (cons 'id (org-id-new))
-		  (cons 'parent-id (plist-get inherited-props
-					      :parent-id))
-		  (cons 'group-id (md5
-				   (concat 
-				    (pp-to-string
-				     (plist-get inherited-props
-						:parent-template))
-				    (pp-to-string
-				     (plist-get inherited-props
-						:header)))))))
-		(drill!
-		 (seq prop &optional n level inherited-props)
-		 (setq level (or level 1))
-		 (let ((groups (reorg--seq-group-by
-				(lambda (x)
-				  (nth (or n 0) (alist-get prop x)))
-				seq)))
-		   
-		   (if groups
-		       (progn 
-			 (when sort-groups
-  			   (setq groups (seq-sort-by #'car
-						     sort-groups
-						     groups)))
-			 (cl-loop
-			  for each in groups
-			  do (setq metadata
-				   (get-header-metadata
-				    (car each)
-				    (setq inherited-props
-					  (list :header nil
-						:format-results format-results
-						:parent-id (alist-get 'id metadata)
-						:sort-results sort-results
-						:parent-template template
-						:bullet bullet
-						:face face))))
-			  collect (progn				    
-				    (cons (reorg--create-headline-string
-					   metadata
-					   nil
-					   level)
-					  (drill! (cdr each)
-						  prop
-						  (1+ (or n 0))
-						  (1+ level)
-						  inherited-props)))))
-		     (if (plist-get template :children)
-			 (cl-loop for child in (plist-get template :children)
-				  collect (reorg--get-group-and-sort
-					   seq
-					   child
-					   level
-					   ignore-sources
-					   (list :header nil
-						 :format-results format-results
-						 :parent-id (alist-get 'id inherited-props)
-						 :sort-results sort-results
-						 :parent-template template
-						 :bullet bullet
-						 :face face)
-					   ))
-		       (when sort-results
-			 (setq seq 
-			       (reorg--multi-sort sort-results
-						  seq)))
-		       (cl-loop for each in seq
-				collect 
-				(funcall
-				 action-function
-				 (append each
-					 (list
-					  (cons 'group-id
-						(alist-get 'id metadata))
-					  (cons 'parent-id
-						(alist-get 'id metadata))))
-				 format-results
-				 (1+ level)
-				 (plist-get template :overrides)
-				 (plist-get template :post-overrides))))))))
-      
-      ;; (setq inherited-props (car inherited-props))
-      ;; I believe this was needed because I used &rest in the parameters 
-      (when (and sources (not ignore-sources))
-	(cl-loop for each in sources
-		 do (push each reorg--current-sources))
-	;; append new data to old (inherited) data 
-	(setq data (append data (reorg--getter sources))))
-      
-      (when-let ((at-dots (seq-uniq 
-			   (reorg--at-dot-search
-			    group))))
-	(setq data (cl-loop
-		    for d in data 
-		    append
-		    (cl-loop
-		     for at-dot in at-dots
-		     if (listp (alist-get at-dot d))
-		     return
-		     (cl-loop for x in (alist-get at-dot d)
-			      collect
-			      (let ((ppp (copy-alist d)))
-				(setf (alist-get at-dot ppp) x)
-				ppp))
-		     finally return data)))
-	(setq group (reorg--walk-tree group
-				      #'reorg--turn-at-dot-to-dot
-				      data)))
-      ;; dealing with .! 
-      (if-let ((bit (and (symbolp group)
-			 (s-starts-with-p ".!" (symbol-name group))
-			 (intern (substring (symbol-name group) 2)))))
-	  ;; TODO change this so that the entire form is passed to
-	  ;; drill!, except with the ! removed
+;; (defun reorg--get-group-and-sort (data
+;; 				  template
+;; 				  level
+;; 				  ignore-sources
+;; 				  &optional
+;; 				  inherited-props)
+;;   "Apply TEMPLATE to DATA and apply the :action-function 
+;; specified in the template or `reorg--grouper-action-function'
+;; to the results."
+;;   (reorg--check-template-keys template)    
+;;   (let ((format-results (or (plist-get template :format-results)
+;; 			    (plist-get inherited-props :format-results)))
+;; 	(sort-results (or (append (plist-get inherited-props :sort-results)
+;; 				  (plist-get template :sort-results))))
+;; 	(sources (plist-get template :sources))
+;; 	(action-function (or (plist-get inherited-props :action-function)
+;; 			     reorg--grouper-action-function))
+;; 	(bullet (or (plist-get template :bullet)
+;; 		    (plist-get inherited-props :bullet)))
+;; 	(face (or (plist-get template :face)
+;; 		  (plist-get inherited-props :face)
+;; 		  reorg-default-face))
+;; 	(group (plist-get template :group))
+;; 	(sort-groups (plist-get template :sort-groups))
+;; 	results metadata)
+;;     (cl-labels ((get-header-metadata
+;; 		 (header inherited-props)
+;; 		 (list
+;; 		  (cons 'branch-name header)
+;; 		  (cons 'reorg-branch t)
+;; 		  (cons 'branch-type 'branch)
+;; 		  (cons 'sort-results sort-results)
+;; 		  (cons 'bullet bullet)
+;; 		  (cons 'reorg-level level)
+;; 		  (cons 'id (org-id-new))
+;; 		  (cons 'parent-id (plist-get inherited-props
+;; 					      :parent-id))
+;; 		  (cons 'group-id (md5
+;; 				   (concat 
+;; 				    (pp-to-string
+;; 				     (plist-get inherited-props
+;; 						:parent-template))
+;; 				    (pp-to-string
+;; 				     (plist-get inherited-props
+;; 						:header)))))))
+;; 		(drill!
+;; 		 (seq prop &optional n level inherited-props)
+;; 		 (setq level (or level 1))
+;; 		 (let ((groups (reorg--seq-group-by
+;; 				(lambda (x)
+;; 				  (nth (or n 0) (alist-get prop x)))
+;; 				seq)))
 
-	  ;; this code will remove the !
-	  
-	  ;; (reorg--walk-tree '((concat "x" "y") .test (format .!something))	  
-	  ;; 		    (lambda (x)		    
-	  ;; 		      (if (and (symbolp x)
-	  ;; 			       (s-starts-with-p ".!" (symbol-name x)))
-	  ;; 			  (intern (concat "." (substring (symbol-name x) 2)))
-	  ;; 			x)))
-	  
-	  (drill! data bit nil level inherited-props)
-	;; all that follows is for when there is no drill bit 
-	(setq results
-	      (pcase group 
-		((pred functionp)
-		 (reorg--seq-group-by group data))
-		((pred stringp)
-		 (list (cons group data)))
-		((pred (not null))
-		 (when-let ((at-dots (seq-uniq 
-				      (reorg--at-dot-search
-				       group))))
-		   (setq data (cl-loop
-			       for d in data 
-			       append
-			       (cl-loop
-				for at-dot in at-dots
-				if (listp (alist-get at-dot d))
-				return
-				(cl-loop for x in (alist-get at-dot d)
-					 collect
-					 (let ((ppp (copy-alist d)))
-					   (setf (alist-get at-dot ppp) x)
-					   ppp))
-				finally return data))))
-		 (reorg--seq-group-by (reorg--walk-tree
-				       group
-				       #'reorg--turn-at-dot-to-dot
-				       data)
-				      data))))
-	(if (null results)
-	    (cl-loop for child in (plist-get template :children)
-		     collect (reorg--get-group-and-sort
-			      data
-			      child
-			      level
-			      ignore-sources
-			      (list :header nil
-				    :format-results format-results
-				    :parent-id nil
-				    :sort-results sort-results
-				    :parent-template template
-				    :bullet bullet
-				    :face face)))
-	  (when sort-groups
-	    (setq results 
-		  (cond ((functionp sort-groups)
-			 (seq-sort-by #'car
-				      sort-groups
-				      results))
-			(t (seq-sort-by #'car
-					`(lambda (x)
-					   (let-alist x
-					     ,sort-groups))
-					results)))))
+;; 		   (if groups
+;; 		       (progn 
+;; 			 (when sort-groups
+;;   			   (setq groups (seq-sort-by #'car
+;; 						     sort-groups
+;; 						     groups)))
+;; 			 (cl-loop
+;; 			  for each in groups
+;; 			  do (setq metadata
+;; 				   (get-header-metadata
+;; 				    (car each)
+;; 				    (setq inherited-props
+;; 					  (list :header nil
+;; 						:format-results format-results
+;; 						:parent-id (alist-get 'id metadata)
+;; 						:sort-results sort-results
+;; 						:parent-template template
+;; 						:bullet bullet
+;; 						:face face))))
+;; 			  collect (progn				    
+;; 				    (cons (reorg--create-headline-string
+;; 					   metadata
+;; 					   nil
+;; 					   level)
+;; 					  (drill! (cdr each)
+;; 						  prop
+;; 						  (1+ (or n 0))
+;; 						  (1+ level)
+;; 						  inherited-props)))))
+;; 		     (if (plist-get template :children)
+;; 			 (cl-loop for child in (plist-get template :children)
+;; 				  collect (reorg--get-group-and-sort
+;; 					   seq
+;; 					   child
+;; 					   level
+;; 					   ignore-sources
+;; 					   (list :header nil
+;; 						 :format-results format-results
+;; 						 :parent-id (alist-get 'id inherited-props)
+;; 						 :sort-results sort-results
+;; 						 :parent-template template
+;; 						 :bullet bullet
+;; 						 :face face)
+;; 					   ))
+;; 		       (when sort-results
+;; 			 (setq seq 
+;; 			       (reorg--multi-sort sort-results
+;; 						  seq)))
+;; 		       (cl-loop for each in seq
+;; 				collect 
+;; 				(funcall
+;; 				 action-function
+;; 				 (append each
+;; 					 (list
+;; 					  (cons 'group-id
+;; 						(alist-get 'id metadata))
+;; 					  (cons 'parent-id
+;; 						(alist-get 'id metadata))))
+;; 				 format-results
+;; 				 (1+ level)
+;; 				 (plist-get template :overrides)
+;; 				 (plist-get template :post-overrides))))))))
 
-	  ;; If there are children, recurse 
-	  (cond ((and (plist-get template :children)
-		      results)
-		 (cl-loop
-		  for (header . children) in results
-		  append
-		  (cons
-		   (funcall action-function
-			    (setq metadata
-				  (get-header-metadata
-				   header
-				   (setq inherited-props
-					 (list 
-					  :header header
-					  :parent-template template
-					  :format-results format-results
-					  :sort-results sort-results
-					  :parent-id (alist-get 'id metadata)
-					  :bullet bullet
-					  :face face))))
-			    nil
-			    level
-			    (list 
-			     (cons 'header header)
-			     (cons 'bullet bullet)
-			     (cons 'reorg-face face)))
-		   (cl-loop for child in (plist-get template :children)
-			    collect 
-			    (reorg--get-group-and-sort			  
-			     children
-			     child
-			     (1+ level)
-			     ignore-sources
-			     (list 
-			      :header header
-			      :parent-template template
-			      :format-results format-results
-			      :sort-results sort-results
-			      :parent-id (alist-get 'id metadata)
-			      :bullet bullet
-			      :face face))))))
-		((plist-get template :children)
-		 (cl-loop for child in (plist-get template :children)
-			  collect
-			  (reorg--get-group-and-sort
-			   data
-			   child
-			   (1+ level)
-			   ignore-sources
-			   (progn
-			     (setq metadata (get-header-metadata nil inherited-props))
-			     (cl-loop for (key . val) in metadata
-				      append (list (reorg--add-remove-colon key)
-						   val))))))
-		(t 
-		 (cl-loop for (header . children) in results
-			  append
-			  (cons				
-			   (funcall
-			    action-function
-			    (setq metadata
-				  (get-header-metadata header inherited-props))
-			    nil
-			    level
-			    (plist-get template :overrides)
-			    (plist-get template :post-overrides))
-			   (list 
-			    (cl-loop
-			     with
-			     children = 
-			     (if sort-results
-				 (reorg--multi-sort sort-results
-						    children)
-			       children)
-			     for result in children
-			     collect
-			     (funcall
-			      action-function
-			      (append result
-				      (list 
-				       (cons 'group-id
-					     (alist-get 'id metadata))
-				       (cons 'parent-id
-					     (alist-get 'id metadata))))
-			      format-results
-			      (1+ level)
-			      (plist-get template :overrides)
-			      (plist-get template :post-overrides)))))))))))))
+;;       ;; (setq inherited-props (car inherited-props))
+;;       ;; I believe this was needed because I used &rest in the parameters 
+;;       (when (and sources (not ignore-sources))
+;; 	(cl-loop for each in sources
+;; 		 do (push each reorg--current-sources))
+;; 	;; append new data to old (inherited) data 
+;; 	(setq data (append data (reorg--getter sources))))
+
+;;       (when-let ((at-dots (seq-uniq 
+;; 			   (reorg--dot-at-search
+;; 			    group))))
+;; 	(setq data (cl-loop
+;; 		    for d in data 
+;; 		    append
+;; 		    (cl-loop
+;; 		     for at-dot in at-dots
+;; 		     if (listp (alist-get at-dot d))
+;; 		     return
+;; 		     (cl-loop for x in (alist-get at-dot d)
+;; 			      collect
+;; 			      (let ((ppp (copy-alist d)))
+;; 				(setf (alist-get at-dot ppp) x)
+;; 				ppp))
+;; 		     finally return data)))
+;; 	(setq group (reorg--walk-tree group
+;; 				      #'reorg--turn-dot-at-to-dot
+;; 				      data)))
+;;       ;; dealing with .! 
+;;       (if-let ((bit (and (symbolp group)
+;; 			 (s-starts-with-p ".!" (symbol-name group))
+;; 			 (intern (substring (symbol-name group) 2)))))
+;; 	  ;; TODO change this so that the entire form is passed to
+;; 	  ;; drill!, except with the ! removed
+
+;; 	  ;; this code will remove the !
+
+;; 	  ;; (reorg--walk-tree '((concat "x" "y") .test (format .!something))	  
+;; 	  ;; 		    (lambda (x)		    
+;; 	  ;; 		      (if (and (symbolp x)
+;; 	  ;; 			       (s-starts-with-p ".!" (symbol-name x)))
+;; 	  ;; 			  (intern (concat "." (substring (symbol-name x) 2)))
+;; 	  ;; 			x)))
+
+;; 	  (drill! data bit nil level inherited-props)
+;; 	;; all that follows is for when there is no drill bit 
+;; 	(setq results
+;; 	      (pcase group 
+;; 		((pred functionp)
+;; 		 (reorg--seq-group-by group data))
+;; 		((pred stringp)
+;; 		 (list (cons group data)))
+;; 		((pred (not null))
+;; 		 (when-let ((at-dots (seq-uniq 
+;; 				      (reorg--dot-at-search
+;; 				       group))))
+;; 		   (setq data (cl-loop
+;; 			       for d in data 
+;; 			       append
+;; 			       (cl-loop
+;; 				for at-dot in at-dots
+;; 				if (listp (alist-get at-dot d))
+;; 				return
+;; 				(cl-loop for x in (alist-get at-dot d)
+;; 					 collect
+;; 					 (let ((ppp (copy-alist d)))
+;; 					   (setf (alist-get at-dot ppp) x)
+;; 					   ppp))
+;; 				finally return data))))
+;; 		 (reorg--seq-group-by (reorg--walk-tree
+;; 				       group
+;; 				       #'reorg--turn-dot-at-to-dot
+;; 				       data)
+;; 				      data))))
+;; 	(if (null results)
+;; 	    (cl-loop for child in (plist-get template :children)
+;; 		     collect (reorg--get-group-and-sort
+;; 			      data
+;; 			      child
+;; 			      level
+;; 			      ignore-sources
+;; 			      (list :header nil
+;; 				    :format-results format-results
+;; 				    :parent-id nil
+;; 				    :sort-results sort-results
+;; 				    :parent-template template
+;; 				    :bullet bullet
+;; 				    :face face)))
+;; 	  (when sort-groups
+;; 	    (setq results 
+;; 		  (cond ((functionp sort-groups)
+;; 			 (seq-sort-by #'car
+;; 				      sort-groups
+;; 				      results))
+;; 			(t (seq-sort-by #'car
+;; 					`(lambda (x)
+;; 					   (let-alist x
+;; 					     ,sort-groups))
+;; 					results)))))
+
+;; 	  ;; If there are children, recurse 
+;; 	  (cond ((and (plist-get template :children)
+;; 		      results)
+;; 		 (cl-loop
+;; 		  for (header . children) in results
+;; 		  append
+;; 		  (cons
+;; 		   (funcall action-function
+;; 			    (setq metadata
+;; 				  (get-header-metadata
+;; 				   header
+;; 				   (setq inherited-props
+;; 					 (list 
+;; 					  :header header
+;; 					  :parent-template template
+;; 					  :format-results format-results
+;; 					  :sort-results sort-results
+;; 					  :parent-id (alist-get 'id metadata)
+;; 					  :bullet bullet
+;; 					  :face face))))
+;; 			    nil
+;; 			    level
+;; 			    (list 
+;; 			     (cons 'header header)
+;; 			     (cons 'bullet bullet)
+;; 			     (cons 'reorg-face face)))
+;; 		   (cl-loop for child in (plist-get template :children)
+;; 			    collect 
+;; 			    (reorg--get-group-and-sort			  
+;; 			     children
+;; 			     child
+;; 			     (1+ level)
+;; 			     ignore-sources
+;; 			     (list 
+;; 			      :header header
+;; 			      :parent-template template
+;; 			      :format-results format-results
+;; 			      :sort-results sort-results
+;; 			      :parent-id (alist-get 'id metadata)
+;; 			      :bullet bullet
+;; 			      :face face))))))
+;; 		((plist-get template :children)
+;; 		 (cl-loop for child in (plist-get template :children)
+;; 			  collect
+;; 			  (reorg--get-group-and-sort
+;; 			   data
+;; 			   child
+;; 			   (1+ level)
+;; 			   ignore-sources
+;; 			   (progn
+;; 			     (setq metadata (get-header-metadata nil inherited-props))
+;; 			     (cl-loop for (key . val) in metadata
+;; 				      append (list (reorg--add-remove-colon key)
+;; 						   val))))))
+;; 		(t 
+;; 		 (cl-loop for (header . children) in results
+;; 			  append
+;; 			  (cons				
+;; 			   (funcall
+;; 			    action-function
+;; 			    (setq metadata
+;; 				  (get-header-metadata header inherited-props))
+;; 			    nil
+;; 			    level
+;; 			    (plist-get template :overrides)
+;; 			    (plist-get template :post-overrides))
+;; 			   (list 
+;; 			    (cl-loop
+;; 			     with
+;; 			     children = 
+;; 			     (if sort-results
+;; 				 (reorg--multi-sort sort-results
+;; 						    children)
+;; 			       children)
+;; 			     for result in children
+;; 			     collect
+;; 			     (funcall
+;; 			      action-function
+;; 			      (append result
+;; 				      (list 
+;; 				       (cons 'group-id
+;; 					     (alist-get 'id metadata))
+;; 				       (cons 'parent-id
+;; 					     (alist-get 'id metadata))))
+;; 			      format-results
+;; 			      (1+ level)
+;; 			      (plist-get template :overrides)
+;; 			      (plist-get template :post-overrides)))))))))))))
 
 
 ;; (defun reorg--code-search (prefix data)
@@ -1822,6 +1833,8 @@ to the results."
 
 ;; (reorg--code-search "\\.!" '(.!aaa (list .!test)))
 
+;;; template code search and replace 
+
 (defun reorg--dot-bang-search (data)
   "Return alist of symbols inside DATA that start with a `.!'.
 Perform a deep search and return a alist of any symbol
@@ -1846,8 +1859,8 @@ See `let-alist--deep-dot-search'."
     (reorg--dot-bang-search (cadr data)))
    (t (append (reorg--dot-bang-search (car data))
 	      (reorg--dot-bang-search (cdr data))))))
-
-(defun reorg--at-dot-search (data)
+;; TODO consolidate these two functions
+(defun reorg--dot-at-search (data)
   "Return alist of symbols inside DATA that start with a `.@'.
 Perform a deep search and return a alist of any symbol
 same symbol without the `@'.
@@ -1862,23 +1875,32 @@ See `let-alist--deep-dot-search'."
 	(list (intern (replace-match "" nil nil name))))))
    ;; (list (cons data (intern (replace-match "" nil nil name)))))))
    ((vectorp data)
-    (apply #'nconc (mapcar #'reorg--at-dot-search data)))
+    (apply #'nconc (mapcar #'reorg--dot-at-search data)))
    ((not (consp data)) nil)
    ((eq (car data) 'let-alist)
     ;; For nested ‘let-alist’ forms, ignore symbols appearing in the
     ;; inner body because they don’t refer to the alist currently
     ;; being processed.  See Bug#24641.
-    (reorg--at-dot-search (cadr data)))
-   (t (append (reorg--at-dot-search (car data))
-	      (reorg--at-dot-search (cdr data))))))
+    (reorg--dot-at-search (cadr data)))
+   (t (append (reorg--dot-at-search (car data))
+	      (reorg--dot-at-search (cdr data))))))
 
-(defun reorg--turn-at-dot-to-dot (elem &rest _ignore)
+(defun reorg--turn-dot-at-to-dot (elem &rest _ignore)
   "turn .@symbol into .symbol."
   (if (and (symbolp elem)
 	   (string-match "\\`\\.@" (symbol-name elem)))
       (intern (concat "." (substring (symbol-name elem) 2)))
     elem))
 
+(defun reorg--turn-dot-bang-to-val (elem n d)
+  "turn .@symbol into .symbol."
+  (if-let ((sym (and (symbolp elem)
+		     (string-match "\\`\\.!" (symbol-name elem))
+		     (intern (substring (symbol-name elem) 2)))))
+      (nth n (alist-get sym d))
+    elem))
+
+;; TODO maybe consolidate this into the previous two
 (defun reorg--turn-dot-to-display-string (elem data)
   "turn .symbol to a string using the display
 function created by the `reorg-create-data-type' macro."
@@ -1912,10 +1934,9 @@ text properties stored in the text property reorg-data.
 FORMAT-STRING is an list of forms included dotted symbols.
 This function will substitute the dotted symbols and then apply `concat'
 to the resulting list. Everything in :format-string must evaluate to a
-string or to nil. 
-
-This function treats branches and leaves of the outline differently.
-TODO stop treating them differently, i.e., allow leafs to have leaves."
+string or to nil."
+  ;; This function treats branches and leaves of the outline differently.
+  ;; TODO stop treating them differently, i.e., allow leaves to have leaves.
   (cl-flet ((create-stars (num &optional data)
 			  (make-string (if (functionp num)
 					   (funcall num data)
@@ -1924,7 +1945,7 @@ TODO stop treating them differently, i.e., allow leafs to have leaves."
     ;; update the DATA that will be stored in
     ;; `reorg-data'    
     (push (cons 'reorg-level level) data)
-    ;; DATA overrides 
+    ;; the overrides are for hacking and testing
     (cl-loop for (prop . val) in overrides
 	     do (setf (alist-get prop data)
 		      (if (let-alist--deep-dot-search val)
@@ -1950,7 +1971,8 @@ TODO stop treating them differently, i.e., allow leafs to have leaves."
 					  (concat ,@new "\n"))
 				       data)))
 		 result)))
-       'reorg-data ;; property1
+       ;; main data store
+       'reorg-data 
        (progn (setq data (append data
 				 (list
 				  (cons 'reorg-headline
@@ -1963,18 +1985,20 @@ TODO stop treating them differently, i.e., allow leafs to have leaves."
 					(if (alist-get
 					     'reorg-branch data)
 					    'branch 'leaf)))))
-	      ;; reorg-data overrides 
+	      ;; reorg-data post-overrides 
 	      (cl-loop for (prop . val) in post-overrides
 		       do (setf (alist-get prop data)
 				(alist-get prop post-overrides)))
 	      data)
-       reorg--field-property-name ;; property2
+       ;; legacy code 
+       reorg--field-property-name
        (if (alist-get 'reorg-branch data)
 	   'branch 'leaf)
-       (alist-get (alist-get 'class data) ;; extra props 
+       ;; props are created by the class macro
+       (alist-get (alist-get 'class data)
 		  reorg--extra-prop-list)))))
 
-;;; metadata functions
+;;; outline metadata functions
 
 (defun reorg--get-all-sources-from-template (template)
   "Walk the template tree and make a list of all unique template
@@ -2005,7 +2029,7 @@ one of the sources."
 	     collect name into results
 	     return results)))
 
-;;;; template helper completion functions 
+;;;; template completion functions 
 
 (defun reorg-capf--annotation (candidate)
   "Get annotation for reorg-capf candidates"
@@ -2024,6 +2048,8 @@ one of the sources."
 
 (defun reorg-capf ()
   "capf for reorg template"
+  ;; This is probably a terribly inefficient capf
+  ;; but it does not need to be fast. 
   (let (start end collection props)
     (when (looking-back "\\.[.|[:word:]]+")
       (let* ((two-dots-p (s-starts-with-p ".." (match-string 0)))
