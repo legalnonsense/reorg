@@ -11,22 +11,29 @@
       :format-results (.headline))))
 
 ;;; drill code
-(insert (propertize " " 'display (svg-tag-make "asdf")))
+
 (defun reorg--test-drill-code ()
   (interactive)
   (reorg-open-sidebar
    `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony/Appeal -type f"))
-      :bullet ,(propertize "ZXCV" 'display (svg-tag-make "Open"))
+      :bullet "ZXCV"
       :folded-bullet "CLOSE"
       ;; :group .!parent-dirs
       :group (when .!parent-dirs
-	       (substring
-		(concat .filename " "
-			(upcase .!parent-dirs) 1 2)))
+	       (concat "\n" .filename " "
+		       (upcase .!parent-dirs)))
       :format-results ((make-string .depth ?\t)
 		       .filename))))
 
-(defun reorg--test-file-dir-tree ()
+(defun reorg-test-file-tree ()
+  (interactive)
+  (reorg-open-sidebar
+   `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony -type f | grep pdf"))
+      :group .!parent-dirs
+      :sort-results ((.filename . reorg-string<))
+      :format-results (.filename))))
+
+(defun reorg-test-file-tree-BAD ()
   (interactive)
   (reorg-open-sidebar
    `( :sources ((files . "~/.emacs.d/lisp/reorg"))

@@ -762,18 +762,18 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 	     (1- (reorg--get-prop 'reorg-level))))
   (root . (and (/= 1 (reorg--get-prop 'reorg-level))
 	       (reorg--get-previous-prop 'reorg-level 1)))
-  (next-child . (and
-		 (reorg--get-prop
-		  'reorg-branch)
-		 (reorg--get-next-prop
-		  'reorg-level
-		  (1+ (reorg--get-prop 'reorg-level))
-		  (reorg--get-next-prop
-		   'reorg-level
-		   (reorg--get-prop 'reorg-level)
-		   nil
-		   (lambda (a b)
-		     (>= a b))))))
+  (next-child . ;; (and
+	      ;; (reorg--get-prop
+	      ;;  'reorg-branch)
+	      (reorg--get-next-prop
+	       'reorg-level
+	       (1+ (reorg--get-prop 'reorg-level))
+	       (reorg--get-next-prop
+		'reorg-level
+		(reorg--get-prop 'reorg-level)
+		nil
+		(lambda (a b)
+		  (>= a b)))))
   (next-visible-child . (and
 			 (reorg--get-prop 'reorg-branch)
 			 (reorg--get-next-prop
