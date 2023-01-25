@@ -19,15 +19,24 @@
       xxx-sym '(concat .!a .!a .b)
       xxx-n 1)
 
-(xxx xxx-seq xxx-sym xxx-n)
+(xxx xxx-seq xxx-sym xxx-n) ;;;test 
 
 (defun xxx (seq sym n)
-  ;; (reorg--seq-group-by
-  `(lambda (x)
-     (eval ;; I know.
-      (let-alist x
+  (reorg--seq-group-by
+   `(lambda (x)
+      (eval ;; I know.
+       (reorg--walk-tree
 	(reorg--walk-tree
 	 ',sym
 	 (lambda (xx)
-	   (reorg--turn-dot-bang-to-val xx ,(or n 0) x)))))))
-;; seq))
+	   (reorg--turn-dot-bang-to-val xx ,(or n 0) x)))
+	(lambda (xx)
+	  (reorg--turn-dot-to-val xx x)))))
+   seq))
+
+  (let-alist x
+    (reorg--walk-tree
+     ',sym
+     (lambda (xx)
+       (reorg--turn-dot-bang-to-val xx ,(or n 0) x))))))
+   seq))

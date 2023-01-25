@@ -1240,11 +1240,13 @@ to the results."
 		 (if-let ((groups (reorg--seq-group-by
 				   `(lambda (x)
 				      (eval ;; I know.
-				       (let-alist x
-					 (reorg--walk-tree
-					  ',prop
-					  (lambda (xx)
-					    (reorg--turn-dot-bang-to-val xx ,(or n 0) x))))))
+				       (reorg--walk-tree
+					(reorg--walk-tree
+					 ',prop
+					 (lambda (xx)
+					   (reorg--turn-dot-bang-to-val xx ,(or n 0) x)))
+					(lambda (xx)
+					  (reorg--turn-dot-to-val xx x)))))
 				   seq)))
 		     (progn 
 		       (when sort-groups
@@ -1898,6 +1900,14 @@ See `let-alist--deep-dot-search'."
 		     (string-match "\\`\\.!" (symbol-name elem))
 		     (intern (substring (symbol-name elem) 2)))))
       (nth n (alist-get sym d))
+    elem))
+
+(defun reorg--turn-dot-to-val (elem d)
+  "turn .@symbol into .symbol."
+  (if-let ((sym (and (symbolp elem)
+		     (string-match "\\`\\." (symbol-name elem))
+		     (intern (substring (symbol-name elem) 1)))))
+      (alist-get sym d)
     elem))
 
 ;; TODO maybe consolidate this into the previous two
