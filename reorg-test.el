@@ -408,16 +408,16 @@
 						      .subject))
 				   ( :sources ((files . "find ~/legal/Dropbox/Allums\\,\\ Matthew/docket -type f"))
 				     :group "Files"
-				     :children (( :group "By extension"
+				     :children (( :group "File tree"
+						  :children (( :group .!parent-dirs
+							       :format-results (.filename)
+							       :sort-results ((.filename . reorg-string<)))))
+						( :group "By extension"
 						  :children (( :group .extension
 							       :sort-groups (lambda (a b) (string< (downcase a)
 												   (downcase b)))
 							       :sort-results (((downcase .filename) . string<))
-							       :format-results (.filename))))
-						( :group "by parent"
-						  :children (( :group (when .depth (number-to-string .depth ))
-							       :sort-groups string<
-							       :format-results (.stars " " .fullname)))))))))
+							       :format-results (.filename)))))))))
 
 (defun reorg-user--test-all ()
   (interactive)
