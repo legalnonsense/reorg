@@ -1307,7 +1307,7 @@ to the results."
 					(cons 'parent-id
 					      (alist-get 'id metadata))))
 			       format-results
-			       (1+ level)
+			       level
 			       (plist-get template :overrides)
 			       (plist-get template :post-overrides)))))))
       
