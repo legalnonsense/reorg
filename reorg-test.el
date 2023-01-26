@@ -16,11 +16,11 @@
   (interactive)
   (reorg-open-sidebar
    `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony/Appeal -type f"))
-      :bullet "ZXCV"
+      :bullet ,(svg-tag-make "test")
       :folded-bullet "CLOSE"
       ;; :group .!parent-dirs
       :group (when .!parent-dirs
-	       (concat "\n" .filename " "
+	       (concat .filename " "
 		       (upcase .!parent-dirs)))
       :format-results ((make-string .depth ?\t)
 		       .filename))))

@@ -161,31 +161,31 @@ to be refreshed. Two options are:
 	(folded (reorg-bullets--heading-folded-p))
 	(body nil))
     ;; (body (reorg--get-prop 'body)))
-    (propertize 
-     (cond ((and branch folded body)
-	    (or (reorg--get-prop 'folded-bullet)
-		(reorg--get-prop 'bullet)
-		reorg-bullets-folded-body-text-bullet))
-	   ((and branch folded)
-	    (or (reorg--get-prop 'folded-bullet)
-		(reorg--get-prop 'bullet)
-		reorg-bullets-folded-no-body-text-bullet))
-	   ((and branch body)
-	    (or (reorg--get-prop 'unfolded-bullet)
-		(reorg--get-prop 'bullet)
-		reorg-bullets-unfolded-no-body-text-bullet))
-	   (branch
-	    (or (reorg--get-prop 'unfolded-bullet)
-		(reorg--get-prop 'bullet)
-		reorg-bullets-unfolded-no-body-text-bullet))
-	   (body
-	    (or (reorg--get-prop 'leaf-bullet)
-		(reorg--get-prop 'bullet)
-		reorg-bullets-leaf-body-text-bullet))
-	   (t
-	    (or (reorg--get-prop 'leaf-bullet)
-		(reorg--get-prop 'bullet)
-		reorg-bullets-leaf-no-body-text-bullet))))))
+    ;; (propertize 
+    (cond ((and branch folded body)
+	   (or (reorg--get-prop 'folded-bullet)
+	       (reorg--get-prop 'bullet)
+	       reorg-bullets-folded-body-text-bullet))
+	  ((and branch folded)
+	   (or (reorg--get-prop 'folded-bullet)
+	       (reorg--get-prop 'bullet)
+	       reorg-bullets-folded-no-body-text-bullet))
+	  ((and branch body)
+	   (or (reorg--get-prop 'unfolded-bullet)
+	       (reorg--get-prop 'bullet)
+	       reorg-bullets-unfolded-no-body-text-bullet))
+	  (branch
+	   (or (reorg--get-prop 'unfolded-bullet)
+	       (reorg--get-prop 'bullet)
+	       reorg-bullets-unfolded-no-body-text-bullet))
+	  (body
+	   (or (reorg--get-prop 'leaf-bullet)
+	       (reorg--get-prop 'bullet)
+	       reorg-bullets-leaf-body-text-bullet))
+	  (t
+	   (or (reorg--get-prop 'leaf-bullet)
+	       (reorg--get-prop 'bullet)
+	       reorg-bullets-leaf-no-body-text-bullet)))))
      ;; 'face
      ;; 'reorg-bullets-face)))
 
