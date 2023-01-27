@@ -1897,20 +1897,29 @@ See `let-alist--deep-dot-search'."
 (defun reorg--turn-dot-to-display-string (elem data)
   "turn .symbol to a string using the display
 function created by the `reorg-create-data-type' macro."
-  (if (and (symbolp elem)
-	   (string-match "\\`\\." (symbol-name elem)))
-      (let* ((sym (intern (substring (symbol-name elem) 1)))
-	     (fu (reorg--get-display-func-name
-		  (alist-get 'class data)
-		  (substring (symbol-name elem) 1))))
-	(cond ((eq sym 'stars)
-	       (make-string (alist-get 'reorg-level data) ?*))
-	      ((fboundp fu) (funcall fu data))
-	      (t
-	       (funcall `(lambda ()
-			   (let-alist ',data
-			     ,elem))))))
-    elem))
+  (pcase elem
+    ((and (pred symbolp)
+	  (guard (string-match "\\`\\." (symbol-name elem))))
+     (let* ((sym (intern (substring (symbol-name elem) 1)))
+	    (fu (reorg--get-display-func-name
+		 (alist-get 'class data)
+		 (substring (symbol-name elem) 1))))
+       (cond ((eq sym 'stars)
+	      (make-string (alist-get 'reorg-level data) ?*))
+	     ((fboundp fu) (funcall fu data))
+	     (t
+	      (alist-get sym data)))))
+    ;; (funcall `(lambda ()
+    ;; 		(let-alist ',data
+    ;; 		  ,elem)))))))
+    ((and `(.align ,col)
+	  (guard  (numberp col)))
+     (propertize " " 'display '(space . (:align-to ,col))))
+    ((and `(.pad ,num ,char)
+	  (guard (numberp num))
+	  (guard (characterp char)))
+     (make-string num char))
+    (_ elem)))
 
 (defun reorg--create-headline-string (data
 				      format-string

@@ -1,14 +1,107 @@
 ;; -*- lexical-binding: t; -*-
 
+(defun reorg-client ()
+  (interactive)
+  (reorg-open-sidebar
+   '( :sources ((org . "~/tmp/tmp.org"))
+      :bullet ""
+      :group (when (and .todo
+			(member .todo '("TASK"
+					"DELEGATED"
+					"EVENT"
+					"OPP_DUE"
+					"DEADLINE"))
+			(if .ts
+			    (ts>= .ts-ts (ts-now))
+			  t))
+	       (propertize .root
+			   'face
+			   '(( t ( :foreground "white"
+				   :height 2.0
+				   :family "ETBembo"
+				   :weight bold
+				   :underline t)))))
+      :sort-results ((.todo . (lambda (a b)
+				(if (string= "TASK" a) t
+				  (if (string= "TASK" b) nil))))
+		     (.ts . string<))
+      :sort-groups reorg-string<
+      :format-results (.priority
+		       " "
+		       (s-pad-right 15 " " .todo)
+		       " "
+		       (if .ts
+			   (s-pad-right 50 "." .headline)
+			 .headline)
+		       .ts))))
+
+
+
+(defun reorg-todo ()
+  (interactive)
+  (reorg-open-sidebar
+   '( :sources ((org . "~/tmp/tmp.org"))
+      :group "Tasks"
+      :children (( :group (when (and .priority
+				     (string= .priority "A")
+				     (member .todo '("TASK")))
+			    "Top Priority")
+		   :format-results (.category-inherited " " .todo " " .headline))))))
+
+(defun reorg-calendar ()
+  (interactive)
+  (reorg-open-sidebar 
+   '( :sources ((org . "~/tmp/tmp.org"))
+      :group "Calendar"
+      :children (( :group
+		   .ts-year
+		   :sort-groups
+		   reorg-string>
+		   :children
+		   (( :group
+		      .ts-month
+		      :sort-groups
+		      
+		      (lambda (a b)
+			(let ((seq '("January"
+				     "February"
+				     "March"
+				     "April"
+				     "May"
+				     "June"
+				     "July"
+				     "August"
+				     "September"
+				     "October"
+				     "November"
+				     "December")))
+			  (reorg--sort-by-list a b seq)))
+		      :sort-results
+		      ((.ts-day . <))
+		      :format-results
+		      (.stars
+		       " "
+		       (s-pad-left 2 " "
+				   (number-to-string
+				    .ts-day))
+		       " "
+		       (s-pad-right 12 " "
+				    .ts-day-name)
+		       (s-pad-right
+			20
+			" "
+			.category-inherited)
+		       .headline))))))))
+
 
 ;;; make it pretty
 (defun reorg--beautification-test ()
   (interactive)
   (reorg-open-sidebar
    `( :sources ((org . "~/tmp/tmp.org"))
-      :bullet "nasdf"
-      :group (propertize "\ntest\n" 'face '((t ( :height 1.5))))
-      :format-results (.headline))))
+      :bullet ""
+      :group (propertize "test" 'face '((t ( :height 1.5))))
+      :format-results (.stars .headline))))
 
 ;;; drill code
 
@@ -16,8 +109,8 @@
   (interactive)
   (reorg-open-sidebar
    `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony/Appeal -type f"))
-      :bullet ,(svg-tag-make "test")
-      :folded-bullet "CLOSE"
+      :bullet ,(svg-tag-make "OPEN")
+      :folded-bullet ,(svg-tag-make "CLOSED" 'default)
       ;; :group .!parent-dirs
       :group (when .!parent-dirs
 	       (concat .filename " "

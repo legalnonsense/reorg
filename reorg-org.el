@@ -489,13 +489,13 @@ if there is not one."
 		  (s-pad-right 22 " "
 			       (reorg-org--format-time-string ts
 
-							  "%a, %b %d"
-							  "%a, %b %d at %-l:%M%p"))
+							      "%a, %b %d"
+							      "%a, %b %d at %-l:%M%p"))
 		(s-pad-right 22 " "
 			     (reorg-org--format-time-string ts
-							"%a, %b %d, %Y"
-							"%a, %b %d, %Y at %-l:%M%p")))
-	    ""))
+							    "%a, %b %d, %Y"
+							    "%a, %b %d, %Y at %-l:%M%p")))
+	    nil))
 
 (reorg-create-data-type
  :name timestamp-all
