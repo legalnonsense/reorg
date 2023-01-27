@@ -5,15 +5,16 @@
   (reorg-open-sidebar
    '( :sources ((org . "~/tmp/tmp.org"))
       :bullet ""
-      :group (when (and .todo
-			(member .todo '("TASK"
-					"DELEGATED"
-					"EVENT"
-					"OPP_DUE"
-					"DEADLINE"))
-			(if .ts
-			    (ts>= .ts-ts (ts-now))
-			  t))
+      :group (when (or (and .todo
+			    (member .todo '("TASK"
+					    "DELEGATED"
+					    "EVENT"
+					    "OPP_DUE"
+					    "DEADLINE"))
+			    (if .ts
+				(ts>= .ts-ts (ts-now))
+			      t))
+		       (string= .headline "_NOTES_"))
 	       (propertize .root
 			   'face
 			   '(( t ( :foreground "white"
@@ -27,13 +28,13 @@
 		     (.ts . string<))
       :sort-groups reorg-string<
       :format-results (.priority
-		       " "
-		       (s-pad-right 15 " " .todo)
-		       " "
-		       (if .ts
-			   (s-pad-right 50 "." .headline)
-			 .headline)
-		       .ts))))
+                       " "
+                       (s-pad-right 15 " " .todo)
+                       " "
+                       (if .ts
+	                   (s-pad-right 50 "." xxx)
+	                 xxx)
+                       .ts))))
 
 
 
