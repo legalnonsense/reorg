@@ -2091,7 +2091,7 @@ one of the sources."
   "open the reorg buffer here"
   (interactive)
   (reorg-open (or template reorg--current-template) point)
-  (window-buffer nil reorg-buffer-name))
+  (set-window-buffer nil reorg-buffer-name))
 
 ;;;###autoload
 (defun reorg-open-sidebar (&optional template point)
