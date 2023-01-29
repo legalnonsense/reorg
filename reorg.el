@@ -481,9 +481,8 @@ switch to that buffer in the window."
      (prop-match-beginning match)
      (prop-match-end match))))
 
-;; I can't fathom why I made this closure but it works
-;; so it's now on the priority list. 
-(let ((point nil))
+
+(let ((point nil)) ;; I don't know why I did this.
   (defun reorg-edits--update-box-overlay ()
     "Tell the user what field they are on."
     (unless (= (point) (or point 0))
@@ -496,6 +495,14 @@ switch to that buffer in the window."
 			    (point-at-eol)
 			  (cdr (reorg-edits--get-field-bounds))))))
       (setq point (point)))))
+
+(defvar reorg-edits--current-field-overlay
+  (let ((overlay (make-overlay 1 2)))
+    (overlay-put overlay 'face `( :box (:line-width -1)
+				  :foreground ,(face-foreground 'default)))
+    (overlay-put overlay 'priority 1000)
+    overlay)
+  "Overlay for field at point.")
 
 ;;;; programatically interacting with tree buffer 
 
@@ -1146,9 +1153,10 @@ dotted notation."
    (lambda (acc elt)
      (let* ((key (if (functionp form)
 		     (funcall form elt)
-		   ;; There must be a better way than using a back-quoted
-		   ;; lambda, but this is the path I started down and it
-		   ;; seems to work.
+		   ;; To avoid a backquoted lambda,
+		   ;; this could be done using
+		   ;; `reorg--turn-dot-to-val'
+		   ;; but requires using `eval'
 		   (funcall `(lambda (e)
 			       (let-alist e ,form))
 			    elt)))
@@ -1162,11 +1170,12 @@ dotted notation."
    nil))
 
 (defun reorg--multi-sort (functions-and-predicates sequence)
-  "FUNCTIONS-AND-PREDICATES is an alist of functions
-(i.e., that are called with each element of the sequnce  and predicates.
+  "FUNCTIONS-AND-PREDICATES is an alist '(FORM . PREDICATE)
+where predicate. FORM is is executed inside a let-alist which
+means form can use dotted symbols access the members of SEQUENCE.
 
-FUNCTIONS should not be functions.  Use a form that can contain dotted symbols
-as used by `let-alist'."
+PREDICATE is a function that accepts two arguments and returns non-nil
+if the pair is properly sorted."
   (seq-sort 
    (lambda (a b)
      (cl-loop for (form . pred) in functions-and-predicates	      
@@ -1311,14 +1320,10 @@ to the results."
 			       (plist-get template :overrides)
 			       (plist-get template :post-overrides)))))))
       
-      ;; (setq inherited-props (car inherited-props))
-      ;; I believe this was needed because I used &rest in the parameters 
       (when (and sources (not ignore-sources))
 	(cl-loop for each in sources
 		 do (push each reorg--current-sources))
-	;; append new data to old (inherited) data 
 	(setq data (append data (reorg--getter sources))))
-      
       (when-let ((at-dots (seq-uniq 
 			   (reorg--dot-at-search
 			    group))))
@@ -1939,66 +1944,67 @@ to the resulting list. Everything in :format-string must evaluate to a
 string or to nil."
   ;; This function treats branches and leaves of the outline differently.
   ;; TODO stop treating them differently, i.e., allow leaves to have leaves.
-  (cl-flet ((create-stars (num &optional data)
-			  (make-string (if (functionp num)
-					   (funcall num data)
-					 num)
-				       ?*)))
-    ;; update the DATA that will be stored in
-    ;; `reorg-data'    
-    (push (cons 'reorg-level level) data)
-    ;; the overrides are for hacking and testing
-    (cl-loop for (prop . val) in overrides
-	     do (setf (alist-get prop data)
-		      (if (let-alist--deep-dot-search val)
-			  (funcall `(lambda ()
-				      (let-alist ',data 
-					,val)))
-			val)))
-    (let (headline-text)
-      (apply
-       #'propertize
-       ;; get the headline text 
-       (setq headline-text
-	     (if (alist-get 'reorg-branch data)
-		 (concat (create-stars level)
-			 " "
-			 (alist-get 'branch-name data)
-			 "\n")
-	       (let* ((new (reorg--walk-tree
-			    format-string
-			    #'reorg--turn-dot-to-display-string
-			    data))
-		      (result (funcall `(lambda (data)
-					  (concat ,@new "\n"))
-				       data)))
-		 result)))
-       ;; main data store
-       'reorg-data 
-       (progn (setq data (append data
-				 (list
-				  (cons 'reorg-headline
-					headline-text)
-				  (cons 'reorg-class
-					(alist-get 'class data))
-				  (cons 'parent-id
-					(alist-get 'parent-id data))
-				  (cons 'reorg-field-type
-					(if (alist-get
-					     'reorg-branch data)
-					    'branch 'leaf)))))
-	      ;; reorg-data post-overrides 
-	      (cl-loop for (prop . val) in post-overrides
-		       do (setf (alist-get prop data)
-				(alist-get prop post-overrides)))
-	      data)
-       ;; legacy code 
-       reorg--field-property-name
-       (if (alist-get 'reorg-branch data)
-	   'branch 'leaf)
-       ;; props are created by the class macro
-       (alist-get (alist-get 'class data)
-		  reorg--extra-prop-list)))))
+  (unless (equal "" (alist-get 'branch-name data))
+    (cl-flet ((create-stars (num &optional data)
+			    (make-string (if (functionp num)
+					     (funcall num data)
+					   num)
+					 ?*)))
+      ;; update the DATA that will be stored in
+      ;; `reorg-data'    
+      (push (cons 'reorg-level level) data)
+      ;; the overrides are for hacking and testing
+      (cl-loop for (prop . val) in overrides
+	       do (setf (alist-get prop data)
+			(if (let-alist--deep-dot-search val)
+			    (funcall `(lambda ()
+					(let-alist ',data 
+					  ,val)))
+			  val)))
+      (let (headline-text)
+	(apply
+	 #'propertize
+	 ;; get the headline text 
+	 (setq headline-text
+	       (if (alist-get 'reorg-branch data)
+		   (concat (create-stars level)
+			   " "
+			   (alist-get 'branch-name data)
+			   "\n")
+		 (let* ((new (reorg--walk-tree
+			      format-string
+			      #'reorg--turn-dot-to-display-string
+			      data))
+			(result (funcall `(lambda (data)
+					    (concat ,@new "\n"))
+					 data)))
+		   result)))
+	 ;; main data store
+	 'reorg-data 
+	 (progn (setq data (append data
+				   (list
+				    (cons 'reorg-headline
+					  headline-text)
+				    (cons 'reorg-class
+					  (alist-get 'class data))
+				    (cons 'parent-id
+					  (alist-get 'parent-id data))
+				    (cons 'reorg-field-type
+					  (if (alist-get
+					       'reorg-branch data)
+					      'branch 'leaf)))))
+		;; reorg-data post-overrides 
+		(cl-loop for (prop . val) in post-overrides
+			 do (setf (alist-get prop data)
+				  (alist-get prop post-overrides)))
+		data)
+	 ;; legacy code 
+	 reorg--field-property-name
+	 (if (alist-get 'reorg-branch data)
+	     'branch 'leaf)
+	 ;; props are created by the class macro
+	 (alist-get (alist-get 'class data)
+		    reorg--extra-prop-list))))))
 
 ;;; outline metadata functions
 

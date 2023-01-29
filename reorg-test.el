@@ -1,5 +1,14 @@
 ;; -*- lexical-binding: t; -*-
 
+(defun reorg-test-blank-header ()
+  (interactive)
+  (reorg-open-sidebar '( :sources ((org . "~/tmp/tmp.org"))
+			 :bullet "adsf"
+			 :group "a"
+			 :children (( :group (when .todo "")
+				      :format-results (.headline))))))
+
+			 
 (defun reorg-client ()
   (interactive)
   (reorg-open-sidebar
@@ -18,23 +27,27 @@
 	       (propertize .root
 			   'face
 			   '(( t ( :foreground "white"
-				   :height 2.0
+				   :height 1.5
 				   :family "ETBembo"
 				   :weight bold
 				   :underline t)))))
-      :sort-results ((.todo . (lambda (a b)
+      :sort-results ((.headline . (lambda (a b)
+				    (if (string= "_NOTES_" a) nil
+				      (if (string= "_NOTES_" b) t))))
+		     (.todo . (lambda (a b)
 				(if (string= "TASK" a) t
 				  (if (string= "TASK" b) nil))))
-		     (.ts . string<))
-      :sort-groups reorg-string<
+		     (.ts . string<)
+		     (.priority . string>))
       :format-results (.priority
-                       " "
+                       "   "
                        (s-pad-right 15 " " .todo)
                        " "
                        (if .ts
-	                   (s-pad-right 50 "." xxx)
-	                 xxx)
-                       .ts))))
+	                   (s-pad-right 50 "." .headline)
+			 .headline)
+		       .ts))))
+
 
 
 
@@ -778,7 +791,7 @@
 
 (defun reorg-test--at-names ()
   (interactive)
-  (reorg-open-main-window
+  (reorg-open-in-current-window
    '( :sources ((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
       :children (( :group .@at-names
 		   :format-results
