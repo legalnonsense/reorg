@@ -1204,23 +1204,29 @@ if the pair is properly sorted."
   "Apply TEMPLATE to DATA and apply the :action-function 
 specified in the template or `reorg--grouper-action-function'
 to the results."
-  (reorg--check-template-keys template)    
+  (reorg--check-template-keys template)
   (let ((format-results (or (plist-get template :format-results)
+			    (plist-get template :format-result)
 			    (plist-get inherited-props :format-results)))
 	(sort-results (or (append (plist-get inherited-props :sort-results)
 				  (plist-get template :sort-results))))
-	(sources (plist-get template :sources))
+	(sources (or (plist-get template :sources)
+		     (plist-get template :source)))
 	(action-function (or (plist-get inherited-props :action-function)
 			     reorg--grouper-action-function))
 	(bullet (or (plist-get template :bullet)
+		    (plist-get template :bullets)
 		    (plist-get inherited-props :bullet)))
 	(folded-bullet (or (plist-get template :folded-bullet)
+			   (plist-get template :folded-bullets)
 			   (plist-get inherited-props :folded-bullet)))
 	(face (or (plist-get template :face)
 		  (plist-get inherited-props :face)
 		  reorg-default-face))
-	(group (plist-get template :group))
-	(sort-groups (plist-get template :sort-groups))
+	(group (or (plist-get template :group)
+		   (plist-get template :groups)))
+	(sort-groups (or (plist-get template :sort-groups)
+			 (plist-get template :sort-groups)))
 	results metadata)
     (cl-labels ((get-header-metadata
 		 (header inherited-props)
@@ -1276,21 +1282,25 @@ to the results."
 					      :bullet bullet
 					      :folded-bullet folded-bullet
 					      :face face))))
-			collect (progn				    
-				  (cons (reorg--create-headline-string
-					 metadata
-					 nil
-					 level)
-					(drill! (cdr each)
-						prop
-						(1+ (or n 0))
-						(1+ level)
-						inherited-props)))))
+			collect 
+			;; save this string and check if it is
+			;; "" when deciding whether to increase
+			;; the level 
+			(cons (reorg--create-headline-string
+			       metadata
+			       nil
+			       level)
+			      (drill! (cdr each)
+				      prop						
+				      (1+ (or n 0))
+				      (1+ level)
+				      inherited-props))))
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
 				collect (reorg--get-group-and-sort
 					 seq
 					 child
+					 ;; same test here re: did we increase the level
 					 (1+ level)
 					 ignore-sources
 					 (list :header nil
@@ -1319,11 +1329,14 @@ to the results."
 			       level
 			       (plist-get template :overrides)
 			       (plist-get template :post-overrides)))))))
+      ;; end drill 
       
       (when (and sources (not ignore-sources))
 	(cl-loop for each in sources
 		 do (push each reorg--current-sources))
 	(setq data (append data (reorg--getter sources))))
+
+      ;; begin .@
       (when-let ((at-dots (seq-uniq 
 			   (reorg--dot-at-search
 			    group))))
@@ -1343,10 +1356,12 @@ to the results."
 	(setq group (reorg--walk-tree group
 				      #'reorg--turn-dot-at-to-dot
 				      data)))
-      ;; dealing with .! 
+      ;; end .@
+      
+      ;; begin .! 
       (if (reorg--dot-bang-search group)
 	  (drill! data group nil level inherited-props)
-	;; all that follows is for when there is no drill bit 
+	;;end .!
 	(setq results
 	      (pcase group 
 		((pred functionp)
@@ -1372,6 +1387,7 @@ to the results."
 		 ;; 		finally return data))))
 		 (reorg--seq-group-by group
 				      data))))
+
 	(if (null results)
 	    (cl-loop for child in (plist-get template :children)
 		     collect (reorg--get-group-and-sort
@@ -1387,6 +1403,7 @@ to the results."
 				    :bullet bullet
 				    :folded-bullet folded-bullet
 				    :face face)))
+	  ;; if there are results 
 	  (when sort-groups
 	    (setq results 
 		  (cond ((functionp sort-groups)
@@ -1399,13 +1416,14 @@ to the results."
 					     ,sort-groups))
 					results)))))
 
-	  ;; If there are children, recurse 
+	  ;; If there are results and children
 	  (cond ((and (plist-get template :children)
 		      results)
 		 (cl-loop
 		  for (header . children) in results
 		  append
 		  (cons
+		   ;; create the header 
 		   (funcall action-function
 			    (setq metadata
 				  (get-header-metadata
@@ -1427,12 +1445,19 @@ to the results."
 			     (cons 'bullet bullet)
 			     (cons 'folded-bullet folded-bullet)
 			     (cons 'reorg-face face)))
+		   ;; there is metadata 
 		   (cl-loop for child in (plist-get template :children)
 			    collect 
 			    (reorg--get-group-and-sort			  
 			     children
 			     child
-			     (1+ level)
+			     (if (equal ""
+					(alist-get
+					 'branch-name
+					 metadata))
+				 level
+			       (1+ level))
+			     ;;			     (1+ level)
 			     ignore-sources
 			     (list 
 			      :header header
@@ -1443,19 +1468,21 @@ to the results."
 			      :bullet bullet
 			      :folded-bullet folded-bullet
 			      :face face))))))
+		;; if there are only children 
 		((plist-get template :children)
 		 (cl-loop for child in (plist-get template :children)
 			  collect
 			  (reorg--get-group-and-sort
 			   data
 			   child
-			   (1+ level)
+			   level
 			   ignore-sources
 			   (progn
 			     (setq metadata (get-header-metadata nil inherited-props))
 			     (cl-loop for (key . val) in metadata
 				      append (list (reorg--add-remove-colon key)
 						   val))))))
+		;; if there are normal results 
 		(t 
 		 (cl-loop for (header . children) in results
 			  append
@@ -1487,7 +1514,12 @@ to the results."
 				       (cons 'parent-id
 					     (alist-get 'id metadata))))
 			      format-results
-			      (1+ level)
+			      (if (equal ""
+					 (alist-get
+					  'branch-name
+					  metadata))
+				  level
+				(1+ level))
 			      (plist-get template :overrides)
 			      (plist-get template :post-overrides)))))))))))))
 

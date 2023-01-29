@@ -4,11 +4,11 @@
   (interactive)
   (reorg-open-sidebar '( :sources ((org . "~/tmp/tmp.org"))
 			 :bullet "adsf"
-			 :group "a"
+			 :group "test"
 			 :children (( :group (when .todo "")
 				      :format-results (.headline))))))
 
-			 
+
 (defun reorg-client ()
   (interactive)
   (reorg-open-sidebar
@@ -31,22 +31,27 @@
 				   :family "ETBembo"
 				   :weight bold
 				   :underline t)))))
-      :sort-results ((.headline . (lambda (a b)
-				    (if (string= "_NOTES_" a) nil
-				      (if (string= "_NOTES_" b) t))))
-		     (.todo . (lambda (a b)
-				(if (string= "TASK" a) t
-				  (if (string= "TASK" b) nil))))
-		     (.ts . string<)
-		     (.priority . string>))
-      :format-results (.priority
-                       "   "
+      :format-results ((s-pad-right 3 " " .priority)
+
                        (s-pad-right 15 " " .todo)
                        " "
                        (if .ts
 	                   (s-pad-right 50 "." .headline)
 			 .headline)
-		       .ts))))
+		       .ts)
+      :children (( :group (when (equal .todo "TASK") "")
+		   :sort-results ((.priority . string<)))
+		 ( :group (when .ts ""))
+		 ( :group (when (equal "_NOTES_" .headline) ""))))))
+;; :sort-results ((.headline . (lambda (a b)
+;; 				    (if (string= "_NOTES_" a) nil
+;; 				      (if (string= "_NOTES_" b) t))))
+;; 		     (.todo . (lambda (a b)
+;; 				(if (string= "TASK" a) t
+;; 				  (if (string= "TASK" b) nil))))
+;; 		     (.ts . string<)
+;; 		     (.priority . string>))
+
 
 
 
