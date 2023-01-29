@@ -41,7 +41,8 @@
 		       .ts)
       :children (( :group (when (equal .todo "TASK") "")
 		   :sort-results ((.priority . string<)))
-		 ( :group (when .ts ""))
+		 ( :group (when .ts "")
+		   :sort-results ((.ts . string<)))
 		 ( :group (when (equal "_NOTES_" .headline) ""))))))
 ;; :sort-results ((.headline . (lambda (a b)
 ;; 				    (if (string= "_NOTES_" a) nil
