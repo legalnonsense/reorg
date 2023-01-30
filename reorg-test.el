@@ -23,7 +23,7 @@
 				(ts>= .ts-ts (ts-now))
 			      t))
 		       (string= .headline "_NOTES_"))
-	       (propertize (s-pad-right 30 " " .root)
+	       (propertize .root
 			   'face
 			   `(( t ( :foreground ,(face-foreground 'default)
 				   :height 1.5
@@ -31,7 +31,6 @@
 				   :weight bold
 				   :underline t)))))
       :format-results ((s-pad-right 3 " " .priority)
-
 		       (s-pad-right 15 " " .todo)
 		       " "
 		       (if .ts

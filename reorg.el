@@ -1219,9 +1219,13 @@ to the results."
 		     (plist-get template :source)))
 	(action-function (or (plist-get inherited-props :action-function)
 			     reorg--grouper-action-function))
-	(bullet (or (plist-get template :bullet)
-		    (plist-get template :bullets)
-		    (plist-get inherited-props :bullet)))
+	(bullet (when-let ((bullet (or (plist-get template :bullet)
+				       (plist-get template :bullets)
+				       (plist-get inherited-props :bullet))))
+		  (if (equal bullet "")
+		      "​" ;; use a zero width space
+		    bullet)))
+	
 	(folded-bullet (or (plist-get template :folded-bullet)
 			   (plist-get template :folded-bullets)
 			   (plist-get inherited-props :folded-bullet)))
@@ -1456,7 +1460,7 @@ to the results."
 			    (reorg--get-group-and-sort			  
 			     children
 			     child
-			     (if (equal "​" ;; this is zero width space
+			     (if (equal "​"
 					(alist-get
 					 'branch-name
 					 metadata))
