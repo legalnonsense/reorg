@@ -496,13 +496,13 @@ switch to that buffer in the window."
 			  (cdr (reorg-edits--get-field-bounds))))))
       (setq point (point)))))
 
-(defvar reorg-edits--current-field-overlay
-  (let ((overlay (make-overlay 1 2)))
-    (overlay-put overlay 'face `( :box (:line-width -1)
-				  :foreground ,(face-foreground 'default)))
-    (overlay-put overlay 'priority 1000)
-    overlay)
-  "Overlay for field at point.")
+;; (defvar reorg-edits--current-field-overlay
+;;   (let ((overlay (make-overlay 1 2)))
+;;     (overlay-put overlay 'face `( :box (:line-width -1)
+;; 				  :foreground ,(face-foreground 'default)))
+;;     (overlay-put overlay 'priority 1000)
+;;     overlay)
+;;   "Overlay for field at point.")
 
 ;;;; programatically interacting with tree buffer 
 
@@ -583,12 +583,12 @@ Does not run 'reorg--navigation-hooks'."
     nil)
    (t    
     (let ((origin (point))
-	  (ended nil)
+	  (done nil)
 	  (limit (or limit (point-min)))
 	  pos)
       (cl-loop with found = nil
 	       with pos = nil 
-	       while (not ended)
+	       while (not done)
 	       do (setq pos
 			(previous-single-property-change
 			 (point)
@@ -599,7 +599,7 @@ Does not run 'reorg--navigation-hooks'."
 		      (< pos limit))
 	       return
 	       (progn (reorg--goto-char origin)
-		      (setq ended t)
+		      (setq done t)
 		      nil)
 	       else do
 	       (progn (goto-char pos)
@@ -620,13 +620,13 @@ Does not run 'reorg--navigation-hooks'."
 				   (not (org-invisible-p (point) t))
 				 t))
 			  (progn 
-			    (setq ended t)
+			    (setq done t)
 			    (setq found t))
 			(when (or (not pos)
 				  (bobp)
 				  (<= pos limit))
 			  (goto-char origin)
-			  (setq ended t))))
+			  (setq done t))))
 	       finally return (if (not found)
 				  nil
 				(point)))))))
@@ -732,10 +732,15 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 			  nil
 			  t))
   (previous-visible-heading . (reorg--get-previous-prop
+			       'reorg-field-type
+			       t
 			       nil
-			       nil
-			       nil
-			       (lambda (a b) t) t))
+			       (lambda (a b) t)))
+  
+  ;; nil
+  ;; nil
+  ;; nil
+  ;; (lambda (a b) t) t))
   (next-sibling . (reorg--get-next-prop
 		   'reorg-level
 		   (reorg--get-prop 'reorg-level)
@@ -1387,7 +1392,7 @@ to the results."
 		 ;; 		finally return data))))
 		 (reorg--seq-group-by group
 				      data))))
-
+	;; no results
 	(if (null results)
 	    (cl-loop for child in (plist-get template :children)
 		     collect (reorg--get-group-and-sort
@@ -1403,7 +1408,7 @@ to the results."
 				    :bullet bullet
 				    :folded-bullet folded-bullet
 				    :face face)))
-	  ;; if there are results 
+	  ;; if results 
 	  (when sort-groups
 	    (setq results 
 		  (cond ((functionp sort-groups)

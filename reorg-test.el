@@ -1,18 +1,17 @@
 ;; -*- lexical-binding: t; -*-
 
-(defun reorg-test-blank-header ()
-  (interactive)
-  (reorg-open-sidebar '( :sources ((org . "~/tmp/tmp.org"))
-			 :bullet "adsf"
-			 :group "test"
-			 :children (( :group (when .todo "")
-				      :format-results (.headline))))))
-
+;; (defun reorg-test-blank-header ()
+;;   (interactive)
+;;   (reorg-open-sidebar '( :sources ((org . "~/tmp/tmp.org"))
+;; 			 :bullet "adsf"
+;; 			 :group "test"
+;; 			 :children (( :group (when .todo "")
+;; 				      :format-results (.headline))))))
 
 (defun reorg-client ()
   (interactive)
   (reorg-open-sidebar
-   '( :sources ((org . "~/tmp/tmp.org"))
+   `( :sources ((org . ,(org-agenda-files)))
       :bullet ""
       :group (when (or (and .todo
 			    (member .todo '("TASK"
@@ -24,49 +23,52 @@
 				(ts>= .ts-ts (ts-now))
 			      t))
 		       (string= .headline "_NOTES_"))
-	       (propertize .root
+	       (propertize (s-pad-right 30 " " .root)
 			   'face
-			   '(( t ( :foreground "white"
+			   `(( t ( :foreground ,(face-foreground 'default)
 				   :height 1.5
 				   :family "ETBembo"
 				   :weight bold
 				   :underline t)))))
       :format-results ((s-pad-right 3 " " .priority)
 
-                       (s-pad-right 15 " " .todo)
-                       " "
-                       (if .ts
-	                   (s-pad-right 50 "." .headline)
+		       (s-pad-right 15 " " .todo)
+		       " "
+		       (if .ts
+			   (s-pad-right 50 "." .headline)
 			 .headline)
 		       .ts)
+      :sort-groups reorg-string<
       :children (( :group (when (equal .todo "TASK") "")
 		   :sort-results ((.priority . string<)))
 		 ( :group (when .ts "")
 		   :sort-results ((.ts . string<)))
 		 ( :group (when (equal "_NOTES_" .headline) ""))))))
-;; :sort-results ((.headline . (lambda (a b)
-;; 				    (if (string= "_NOTES_" a) nil
-;; 				      (if (string= "_NOTES_" b) t))))
-;; 		     (.todo . (lambda (a b)
-;; 				(if (string= "TASK" a) t
-;; 				  (if (string= "TASK" b) nil))))
-;; 		     (.ts . string<)
-;; 		     (.priority . string>))
-
-
-
-
 
 (defun reorg-todo ()
   (interactive)
   (reorg-open-sidebar
-   '( :sources ((org . "~/tmp/tmp.org"))
+   `( :sources ((org . ,(org-agenda-files)))
       :group "Tasks"
+      :format-results ((s-pad-right 20 " " .category-inherited)
+		       (s-pad-right 10 " " .todo)
+		       .headline)
       :children (( :group (when (and .priority
 				     (string= .priority "A")
 				     (member .todo '("TASK")))
 			    "Top Priority")
-		   :format-results (.category-inherited " " .todo " " .headline))))))
+		   :sort-results ((.category-inherited . reorg-string<)))
+		 ( :group (when (member .todo '("TASK"
+						"WAITING"
+						"DELEGATED"))
+			    .todo)
+		   :sort-groups (lambda (a b)
+				  (reorg--sort-by-list a b
+						       '("TASK"
+							 "WAITING"
+							 "DELEGATED"
+							 "OPP_DUE"))))))))
+
 
 (defun reorg-calendar ()
   (interactive)

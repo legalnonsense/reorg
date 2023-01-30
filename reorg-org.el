@@ -422,11 +422,13 @@ if there is not one."
 	  ("r" . reorg-org--org-set-property)
 	  ("i" . reorg-org--org-priority)
 	  ("g" . reorg-org--reload-heading))
- :getter (with-current-buffer (find-file SOURCE)
-	   (widen)
-	   (org-map-entries #'PARSER)))
-
-;; (org-ql-select SOURCE nil :action #'PARSER))
+ ;; :getter (with-current-buffer (find-file SOURCE)
+ ;; 	   (widen)
+ ;; 	   (org-map-entries #'PARSER)))
+ :getter
+ (progn
+   (setq org-ql-cache (make-hash-table :weakness 'key))
+   (org-ql-select SOURCE nil :action #'PARSER)))
 
 ;;; org data 
 
