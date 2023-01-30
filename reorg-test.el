@@ -20,7 +20,7 @@
 					    "OPP_DUE"
 					    "DEADLINE"))
 			    (if .ts
-				(ts>= .ts-ts (ts-now))
+				(ts> .ts-ts (ts-dec 'day 1 (ts-now)))
 			      t))
 		       (string= .headline "_NOTES_"))
 	       (propertize .root
