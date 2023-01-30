@@ -575,7 +575,7 @@ Does not run 'reorg--navigation-hooks'."
 
 (defun reorg--goto-previous-prop (property &optional value limit
 					   predicate visible-only)
-  "See 'reorg--goto-next-prop'"
+  "See `reorg--goto-next-prop'"
   (cond
    ((bobp)
     nil)
@@ -1456,7 +1456,7 @@ to the results."
 			    (reorg--get-group-and-sort			  
 			     children
 			     child
-			     (if (equal ""
+			     (if (equal "​" ;; this is zero width space
 					(alist-get
 					 'branch-name
 					 metadata))
