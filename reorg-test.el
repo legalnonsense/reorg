@@ -20,7 +20,7 @@
 					    "OPP_DUE"
 					    "DEADLINE"))
 			    (if .ts
-				(ts>= .ts-ts (ts-now))
+				(ts> .ts-ts (ts-dec 'day 1 (ts-now)))
 			      t))
 		       (string= .headline "_NOTES_"))
 	       (propertize .root
@@ -38,11 +38,23 @@
 			 .headline)
 		       .ts)
       :sort-groups reorg-string<
-      :children (( :group (when (equal .todo "TASK") "")
+      :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
+			    "")
+		   :sort-groups (lambda (a b)
+				  (reorg--sort-by-list a b
+						       '("TASK"
+							 "DELEGATED"
+							 "WAITING")))
 		   :sort-results ((.priority . string<)))
-		 ( :group (when .ts "")
+		 ( :group (when (and .ts
+				     (not (member .todo '("TASK"
+							  "DELEGATED"
+							  "WAITING"))))
+			    "")
 		   :sort-results ((.ts . string<)))
-		 ( :group (when (equal "_NOTES_" .headline) ""))))))
+		 ( :group (when (equal "_NOTES_" .headline) "")
+		   :format-results ("NOTES"))))))
+
 
 (defun reorg-todo ()
   (interactive)
