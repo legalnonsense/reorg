@@ -351,10 +351,17 @@ if there is not one."
 	       (insert "\n"))
       (goto-char (1+ end-of-meta-data)))))
 
+(defun reorg-org--at-inline-task-p ()
+  "at an inline task?"
+  (and (org-at-heading-p)
+       (not (org-with-limited-levels 
+	     (org-at-heading-p)))))
+
 (defun reorg-org--source--narrow-to-heading ()
   "Narrow to the current heading only, i.e., no subtree."
-  (org-back-to-heading)
-  (org-narrow-to-element)
+  (org-back-to-heading)     
+  (unless (reorg-org--at-inline-task-p)
+    (org-narrow-to-element))
   (reorg-org--goto-end-of-meta-data))
 
 ;;; edit commands 
@@ -447,7 +454,8 @@ if there is not one."
  :class org
  :parse (->> (org-no-properties
 	      (org-get-heading t t t t))
-	     (replace-regexp-in-string reorg-org--org-link-regexp "")
+	     (replace-regexp-in-string
+	      reorg-org--org-link-regexp "")
 	     (s-trim)
 	     (s-replace " \\." "")))
 
@@ -457,21 +465,23 @@ if there is not one."
  :parse (when-let ((ts (or
 			(org-entry-get (point) "DEADLINE")
 			(reorg-org--timestamp-parser)
-			(org-no-properties (reorg-org--timestamp-parser nil t))
+			(org-no-properties
+			 (reorg-org--timestamp-parser nil t))
 			(org-entry-get (point) "SCHEDULED"))))
 	  (if (=
 	       (string-to-number
 		(format-time-string "%Y"))
 	       (ts-year (ts-parse-org ts)))
 	      (s-pad-right 22 " "
-			   (reorg-org--format-time-string ts
-
-							  "%a, %b %d"
-							  "%a, %b %d at %-l:%M%p"))
+			   (reorg-org--format-time-string
+			    ts
+			    "%a, %b %d"
+			    "%a, %b %d at %-l:%M%p"))
 	    (s-pad-right 22 " "
-			 (reorg-org--format-time-string ts
-							"%a, %b %d, %Y"
-							"%a, %b %d, %Y at %-l:%M%p")))))
+			 (reorg-org--format-time-string
+			  ts
+			  "%a, %b %d, %Y"
+			  "%a, %b %d, %Y at %-l:%M%p")))))
 
 (reorg-create-data-type
  :name ts
@@ -489,14 +499,16 @@ if there is not one."
 		    (format-time-string "%Y"))
 		   (ts-year (ts-parse-org ts)))
 		  (s-pad-right 22 " "
-			       (reorg-org--format-time-string ts
+			       (reorg-org--format-time-string
+				ts
 
-							      "%a, %b %d"
-							      "%a, %b %d at %-l:%M%p"))
+				"%a, %b %d"
+				"%a, %b %d at %-l:%M%p"))
 		(s-pad-right 22 " "
-			     (reorg-org--format-time-string ts
-							    "%a, %b %d, %Y"
-							    "%a, %b %d, %Y at %-l:%M%p")))
+			     (reorg-org--format-time-string
+			      ts
+			      "%a, %b %d, %Y"
+			      "%a, %b %d, %Y at %-l:%M%p")))
 	    nil))
 
 (reorg-create-data-type
@@ -505,7 +517,8 @@ if there is not one."
  :parse (or
 	 (org-entry-get (point) "DEADLINE")
 	 (reorg-org--timestamp-parser)
-	 (org-no-properties (reorg-org--timestamp-parser nil t))
+	 (org-no-properties (reorg-org--timestamp-parser
+			     nil t))
 	 (org-entry-get (point) "SCHEDULED")))
 
 (reorg-create-data-type
@@ -529,7 +542,8 @@ if there is not one."
  :display (when (alist-get 'deadline data)
 	    (string-pad 
 	     (ts-format "%B %e, %Y" ;
-			(ts-parse-org (alist-get 'deadline data)))
+			(ts-parse-org
+			 (alist-get 'deadline data)))
 	     18
 	     nil t)))
 
@@ -540,8 +554,8 @@ if there is not one."
  :display (if (alist-get 'scheduled data)
 	      (concat 
 	       (propertize "SCHEDULED: "
-
-			   'font-lock-face 'org-special-keyword)
+			   'font-lock-face
+			   'org-special-keyword)
 	       (propertize (alist-get 'scheduled data)
 			   'font-lock-face 'org-date))
 	    "__________"))
@@ -635,7 +649,7 @@ if there is not one."
  :name id
  :class org
  :parse (org-id-new))
- ;; :parse (org-id-get-create))
+;; :parse (org-id-get-create))
 
 (reorg-create-data-type
  :name category-inherited
