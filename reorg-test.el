@@ -11,7 +11,7 @@
 (defun reorg-client ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((org . ,(org-agenda-files)))
+   `( :sources ((org . "~/tmp/tmp.org"))
       :bullet ""
       :group (when (or (and .todo
 			    (member .todo '("TASK"
