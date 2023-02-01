@@ -1223,9 +1223,8 @@ to the results."
 				       (plist-get template :bullets)
 				       (plist-get inherited-props :bullet))))
 		  (if (equal bullet "")
-		      "​" ;; use a zero width space
+		      (char-to-string 8203) ;; use a zero width space
 		    bullet)))
-	
 	(folded-bullet (or (plist-get template :folded-bullet)
 			   (plist-get template :folded-bullets)
 			   (plist-get inherited-props :folded-bullet)))
