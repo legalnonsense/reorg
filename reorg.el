@@ -1210,7 +1210,8 @@ if the pair is properly sorted."
 specified in the template or `reorg--grouper-action-function'
 to the results."
   (reorg--check-template-keys template)
-  (let ((format-results (or (plist-get template :format-results)
+  (let ((group-id (md5 (pp-to-string template)))
+	(format-results (or (plist-get template :format-results)
 			    (plist-get template :format-result)
 			    (plist-get inherited-props :format-results)))
 	(sort-results (or (append (plist-get inherited-props :sort-results)

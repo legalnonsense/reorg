@@ -59,7 +59,7 @@
 (defun reorg-todo ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((org . ,(org-agenda-files)))
+   `( :sources ((org . "~/tmp/tmp.org"))
       :group "Tasks"
       :format-results ((s-pad-right 20 " " .category-inherited)
 		       (s-pad-right 10 " " .todo)
