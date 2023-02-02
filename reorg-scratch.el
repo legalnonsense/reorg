@@ -77,9 +77,6 @@ to the results."
 				  (car each)
 				  (plist-get inherited-props :id)))
 			collect 
-			;; save this string and check if it is
-			;; "" when deciding whether to increase
-			;; the level 
 			(cons (reorg--create-headline-string
 			       metadata
 			       nil
@@ -88,7 +85,10 @@ to the results."
 				      prop						
 				      (1+ (or n 0))
 				      (1+ level)
-				      inherited-props))))
+				      (plist-put 
+				       inherited-props
+				       :id 
+				       (alist-get 'id metadata))))))
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
 				collect (reorg--get-group-and-sort
