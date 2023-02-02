@@ -141,13 +141,11 @@
 (defun reorg--test-drill-code ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony/Appeal -type f"))
-      :bullet ,(svg-tag-make "OPEN")
-      :folded-bullet ,(svg-tag-make "CLOSED" 'default)
+   `( :sources ((files . "find ~/Downloads/emacs -type f"))
+      ;; :bullet ,(svg-tag-make "OPEN")
+      ;; :folded-bullet ,(svg-tag-make "CLOSED" 'default)
       ;; :group .!parent-dirs
-      :group (when .!parent-dirs
-	       (concat .filename " "
-		       (upcase .!parent-dirs)))
+      :group .!parent-dirs
       :format-results ((make-string .depth ?\t)
 		       .filename))))
 
