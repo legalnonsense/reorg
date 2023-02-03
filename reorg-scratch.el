@@ -52,11 +52,11 @@ to the results."
 		  (cons 'parent-id parent-id)
 		  (cons 'group-id group-id)))
 		(drill!
-		 (seq prop &optional n level inherited-props)
+		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
 		 (if-let ((groups (reorg--seq-group-by
 				   `(lambda (x)
-				      (eval ;; I know.
+				      (eval ;; I know. 
 				       (reorg--walk-tree
 					(reorg--walk-tree
 					 ',prop
@@ -75,7 +75,7 @@ to the results."
 			do (setq metadata
 				 (get-header-metadata
 				  (car each)
-				  (plist-get inherited-props :id)))
+				  (plist-get inherited :id)))
 			collect 
 			;; save this string and check if it is
 			;; "" when deciding whether to increase
@@ -88,7 +88,10 @@ to the results."
 				      prop						
 				      (1+ (or n 0))
 				      (1+ level)
-				      inherited-props))))
+				      (append 
+				       inherited
+				       (list :id (alist-get 'id metadata)))
+				      ))))
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
 				collect (reorg--get-group-and-sort
@@ -99,7 +102,7 @@ to the results."
 					 ignore-sources
 					 (list :header nil
 					       :format-results format-results
-					       :id (plist-get inherited-props :id)
+					       :id (plist-get inherited :id)
 					       :sort-results sort-results
 					       :parent-template template
 					       :bullet bullet
