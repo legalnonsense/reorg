@@ -434,6 +434,8 @@ if there is not one."
  ;; 	   (org-map-entries #'PARSER)))
  :getter
  (progn
+   (when (functionp SOURCE)
+     (setq SOURCE (funcall SOURCE)))
    (setq org-ql-cache (make-hash-table :weakness 'key))
    (org-ql-select SOURCE nil :action #'PARSER)))
 

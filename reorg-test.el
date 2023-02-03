@@ -8,6 +8,19 @@
 ;; 			 :children (( :group (when .todo "")
 ;; 				      :format-results (.headline))))))
 
+(defun reorg-files (&optional dir)
+  (interactive)
+  (reorg-open-sidebar
+   `( :sources ((files . ,(if dir
+			      (concat "find "
+				      dir
+				      " -type f")
+			    "find ~/Downloads/emacs/ -type f")))
+      :format-results (.filename)
+      :group .!parent-dirs
+      :sort-results ((.filename . string<))
+      :sort-groups string<)))
+
 (defun reorg-client ()
   (interactive)
   (reorg-open-sidebar
