@@ -3,6 +3,7 @@
 :PROPERTIES:
 :ID:       cd60b5c5-777d-41fe-a592-673fd2fd8280
 :END:
+
 ** @alex phone callz @jones and @doug :aaa:ccc:
 :PROPERTIES:
 :ID:       3f3c54e9-9800-42e1-8420-bf71920ba50d
@@ -17,6 +18,7 @@
 :PROPERTIES:
 :ID:       9e200bf5-42b4-41c4-a994-9d4cf02a8d69
 :END:
+
 ** @alex email @jones :bbb:aaa:
 :PROPERTIES:
 :ID:       a69d3763-3d57-48e3-b327-803683cf472d
@@ -31,6 +33,7 @@
 :PROPERTIES:
 :ID:       6f6b6744-c043-4f8b-8c2f-1152debe56aa
 :END:
+
 ** @Doc calls @Dan and @Don :ccc:aaa:
 :PROPERTIES:
 :ID:       73aed4d2-7952-42c2-847e-6600c665d777
@@ -40,7 +43,9 @@
 :PROPERTIES:
 :ID:       c04e860a-6b5d-4151-8e03-9a712d489b57
 :END:
+
 ** No one :bbb:
 :PROPERTIES:
 :ID:       a1e8814b-651c-4aba-9235-d9580e95470b
 :END:
+

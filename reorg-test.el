@@ -771,7 +771,7 @@
 
 (defun reorg-user--test-allums-view ()
   (interactive)
-  (reorg-open-main-window
+  (reorg-open-in-current-window
    '( :sources ((org . "~/org/Allums.org")
 		(org . "~/tmp/tmp.org")
 		(email . "subject:allums")
@@ -812,7 +812,7 @@
 
 (defun reorg-user--clone-file ()
   (interactive)
-  (reorg-open-main-window
+  (reorg-open-in-current-window
    '( :group "tmp.org"
       :sources ((org . "~/tmp/tmp.org"))
       :overrides ((reorg-level . (or .org-level 1)))
@@ -829,10 +829,10 @@
 
 (defun reorg-test--tag-list ()
   (interactive)
-  (reorg-open-main-window
+  (reorg-open-in-current-window
    '(
      :sources ((org . "~/.emacs.d/lisp/reorg/TESTS/new.org"))
-     :format-string (.stars " " .headline)
+     :format-results (.stars " " .headline)
      :children (( :group .@tag-list
 		  :sort-groups (lambda (a b)
 				 (string< (downcase a)
@@ -860,3 +860,16 @@
   
 (provide 'reorg-test)
 
+(defun reorg-file-killer ()
+  (interactive)
+  (reorg-open-sidebar
+   '( :sources ((files . "find ~/tmp/elpa/corfu-0.26 -type f")
+		(files . "find ~/Desktop/wallpapers/ -type f"))
+      :group "test"
+      :children (( :group .!parent-dirs
+		   :format-results (.filename)
+		   :sort-results ((.filename . string>))
+		   :children (( :group (if (string= (substring .filename 0 1) "c")
+					   "C"
+					 "Not C")
+				:children (( :group .!parent-dirs)))))))))

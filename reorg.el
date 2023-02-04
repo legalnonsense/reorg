@@ -1256,7 +1256,7 @@ to the results."
 		 (setq level (or level 1))
 		 (if-let ((groups (reorg--seq-group-by
 				   `(lambda (x)
-				      (eval ;; I know. 
+				      (eval ;; I believe I had no choice.
 				       (reorg--walk-tree
 					(reorg--walk-tree
 					 ',prop
@@ -1295,8 +1295,7 @@ to the results."
 				collect (reorg--get-group-and-sort
 					 seq
 					 child
-					 ;; same test here re: did we increase the level
-					 (1+ level)
+					 level
 					 ignore-sources
 					 (list :header nil
 					       :format-results format-results
@@ -1357,17 +1356,19 @@ to the results."
       (if (reorg--dot-bang-search group)
 	  (drill! data group nil level inherited-props)
 	;;end .!
+
+	;; processing 
 	(setq results
 	      (pcase group 
 		((pred functionp)
 		 (reorg--seq-group-by group data))
 		((pred stringp)
 		 (list (cons group data)))
-		((pred (not null))
+		(_ 
 		 (reorg--seq-group-by group
-				      data))
-		(_ nil)))
-	;; no results
+				      data))))
+
+	;; I don't understand then this happens or why to keep going? 
 	(if (null results)
 	    (cl-loop for child in (plist-get template :children)
 		     collect (reorg--get-group-and-sort
