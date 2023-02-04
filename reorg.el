@@ -1281,14 +1281,15 @@ to the results."
 			       metadata
 			       nil
 			       level)
-			      (drill! (cdr each)
-				      prop						
-				      (1+ (or n 0))
-				      (1+ level)
-				      (plist-put 
-				       inherited-props
-				       :id 
-				       (alist-get 'id metadata))))))
+			      (list 
+			       (drill! (cdr each)
+				       prop						
+				       (1+ (or n 0))
+				       (1+ level)
+				       (plist-put 
+					inherited-props
+					:id 
+					(alist-get 'id metadata)))))))
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
 				collect (reorg--get-group-and-sort
@@ -1439,7 +1440,7 @@ to the results."
 			      :face face))))))
 		;; if there are only children 
 		((plist-get template :children)
-		 (debug nil "I don't think this happens")
+		 (debug nil "I don't think this is ever reached.")
 		 (cl-loop for child in (plist-get template :children)
 			  collect
 			  (reorg--get-group-and-sort
