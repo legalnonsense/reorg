@@ -44,15 +44,24 @@
 
 (defconst reorg--field-property-name 'reorg-field-type)
 
-(defconst reorg--valid-template-keys '(:sources
+(defconst reorg--valid-template-keys '(:source
+				       :sources
 				       :group
+				       :groups 
 				       :children
+				       :override
 				       :overrides
+				       :post-override
 				       :post-overrides
+				       :sort-result
 				       :sort-results
 				       :bullet
+				       :bullets
 				       :folded-bullet
+				       :folded-bullets
+				       :format-result
 				       :format-results
+				       :sort-group
 				       :sort-groups)
   "Allowable template keys.")
 
@@ -1864,7 +1873,9 @@ the buffer."
     (define-key map (kbd "p") #'reorg--move-to-previous-entry)
     (define-key map (kbd "<up>") #'reorg--move-to-previous-entry)
     (define-key map (kbd "TAB") #'outline-cycle)
-    (define-key map (kbd "<backtab>") #'outline-cycle-buffer)
+    (define-key map (kbd "<backtab>") (lambda () (interactive)
+					(outline-cycle-buffer)
+					(reorg-bullets--fontify-buffer)))
     (define-key map (kbd "l") #'recenter-top-bottom)
     map)
   "keymap")
