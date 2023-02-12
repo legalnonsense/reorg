@@ -1132,11 +1132,31 @@ in the form of (CLASS . SOURCE)."
 	   append (funcall (car (alist-get class reorg--getter-list))
 			   source)))
 
-(defun reorg--get-all-dotted-symbols (form)
+(defun reorg--get-all-dotted-symbols (form class)
+  "Get all dotted symbols in FORM including any
+dotted symbols necesasry from CLASS."
   (cl-loop for (x . y) in (let-alist--deep-dot-search form)
 	   collect (if (string-match "^[@!]" (symbol-name y))
 		       (intern (substring (symbol-name y) 1))
 		     y)))
+
+(defun reorg--get-all-dotted-symbols-in-fun (fun)
+  "return a list of all of the dotted symbols in a
+function's code."
+  (pcase-let ((`(,buf . ,mark) (find-function-noselect fun t)))
+    (with-current-buffer buf
+      (save-excursion 
+	(save-restriction
+	  (goto-char mark)
+	  (narrow-to-defun)
+	  (cl-loop while (re-search-forward "\\_<.*?\\_>" nil t)
+		   collect (match-string-no-properties 0) into results
+		   finally return
+		   (seq-map #'intern 
+			    (seq-uniq
+			     (seq-filter (lambda (s)
+					   (string-match "\\.[@!]*" s))
+					 results)))))))))
 
 (defun reorg--parser (data class &optional types)
   "Call each parser in CLASS on DATA and return
