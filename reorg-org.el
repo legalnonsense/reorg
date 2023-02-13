@@ -717,14 +717,14 @@ if there is not one."
 (reorg-create-data-type
  :name ts-year
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts DATA)))
-	  (number-to-string (ts-year ts))))
+ :parse (when .ts-ts
+	  (number-to-string (ts-year .ts-ts))))
 
 (reorg-create-data-type
  :name ts-month
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts DATA)))
-	  (ts-month-name ts)))
+ :parse (when .ts-ts
+	  (ts-month-name .ts-ts)))
 
 (reorg-create-data-type
  :name ts-month-num
@@ -735,8 +735,8 @@ if there is not one."
 (reorg-create-data-type
  :name ts-day
  :class org
- :parse (when-let ((ts (alist-get 'ts-ts DATA)))
-	  (ts-day ts)))
+ :parse (when .ts-ts
+	  (ts-day .ts-ts)))
 
 (reorg-create-data-type
  :name ts-day-name

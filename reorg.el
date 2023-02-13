@@ -1140,23 +1140,69 @@ dotted symbols necesasry from CLASS."
 		       (intern (substring (symbol-name y) 1))
 		     y)))
 
-(defun reorg--get-all-dotted-symbols-in-fun (fun)
+(defun reorg--get-all-dotted-symbols-in-fun (fun class)
   "return a list of all of the dotted symbols in a
 function's code."
-  (pcase-let ((`(,buf . ,mark) (find-function-noselect fun t)))
-    (with-current-buffer buf
-      (save-excursion 
-	(save-restriction
-	  (goto-char mark)
-	  (narrow-to-defun)
-	  (cl-loop while (re-search-forward "\\_<.*?\\_>" nil t)
-		   collect (match-string-no-properties 0) into results
-		   finally return
-		   (seq-map #'intern 
-			    (seq-uniq
-			     (seq-filter (lambda (s)
-					   (string-match "\\.[@!]*" s))
-					 results)))))))))
+  (condition-case nil
+      (pcase-let ((`(,buf . ,mark) (find-function-noselect fun t)))
+	(with-current-buffer buf
+	  (save-excursion 
+	    (save-restriction
+	      (goto-char mark)
+	      (narrow-to-defun)
+	      (cl-loop while (re-search-forward "\\_<.*?\\_>" nil t)
+		       collect (match-string-no-properties 0) into results
+		       finally return
+		       ;; (mapcar (lambda (x) (cons class x))
+		       (seq-filter
+			(lambda (x) x)
+			(seq-map (lambda (x)
+				   (intern (match-string 1 x)))
+				 (seq-uniq
+				  (seq-filter
+				   (lambda (s)
+				     (string-match
+				      "\\`\\.[@!]*\\(.+\\)" s))
+				   results)))))))))
+    (error nil)))
+
+(reorg--pre-parser reorg-template--test-all) ;;;test
+;;;START HERE; CLASS IS PART OF TEMPLATE 
+(defun reorg--pre-parser (template)
+  "Call each parser in CLASS on DATA and return
+the result.  If TYPE is provided, only run the
+parser for that data type."
+  (seq-uniq
+   (cl-loop with classes = (reorg--get-all-x-from-template
+			    reorg-template--test-all
+			    :sources)
+	    for (class . func) in classes
+	    append
+	    (cl-loop 
+	     for each in (seq-uniq (reorg--get-all-dotted-symbols template class))
+	     append 
+	     (cons class
+		   (cl-loop
+		    for yyy in
+		    (when (alist-get each (alist-get class reorg--parser-list))
+		      (reorg--get-all-dotted-symbols-in-fun 
+		       (alist-get each (alist-get class reorg--parser-list))
+		       class))
+		    collect yyy into p
+		    append
+		    (reorg--get-all-dotted-symbols-in-fun
+		     (when (alist-get yyy (alist-get class reorg--parser-list))
+		       (alist-get yyy (alist-get class reorg--parser-list)))
+		     class)
+		    into p
+		    finally return (seq-uniq p)))
+	     into parsers
+	     collect (cons class each) into parsers
+	     finally return (reverse (seq-filter (lambda (x) x) (seq-uniq parsers))))
+	    )))
+
+;; (defun reorg--new-parser (data template)
+;;   (cl-loop for each in (reorg--pre-parser template class)
 
 (defun reorg--parser (data class &optional types)
   "Call each parser in CLASS on DATA and return
@@ -1703,21 +1749,36 @@ string or to nil."
 		    reorg--extra-prop-list))))))
 
 ;;; outline metadata functions
+(defun reorg--get-all-x-from-template (template x)
+  "Walk the template tree and make a list of all unique template
+sources.  This is used for updating the reorg tree, e.g., as part
+of an org-capture hook to make sure the captured entry belongs to
+one of the sources."
+  (cl-labels ((get-x
+	       (template)
+	       (append (cl-loop for each in template
+				when (plist-get each x)
+				append (plist-get each x)
+				append (get-x (plist-get template
+							 :children)))
+		       (plist-get template x))))
+    (seq-uniq (get-x template))))
 
 (defun reorg--get-all-sources-from-template (template)
   "Walk the template tree and make a list of all unique template
 sources.  This is used for updating the reorg tree, e.g., as part
 of an org-capture hook to make sure the captured entry belongs to
 one of the sources."
-  (cl-labels ((get-sources
-	       (template)
-	       (append (cl-loop for each in template
-				when (plist-get each :sources)
-				append (plist-get each :sources)
-				append (get-sources (plist-get template
-							       :children)))
-		       (plist-get template :sources))))
-    (seq-uniq (get-sources template))))
+  (reorg--get-all-x-from-template template :sources))
+;; (cl-labels ((get-sources
+;; 	       (template)
+;; 	       (append (cl-loop for each in template
+;; 				when (plist-get each :sources)
+;; 				append (plist-get each :sources)
+;; 				append (get-sources (plist-get template
+;; 							       :children)))
+;; 		       (plist-get template :sources))))
+;;   (seq-uniq (get-sources template))))
 
 (defun reorg--list-modules ()
   "Let the modules available."
