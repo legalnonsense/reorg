@@ -9,13 +9,11 @@
 ;; 				      :format-results (.headline))))))
 
 (defun reorg-files (&optional dir)
-  (interactive)
+  (interactive "D")
   (reorg-open-sidebar
-   `( :sources ((files . ,(if dir
-			      (concat "find "
-				      dir
-				      " -type f")
-			    "find ~/Downloads/emacs/ -type f")))
+   `( :sources ((files . ,(concat "find "
+				  dir
+				  " -type f")))
       :format-results (.filename)
       :group .!parent-dirs
       :sort-results ((.filename . string<))
@@ -52,7 +50,7 @@
 		       .ts)
       :sort-groups reorg-string<
       :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
-			    "")
+			    "TASKS")
 		   :sort-groups (lambda (a b)
 				  (reorg--sort-by-list a b
 						       '("TASK"
@@ -63,7 +61,7 @@
 				     (not (member .todo '("TASK"
 							  "DELEGATED"
 							  "WAITING"))))
-			    "")
+			    "CALENDAR")
 		   :sort-results ((.ts . string<)))
 		 ( :group (when (equal "_NOTES_" .headline) "")
 		   :format-results ("NOTES"))))))
