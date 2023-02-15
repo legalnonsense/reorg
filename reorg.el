@@ -1132,7 +1132,7 @@ in the form of (CLASS . SOURCE)."
 	   append (funcall (car (alist-get class reorg--getter-list))
 			   source)))
 
-(defun reorg--get-all-dotted-symbols (form class)
+(defun reorg--get-all-dotted-symbols (form)
   "Get all dotted symbols in FORM including any
 dotted symbols necesasry from CLASS."
   (cl-loop for (x . y) in (let-alist--deep-dot-search form)
@@ -1179,7 +1179,7 @@ parser for that data type."
 	    for (class . func) in classes
 	    append
 	    (cl-loop 
-	     for each in (seq-uniq (reorg--get-all-dotted-symbols template class))
+	     for each in (seq-uniq (reorg--get-all-dotted-symbols template))
 	     append 
 	     (cons class
 		   (cl-loop
