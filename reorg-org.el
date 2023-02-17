@@ -22,7 +22,7 @@ update the heading at point."
 	   (buffer (reorg--get-prop 'buffer))
 	   (marker (reorg--get-prop 'marker))
 	   (id (reorg--get-prop 'id)))
-       ;; (id (reorg--get-prop 'id)))
+
        (org-with-remote-undo buffer
 	 (with-current-buffer buffer 
 	   (let ((old-point (point))
@@ -437,32 +437,25 @@ if there is not one."
    (when (functionp SOURCE)
      (setq SOURCE (funcall SOURCE)))
    (setq org-ql-cache (make-hash-table :weakness 'key))
-   (org-ql-select SOURCE nil :action #'PARSER)))
+   (org-ql-select SOURCE nil :action #'PARSER))))
 
 ;;; org data 
 
 (reorg-create-data-type
  :name delegatee
  :class org
+ :disable t
  :parse (org-entry-get (point) "DELEGATED"))
 
 (reorg-create-data-type
  :name tag-list
  :class org
+ :disable t
  :parse (org-get-tags))
 
 (reorg-create-data-type
- :name headline
- :class org
- :parse (->> (org-no-properties
-	      (org-get-heading t t t t))
-	     (replace-regexp-in-string
-	      reorg-org--org-link-regexp "")
-	     (s-trim)
-	     (s-replace " \\." "")))
-
-(reorg-create-data-type
  :name ts-pretty
+ :disable t
  :class org
  :parse (when-let ((ts (or
 			(org-entry-get (point) "DEADLINE")
@@ -487,6 +480,7 @@ if there is not one."
 
 (reorg-create-data-type
  :name ts
+ :disable t
  :class org
  :parse (or
 	 (org-entry-get (point) "DEADLINE")
@@ -516,6 +510,7 @@ if there is not one."
 (reorg-create-data-type
  :name timestamp-all
  :class org
+ :disable t
  :parse (or
 	 (org-entry-get (point) "DEADLINE")
 	 (reorg-org--timestamp-parser)
@@ -535,6 +530,7 @@ if there is not one."
 
 (reorg-create-data-type :name body
 			:class org
+			:disable t
 			:parse (reorg-org--get-body))
 
 (reorg-create-data-type
@@ -571,6 +567,7 @@ if there is not one."
 (reorg-create-data-type
  :name tags
  :class org
+ :disable t
  :parse (org-get-tags-string))
 
 (reorg-create-data-type
@@ -598,16 +595,19 @@ if there is not one."
 (reorg-create-data-type
  :name links
  :class org
+ :disable t
  :parse (reorg-org--all-link-parser))
 
 (reorg-create-data-type
  :name link
  :class org
+ :disable t
  :parse (reorg-org--link-parser))
 
 (reorg-create-data-type
  :name link-file-name
  :class org
+ :disable t
  :parse (when-let* ((data (reorg-org--link-parser))
 		    (path (alist-get 'link data))
 		    (name (f-filename path)))
@@ -616,6 +616,7 @@ if there is not one."
 (reorg-create-data-type
  :name link-file-path
  :class org
+ :disable t
  :parse (when-let* ((data (reorg-org--link-parser))
 		    (data (alist-get 'link data))
 		    (data (cadr (s-split (rx (one-or-more alnum)
@@ -697,6 +698,7 @@ if there is not one."
 (reorg-create-data-type
  :name root-ts-inactive
  :class org
+ :disable t
  :parse (save-excursion
 	  (cl-loop while (org-up-heading-safe)
 		   when (reorg-org--timestamp-parser t nil)
