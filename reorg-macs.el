@@ -17,7 +17,6 @@
 	 (cl-flet ((PARSER (&optional d)
 			   (reorg--parser d ',name
 					  reorg--parser-list)))
-
 	   (cl-loop
 	    for SOURCE in sources
 	    append ,getter)))
