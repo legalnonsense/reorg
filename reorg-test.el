@@ -22,50 +22,50 @@
 (defun reorg-client ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((org . "~/tmp/tmp.org"))
-      :bullet ""
-      :group (when (or (and .todo
-			    (member .todo '("TASK"
-					    "DELEGATED"
-					    "EVENT"
-					    "OPP_DUE"
-					    "DEADLINE"))
-			    (if .ts
-				(ts> .ts-ts (ts-dec 'day 1 (ts-now)))
-			      t))
-		       (string= .headline "_NOTES_"))
-	       (propertize .root
-			   'face
-			   `(( t ( :foreground ,(face-foreground 'default)
-				   :height 1.5
-				   :family "ETBembo"
-				   :weight bold
-				   :underline t)))))
-      :format-results ((s-pad-right 3 " " .priority)
-		       (s-pad-right 15 " " .todo)
-		       " "
-		       (if .ts
-			   (s-pad-right 50 "." .headline)
-			 .headline)
-		       .ts)
-      :sort-groups reorg-string<
-      :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
-			    "TASKS")
-		   :sort-groups (lambda (a b)
-				  (reorg--sort-by-list a b
-						       '("TASK"
-							 "DELEGATED"
-							 "WAITING")))
-		   :sort-results ((.priority . string<)))
-		 ( :group (when (and .ts
-				     (not (member .todo '("TASK"
-							  "DELEGATED"
-							  "WAITING"))))
-			    "CALENDAR")
-		   :sort-results ((.ts . string<)))
-		 ( :group (when (equal "_NOTES_" .headline) "")
-		   :format-results ("NOTES"))))))
-
+   (setq reorg-client-template
+	 `( :sources ((org . "~/tmp/tmp.org"))
+	    :bullet ""
+	    :group (when (or (and .todo
+				  (member .todo '("TASK"
+						  "DELEGATED"
+						  "EVENT"
+						  "OPP_DUE"
+						  "DEADLINE"))
+				  (if .ts
+				      (ts> .ts-ts (ts-dec 'day 1 (ts-now)))
+				    t))
+			     (string= .headline "_NOTES_"))
+		     (propertize .root
+				 'face
+				 `(( t ( :foreground ,(face-foreground 'default)
+					 :height 1.5
+					 :family "ETBembo"
+					 :weight bold
+					 :underline t)))))
+	    :format-results ((s-pad-right 3 " " .priority)
+			     (s-pad-right 15 " " .todo)
+			     " "
+			     (if .ts
+				 (s-pad-right 50 "." .headline)
+			       .headline)
+			     .ts)
+	    :sort-groups reorg-string<
+	    :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
+				  "TASKS")
+			 :sort-groups (lambda (a b)
+					(reorg--sort-by-list a b
+							     '("TASK"
+							       "DELEGATED"
+							       "WAITING")))
+			 :sort-results ((.priority . string<)))
+		       ( :group (when (and .ts
+					   (not (member .todo '("TASK"
+								"DELEGATED"
+								"WAITING"))))
+				  "CALENDAR")
+			 :sort-results ((.ts . string<)))
+		       ( :group (when (equal "_NOTES_" .headline) "")
+			 :format-results ("NOTES")))))))
 
 (defun reorg-todo ()
   (interactive)

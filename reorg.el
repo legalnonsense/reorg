@@ -138,13 +138,12 @@ numbers, strings, symbols."
 	   concat (symbol-name arg) into ret
 	   finally return (intern ret)))
 
-;; For whatever reason this isn't used. 
-;; (defun reorg--get-parser-func-name (class name)
-;;   "Create `reorg--CLASS--parse-NAME' symbol."
-;;   (reorg--create-symbol 'reorg--
-;; 			class
-;; 			'--parse-
-;; 			name))
+(defun reorg--get-parser-func-name (class name)
+  "Create `reorg--CLASS--parse-NAME' symbol."
+  (reorg--create-symbol 'reorg--
+			class
+			'--parse-
+			name))
 
 (defun reorg--get-display-func-name (class name)
   "Create `reorg--CLASS--display-NAME' symbol."
@@ -168,7 +167,9 @@ numbers, strings, symbols."
        (defun ,func-name
 	   (&rest sources)
 	 (cl-flet ((PARSER (&optional d)
-			   (reorg--parser d ',name)))
+			   (reorg--parser d ',name
+					  (reorg--pre-parser reorg--current-template)
+					  )))
 	   (cl-loop
 	    for SOURCE in sources
 	    append ,getter)))
@@ -1134,95 +1135,152 @@ in the form of (CLASS . SOURCE)."
 
 (defun reorg--get-all-dotted-symbols (form)
   "Get all dotted symbols in FORM including any
-dotted symbols necesasry from CLASS."
-  (cl-loop for (x . y) in (let-alist--deep-dot-search form)
-	   collect (if (string-match "^[@!]" (symbol-name y))
-		       (intern (substring (symbol-name y) 1))
-		     y)))
+dotted symbols necesasry from CLASS.
 
-(defun reorg--get-all-dotted-symbols-in-fun (fun class)
+Don't include the .class or .stars values.
+Return unique values.
+Don't return nils."
+  (seq-filter (lambda (x) (when (and
+				 x
+				 (not (eq x 'class))
+				 (not (eq x 'stars)))
+			    x))
+	      (seq-uniq
+	       (cl-loop for (x . y) in (let-alist--deep-dot-search form)
+			collect (if (string-match "^[@!]" (symbol-name y))
+				    (intern (substring (symbol-name y) 1))
+				  y)))))
+
+(defun reorg--get-all-dotted-symbols-in-fun (fun)
   "return a list of all of the dotted symbols in a
 function's code."
-  (condition-case nil
-      (pcase-let ((`(,buf . ,mark) (find-function-noselect fun t)))
-	(with-current-buffer buf
-	  (save-excursion 
-	    (save-restriction
-	      (goto-char mark)
-	      (narrow-to-defun)
-	      (cl-loop while (re-search-forward "\\_<.*?\\_>" nil t)
-		       collect (match-string-no-properties 0) into results
-		       finally return
-		       ;; (mapcar (lambda (x) (cons class x))
-		       (seq-filter
-			(lambda (x) x)
-			(seq-map (lambda (x)
-				   (intern (match-string 1 x)))
-				 (seq-uniq
-				  (seq-filter
-				   (lambda (s)
-				     (string-match
-				      "\\`\\.[@!]*\\(.+\\)" s))
-				   results)))))))))
-    (error nil)))
+  (pcase-let ((`(,buf . ,mark) (find-function-noselect fun t)))
+    (with-current-buffer buf
+      (save-excursion 
+	(save-restriction
+	  (goto-char mark)
+	  (narrow-to-defun)
+	  (cl-loop while (re-search-forward "\\_<.*?\\_>" nil t)
+		   collect (match-string-no-properties 0) into results
+		   finally return
+		   (seq-filter
+		    (lambda (x) x)
+		    (seq-map (lambda (x)
+			       (intern 
+				(cond ((or (s-starts-with-p ".!" x)
+					   (s-starts-with-p ".@" x))
+				       (substring x 2))
+				      ((s-starts-with-p "." x)
+				       (substring x 1)))))
+			     (seq-uniq
+			      (seq-filter
+			       (lambda (s)
+				 (string-match
+				  "\\`\\.[@!]*\\(.+\\)" s))
+			       results))))))))))
 
-(reorg--pre-parser reorg-template--test-all) ;;;test
-;;;START HERE; CLASS IS PART OF TEMPLATE 
-(defun reorg--pre-parser (template)
+(defun reorg--pre-parser-sort-funcs (alist class)
+  "sort"
+  (let ((list (copy-tree alist)))
+    (sort list
+	  (lambda (a b)
+	    (reorg--sort-by-list a b (alist-get class reorg--parser-list)
+				 #'>)))))
+
+(defun reorg--pre-parser-sort (parsers)
+  "sort"
+  (cl-loop for (class . rest) in parsers
+	   collect (cons class (sort
+				(seq-uniq rest)
+				(lambda (a b) (reorg--sort-by-list a b
+								   (alist-get class reorg--parser-list)
+								   #'<))))))
+
+(defun reorg--pre-parser (template &optional recursed)
   "Call each parser in CLASS on DATA and return
 the result.  If TYPE is provided, only run the
 parser for that data type."
-  (seq-uniq
-   (cl-loop with classes = (reorg--get-all-x-from-template
-			    reorg-template--test-all
-			    :sources)
-	    for (class . func) in classes
-	    append
-	    (cl-loop 
-	     for each in (seq-uniq (reorg--get-all-dotted-symbols template))
-	     append 
-	     (cons class
-		   (cl-loop
-		    for yyy in
-		    (when (alist-get each (alist-get class reorg--parser-list))
+  (cl-loop for class in
+	   (seq-uniq
+	    (-flatten 
+	     (mapcar #'car (reorg--get-all-x-from-template
+			    template
+			    :sources))))
+	   if recursed
+	   append
+	   (cl-loop
+	    for dsym in (reorg--get-all-dotted-symbols template)	    
+	    when (alist-get dsym (alist-get class reorg--parser-list))
+	    collect (cons dsym 
+			  (reorg--get-parser-func-name class dsym))
+	    when (and (alist-get dsym (alist-get class reorg--parser-list))
 		      (reorg--get-all-dotted-symbols-in-fun 
-		       (alist-get each (alist-get class reorg--parser-list))
-		       class))
-		    collect yyy into p
-		    append
-		    (reorg--get-all-dotted-symbols-in-fun
-		     (when (alist-get yyy (alist-get class reorg--parser-list))
-		       (alist-get yyy (alist-get class reorg--parser-list)))
-		     class)
-		    into p
-		    finally return (seq-uniq p)))
-	     into parsers
-	     collect (cons class each) into parsers
-	     finally return (reverse (seq-filter (lambda (x) x) (seq-uniq parsers))))
-	    )))
+		       (reorg--get-parser-func-name class dsym)))
+	    append
+	    (cl-loop for each in (reorg--get-all-dotted-symbols-in-fun 
+				  (reorg--get-parser-func-name class dsym))
+		     append
+		     (reorg--pre-parser
+		      `( :sources ((,class . _))
+			 :groups ,(intern
+				   (concat "."
+					   (symbol-name 
+					    each))))
+		      'recursed))
+	    )
+	   else 
+	   collect (cons class  
+			 (cl-loop
+			  for dsym in (reorg--get-all-dotted-symbols template)
+			  
+			  when (alist-get dsym (alist-get class reorg--parser-list))
+			  collect (cons dsym 
+					(reorg--get-parser-func-name class dsym))
+			  when (and (alist-get dsym (alist-get class reorg--parser-list))
+				    (reorg--get-all-dotted-symbols-in-fun 
+				     (reorg--get-parser-func-name class dsym)))
+			  append
 
-;; (defun reorg--new-parser (data template)
-;;   (cl-loop for each in (reorg--pre-parser template class)
+			  (cl-loop for each in (reorg--get-all-dotted-symbols-in-fun 
+						(reorg--get-parser-func-name class dsym))
+				   append
+				   (reorg--pre-parser
+				    `( :sources ((,class . _))
+				       :groups ,(intern
+						 (concat "."
+							 (symbol-name 
+							  each))))
+				    'recursed))
+			  ))))
+
+;; (unless recursed 
+;;   (cl-loop for each in results
+;; 	       collect (cons (car each)
+;; 			     (sort (cdr each)
+;; 				   (lambda (a b)
+;; 				     (reorg--sort-by-list a b reorg--parser-list))))))))
+
+
+(progn 
+  (setq xxx (reorg--pre-parser '(:sources ((org . "~/tmp/tmp.org")
+					   (files . "whatever"))
+					  :group (and .ts-day .ts-any)))) 
+  (reorg--pre-parser-sort xxx)) ;;;test
+
+
 
 (defun reorg--parser (data class &optional types)
   "Call each parser in CLASS on DATA and return
 the result.  If TYPE is provided, only run the
 parser for that data type."
-  (if types
-      (cl-loop for type in (ensure-list types)
-	       collect 
-	       (cons type 
-		     (funcall (alist-get
-			       type
-			       (alist-get class
-					  reorg--parser-list))
-			      data)))
-    (if (= 1 (length (alist-get class reorg--parser-list)))
-	data
-      (cl-loop with DATA = nil
-	       for (type . func) in (alist-get class reorg--parser-list)
-	       collect (cons type (funcall func data DATA)) into DATA
-	       finally return DATA))))
+  (if (= 1 (length (alist-get class reorg--parser-list)))
+      data
+    (cl-loop with DATA = nil
+	     for (type . func) in (or
+				   (reorg--pre-parser reorg--current-template)
+				   (alist-get class reorg--parser-list))
+	     collect (cons type (funcall func data DATA)) into DATA
+	     finally return DATA)))
 
 (defun reorg--seq-group-by (form sequence)
   "Apply FORM to each element of SEQUENCE and group

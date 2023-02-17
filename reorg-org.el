@@ -762,7 +762,7 @@ if there is not one."
 (reorg-create-data-type
  :name ts-ts
  :class org
- :parse (when .ts-any 
+ :parse (when .ts-any
 	  (ts-parse-org .ts-any)))
 
 ;; (reorg-create-data-type
