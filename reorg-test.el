@@ -168,21 +168,21 @@
       :sort-results ((.filename . reorg-string<))
       :format-results (.filename))))
 
-(defun reorg-test-file-tree-BAD ()
-  (interactive)
-  (reorg-open-sidebar
-   `( :sources ((files . "~/.emacs.d/lisp/reorg"))
-      :group "test"
-      :format-results (.filename)
-      :sort-results ((.filename . reorg-string<))
-      :children
-      (( :group (nth 0 .parent-dirs)
-	 :children
-	 (( :group (nth 1 .parent-dirs)
-	    :children
-	    (( :group (nth 2 .parent-dirs)
-	       :children
-	       (( :group (nth 3 .parent-dirs))))))))))))
+;; (defun reorg-test-file-tree-BAD ()
+;;   (interactive)
+;;   (reorg-open-sidebar
+;;    `( :sources ((files . "~/.emacs.d/lisp/reorg"))
+;;       :group "test"
+;;       :format-results (.filename)
+;;       :sort-results ((.filename . reorg-string<))
+;;       :children
+;;       (( :group (nth 0 .parent-dirs)
+;; 	 :children
+;; 	 (( :group (nth 1 .parent-dirs)
+;; 	    :children
+;; 	    (( :group (nth 2 .parent-dirs)
+;; 	       :children
+;; 	       (( :group (nth 3 .parent-dirs))))))))))))
 
 
 

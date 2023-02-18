@@ -96,6 +96,8 @@
 ;; TODO move into the 'reorg-data text property
 (defvar reorg--field-property-name 'reorg-field-name "")
 
+(defvar reorg--temp-parser-list nil "")
+
 (defvar reorg--extra-prop-list nil "")
 
 (defvar reorg--grouper-action-function
@@ -166,7 +168,7 @@ numbers, strings, symbols."
 
 ;;; code 
 
-;;;; user convenience functions
+;;;; convenience functions
 
 (defmacro reorg--create-string-comparison-funcs ()
   "Create string comparison functions that ignore case:
@@ -241,40 +243,6 @@ Otherwise call FUNC with no arguments."
       (if data 
 	  (funcall func tree data)
 	(funcall func tree)))))
-
-;; (defun reorg--walk-tree (tree func &optional data) ;
-;;   "Apply func to each element of tree and return the results.
-;; If DATA is provided, call FUNC with DATA as an argument.
-;; Otherwise call FUNC with no arguments."
-;;   ;; I am not sure why I put the data option here.
-;;   (cl-labels
-;;       ((walk
-;; 	(tree)
-;; 	(cl-loop for each in tree
-;; 		 if (listp each)
-;; 		 collect (walk each)
-;; 		 else
-;; 		 collect (funcall func each data))))
-;;     (if (listp tree)
-;; 	(walk tree)
-;;       (funcall func tree data))))
-
-
-;; (defun reorg--code-search (func code)
-;;   "Return alist of symbols inside CODE that match REGEXP.
-;; See `let-alist--deep-dot-search'."
-;;   ;; It sure seems like this could be done with `reorg--walk-tree'
-;;   ;; I was tired and it was easier to start over. 
-;;   (let (acc)
-;;     (cl-labels ((walk (code)
-;; 		      (cond ((symbolp code)
-;; 			     (when (funcall func code)
-;; 			       (push code acc)))
-;; 			    ((listp code)
-;; 			     (walk (car code))
-;; 			     (walk (cdr code) )))))
-;;       (walk code)
-;;       (cl-delete-duplicates acc))))
 
 (defun reorg--get-all-tree-paths (tree leaf-func)
   "Get a list of all paths in tree.
@@ -1081,22 +1049,27 @@ function's code."
 				  "\\`\\.[@!]*\\(.+\\)" s))
 			       results))))))))))
 
-(defun reorg--pre-parser-sort-funcs (alist class)
-  "sort"
-  (let ((list (copy-tree alist)))
-    (sort list
-	  (lambda (a b)
-	    (reorg--sort-by-list a b (alist-get class reorg--parser-list)
-				 #'>)))))
+;; (defun reorg--pre-parser-sort-funcs (alist class)
+;;   "sort"
+;;   (let ((list (copy-tree alist)))
+;;     (sort list
+;; 	  (lambda (a b)
+;; 	    (reorg--sort-by-list a b (alist-get class reorg--parser-list)
+;; 				 #'>)))))
 
 (defun reorg--pre-parser-sort (parsers)
   "sort"
-  (cl-loop for (class . rest) in parsers
-	   collect (cons class (sort
-				(seq-uniq rest)
-				(lambda (a b) (reorg--sort-by-list a b
-								   (alist-get class reorg--parser-list)
-								   #'<))))))
+  (cl-loop for (class . rest) in (seq-uniq parsers)
+	   collect
+	   (cons class
+		 (sort
+		  (seq-uniq rest)
+		  (lambda (a b)
+		    (reorg--sort-by-list
+		     a
+		     b
+		     (alist-get class reorg--parser-list)
+		     #'<))))))
 
 (defun reorg--pre-parser (template &optional recursed)
   "Call each parser in CLASS on DATA and return
@@ -1111,7 +1084,8 @@ parser for that data type."
 	   if recursed
 	   append
 	   (cl-loop
-	    for dsym in (reorg--get-all-dotted-symbols template)	    
+	    for dsym in (append (reorg--get-all-dotted-symbols template)
+				(list 'marker))
 	    when (alist-get dsym (alist-get class reorg--parser-list))
 	    collect (cons dsym 
 			  (reorg--get-parser-func-name class dsym))
@@ -1241,11 +1215,16 @@ if the pair is properly sorted."
 				  level
 				  ignore-sources
 				  &optional
-				  inherited-props)
+				  inherited-props
+				  recursed)
   "Apply TEMPLATE to DATA and apply the :action-function 
 specified in the template or `reorg--grouper-action-function'
 to the results."
-  (reorg--check-template-keys template)
+  (unless recursed 
+    (reorg--check-template-keys template)  
+    (setq reorg--current-template template)
+    (setq reorg--temp-parser-list (->> (reorg--pre-parser template)
+				       (reorg--pre-parser-sort))))
   ;; inheritence 
   (let ((group-id (md5 (pp-to-string template)))
 	(format-results (or (plist-get template :format-results)
@@ -1345,7 +1324,8 @@ to the results."
 					       :parent-template template
 					       :bullet bullet
 					       :folded-bullet folded-bullet
-					       :face face)))
+					       :face face)
+					 'recursed))
 		     (when sort-results
 		       (setq seq 
 			     (reorg--multi-sort sort-results
@@ -1385,7 +1365,8 @@ to the results."
 				  :parent-template template
 				  :bullet bullet
 				  :folded-bullet folded-bullet
-				  :face face)))
+				  :face face)
+			    'recursed))
 	
 	;; begin .@
 	(when-let ((at-dots (seq-uniq 
@@ -1479,7 +1460,8 @@ to the results."
 				:id (alist-get 'id metadata)
 				:bullet bullet
 				:folded-bullet folded-bullet
-				:face face))))))
+				:face face)
+			       'recursed)))))
 		  (t ;; no children 
 		   (cl-loop for (header . children) in results
 			    append
@@ -1942,5 +1924,4 @@ the buffer."
 
 
 (provide 'reorg)
-
 
