@@ -1155,7 +1155,7 @@ parser for that data type."
 	     collect (cons type (funcall func data DATA)) into DATA
 	     finally return DATA)))
 
-(defun reorg--seq-group-by (form sequence)
+(defun reorg--seq-group-by (form sequence &optional return-nils)
   "Apply FORM to each element of SEQUENCE and group
 the results.  See `seq-group-by'. Do not group
 nil results. If FORM is a function, then call
@@ -1163,7 +1163,8 @@ the function with a single argument.  If FORM
 is not a function, then create an anonymous function
 that wraps FORM in a `let-alist' and makes all of the
 data in each element of SEQENCE available using
-dotted notation."
+dotted notation.  If RETURN-NILS is non-nil, then
+return a nil group; otherwise, omit any nil result."
   (seq-reduce
    (lambda (acc elt)
      (let* ((key (if (functionp form)
@@ -1178,7 +1179,7 @@ dotted notation."
 	    (cell (assoc key acc)))
        (if cell
 	   (setcdr cell (push elt (cdr cell)))
-	 (when key
+	 (when (or key return-nils)
 	   (push (list key elt) acc)))
        acc))
    (seq-reverse sequence)
@@ -1297,10 +1298,10 @@ to the results."
 				  (car each)
 				  (plist-get inherited :id)))
 			collect 
-			(cons (reorg--create-headline-string
-			       metadata
-			       nil
-			       level)
+			(cons (funcall reorg--grouper-action-function
+				       metadata
+				       nil
+				       level)
 			      (list 
 			       (drill! (cdr each)
 				       prop						
@@ -1921,6 +1922,12 @@ the buffer."
 
 (add-hook 'reorg-mode-hook #'reorg-bullets-mode)
 (add-hook 'reorg-mode-hook #'org-visual-indent-mode)
+
+(defun reorg--debug-show-groups ()
+  (interactive)
+  (list :id (reorg--get-prop 'id)
+	:group-id (reorg--get-prop 'group-id)
+	:parent-id (reorg--get-prop 'parent-id)))
 
 
 (provide 'reorg)
