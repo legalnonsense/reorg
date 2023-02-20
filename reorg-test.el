@@ -162,11 +162,13 @@
 (defun reorg-test-file-tree ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony -type f | grep .pdf"))
-      :group .!parent-dirs
-      :sort-results ((.filename . reorg-string<))
-      :bullet ""
-      :format-results (.stars " " .filename))))
+   
+   `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony -type f | grep .pdf")
+		(org . "~/tmp/tmp.org"))
+      :group (when (eq .class 'files) "")
+      :children (( :group  .!parent-dirs
+		   :sort-results ((.filename . reorg-string<))
+		   :format-results (.stars " " .filename))))))
 
 ;; (defun reorg-test-file-tree-BAD ()
 ;;   (interactive)
@@ -534,7 +536,7 @@
 						       .category-inherited)
 						      .headline))))))
 				   ( :sources ((email . "subject:allums"))
-				     :group (when (eq .class 'email)
+				     :group (when (equal .class "email")
 					      "Emails")
 				     :format-results (.stars
 						      " "
@@ -542,10 +544,10 @@
 						      "\t\t"
 						      .subject))
 				   ( :sources ((files . "find ~/legal/Dropbox/Allums\\,\\ Matthew/docket -type f"))
-				     :group "Files"
+				     :group (when (eq .class 'files) "")
 				     :children (( :group "File tree"
 						  :children (( :group .!parent-dirs
-							       :format-results (.filename)
+							       :format-results (.stars " " .filename)
 							       :sort-results ((.filename . reorg-string<)))))
 						( :group "By extension"
 						  :children (( :group .extension
@@ -864,7 +866,7 @@
    '( :sources ((files . "find ~/tmp/elpa/corfu-0.26 -type f")
 		(files . "find ~/Desktop/wallpapers/ -type f"))
       :group "test"
-      :children (( :group .!parent-dirs
+      :children (( :group (when (quote .class) .!parent-dirs)
 		   :format-results (.filename)
 		   :sort-results ((.filename . string>))
 		   :children (( :group (if (string= (substring .filename 0 1) "c")

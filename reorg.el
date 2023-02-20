@@ -924,7 +924,7 @@ are no children.  Assume the point is at a branch."
       (recurse data))))
 
 (defun reorg--delete-header-at-point ()
-  "delete the header at point"
+  "delete the header at point"n
   (delete-region (point-at-bol)
 		 (line-beginning-position 2)))
 
@@ -1084,8 +1084,8 @@ parser for that data type."
 	   if recursed
 	   append
 	   (cl-loop
-	    for dsym in (append (reorg--get-all-dotted-symbols template)
-				(list 'marker 'class 'mu4e-data))
+	    for dsym in (reorg--get-all-dotted-symbols template)
+
 	    when (alist-get dsym (alist-get class reorg--parser-list))
 	    collect (cons dsym
 			  (reorg--get-parser-func-name class dsym))
@@ -1108,7 +1108,12 @@ parser for that data type."
 	   collect (cons class  
 			 (cl-loop
 			  for dsym in (append (reorg--get-all-dotted-symbols template)
-					      (list 'marker 'class 'mu4e-data))
+					      (list 'marker
+						    'class
+						    'mu4e-data
+						    'id
+						    'fullname
+						    'path))
 			  
 			  when (alist-get dsym (alist-get class reorg--parser-list))
 			  collect (cons dsym
@@ -1264,27 +1269,37 @@ to the results."
 		  (cons 'bullet bullet)
 		  (cons 'folded-bullet folded-bullet)
 		  (cons 'reorg-level level)
-		  (cons 'id (org-id-new))
+		  (cons 'id (concat parent-id group-id header))
 		  (cons 'parent-id parent-id)
 		  (cons 'group-id group-id)))
 		(drill!
 		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
-		 (if-let ((groups (reorg--seq-group-by
-				   `(lambda (x)
+		 (if-let ((groups (reorg--seq-group-by				   
+				   ;; `(lambda (x)
+				   ;;    (let-alist x
+				   ;; 	(eval 
+				   ;; 	 (reorg--walk-tree 
+				   ;; 	  ',prop
+				   ;; 	  (lambda (xx)
+				   ;; 	    (reorg--turn-dot-bang-to-val
+				   ;; 	     xx
+				   ;; 	     ,(or n 0)
+				   ;; 	     x))))))
+				   `(lambda (x)				      
 				      (eval ;; I believe I had no choice.
 				       (reorg--walk-tree
-					(reorg--walk-tree
+					(reorg--walk-tree 
 					 ',prop
 					 (lambda (xx)
 					   (reorg--turn-dot-bang-to-val
 					    xx
 					    ,(or n 0)
 					    x)))
-					(lambda (xx)
+					(lambda (xx)					  
 					  (reorg--turn-dot-to-val
 					   xx
-					   x))))) 
+					   x)))))
 				   seq
 				   'return-nils)))
 		     (progn 
@@ -1421,8 +1436,12 @@ to the results."
 					data))))
 
 	  (when results
-	    ;; sort groups 
-	    (when sort-groups
+	    ;; sort groups
+	    
+	    (when (and sort-groups
+		       (not (and 
+			     (= 1 (length results))
+			     (equal "" (caar results)))))
 	      (setq results
 		    ;; make this a pcase and allow
 		    ;; syntax same as sort results?
@@ -1437,7 +1456,30 @@ to the results."
 					  results)))))
 
 
-	    (cond ((plist-get template :children) ;; if there are childre
+	    (cond ((and (plist-get template :children)
+			(= 1 (length results))
+			(equal "" (caar results)))
+
+		   (cl-loop for (header . children) in results  
+			    append
+			    (cl-loop for child in (plist-get template :children)
+				     collect 
+				     (reorg--get-group-and-sort			  
+				      children
+				      child
+				      level
+				      ignore-sources
+				      (list 
+				       :header header
+				       :parent-template template
+				       :format-results format-results
+				       :sort-results sort-results
+				       :id "asdf"
+				       :bullet bullet
+				       :folded-bullet folded-bullet
+				       :face face)
+				      'recursed))))
+		  ((plist-get template :children) ;; if there are childre
 		   (cl-loop
 		    for (header . children) in results
 		    append
@@ -1577,8 +1619,16 @@ See `let-alist--deep-dot-search'."
       (intern (concat "." (substring (symbol-name elem) 2)))
     elem))
 
+(defun reorg--turn-dot-bang-to-dot (elem n d)
+  "turn .!symbol into .symbol."
+  (if-let ((sym (and (symbolp elem)
+		     (string-match "\\`\\.!" (symbol-name elem))
+		     (intern (substring (symbol-name elem) 2)))))
+      (nth n (alist-get sym d))
+    elem))
+
 (defun reorg--turn-dot-bang-to-val (elem n d)
-  "turn .@symbol into .symbol."
+  "turn .!symbol into .symbol."
   (if-let ((sym (and (symbolp elem)
 		     (string-match "\\`\\.!" (symbol-name elem))
 		     (intern (substring (symbol-name elem) 2)))))
@@ -1586,7 +1636,7 @@ See `let-alist--deep-dot-search'."
     elem))
 
 (defun reorg--turn-dot-to-val (elem d)
-  "turn .@symbol into .symbol."
+  "turn .symbol into its value."
   (if-let ((sym (and (symbolp elem)
 		     (string-match "\\`\\." (symbol-name elem))
 		     (intern (substring (symbol-name elem) 1)))))
