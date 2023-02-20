@@ -24,7 +24,6 @@
   (reorg-open-sidebar
    (setq reorg-client-template
 	 `( :sources ((org . "~/tmp/tmp.org"))
-	    :bullet ""
 	    :group (when (or (and .todo
 				  (member .todo '("TASK"
 						  "DELEGATED"
@@ -42,13 +41,13 @@
 					 :family "ETBembo"
 					 :weight bold
 					 :underline t)))))
-	    :format-results ((s-pad-right 3 " " .priority)
-			     (s-pad-right 15 " " .todo)
-			     " "
-			     (if .ts
-				 (s-pad-right 50 "." .headline)
-			       .headline)
-			     .ts)
+	    :format-results (.stars "   " (s-pad-right 5 " " .priority)
+				    (s-pad-right 15 " " .todo)
+				    " "
+				    (if .ts
+					(s-pad-right 50 "." .headline)
+				      .headline)
+				    .ts)
 	    :sort-groups reorg-string<
 	    :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
 				  "TASKS")
@@ -65,7 +64,7 @@
 				  "CALENDAR")
 			 :sort-results ((.ts . string<)))
 		       ( :group (when (equal "_NOTES_" .headline) "")
-			 :format-results ("NOTES")))))))
+			 :format-results (.stars "  NOTES")))))))
 
 (defun reorg-todo ()
   (interactive)

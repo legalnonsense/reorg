@@ -1085,9 +1085,9 @@ parser for that data type."
 	   append
 	   (cl-loop
 	    for dsym in (append (reorg--get-all-dotted-symbols template)
-				(list 'marker))
+				(list 'marker 'class 'mu4e-data))
 	    when (alist-get dsym (alist-get class reorg--parser-list))
-	    collect (cons dsym 
+	    collect (cons dsym
 			  (reorg--get-parser-func-name class dsym))
 	    when (and (alist-get dsym (alist-get class reorg--parser-list))
 		      (reorg--get-all-dotted-symbols-in-fun 
@@ -1107,16 +1107,16 @@ parser for that data type."
 	   else 
 	   collect (cons class  
 			 (cl-loop
-			  for dsym in (reorg--get-all-dotted-symbols template)
+			  for dsym in (append (reorg--get-all-dotted-symbols template)
+					      (list 'marker 'class 'mu4e-data))
 			  
 			  when (alist-get dsym (alist-get class reorg--parser-list))
-			  collect (cons dsym 
+			  collect (cons dsym
 					(reorg--get-parser-func-name class dsym))
 			  when (and (alist-get dsym (alist-get class reorg--parser-list))
 				    (reorg--get-all-dotted-symbols-in-fun 
 				     (reorg--get-parser-func-name class dsym)))
 			  append
-
 			  (cl-loop for each in (reorg--get-all-dotted-symbols-in-fun 
 						(reorg--get-parser-func-name class dsym))
 				   append
@@ -1323,7 +1323,6 @@ to the results."
 					    level
 					    (plist-get template :overrides)
 					    (plist-get template :post-overrides))))))
-
 
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)

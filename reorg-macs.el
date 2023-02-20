@@ -16,7 +16,7 @@
 	   (&rest sources)
 	 (cl-flet ((PARSER (&optional d)
 			   (reorg--parser d ',name					  
-					  reorg--parser-list)))
+					  reorg--temp-parser-list)))
 	   (cl-loop
 	    for SOURCE in sources
 	    append ,getter)))
@@ -27,8 +27,10 @@
 		    (alist-get ',name reorg--getter-list))
        (if (boundp 'reorg--parser-list)
 	   (setf (alist-get ',name reorg--parser-list) nil)
-	 (defvar reorg--parser-list nil "Parser list for all classes."))     
-       (cl-pushnew (cons 'class (lambda (&optional _ __) ',name))
+	 (defvar reorg--parser-list nil "Parser list for all classes."))
+       (defun ,(reorg--get-parser-func-name name 'class) (&rest _)
+	 "" ',name)
+       (cl-pushnew (cons 'class (reorg--get-parser-func-name ',name 'class))
 		   (alist-get ',name reorg--parser-list))
        (cl-pushnew (cons 'id (lambda (&optional _ __) #'org-id-new))
 		   (alist-get ',name reorg--parser-list))
