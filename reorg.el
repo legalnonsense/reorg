@@ -1284,33 +1284,47 @@ to the results."
 					(lambda (xx)
 					  (reorg--turn-dot-to-val
 					   xx
-					   x)))))
-				   seq)))
+					   x))))) 
+				   seq
+				   'return-nils)))
 		     (progn 
 		       (when sort-groups
   			 (setq groups (seq-sort-by #'car
 						   sort-groups
 						   groups)))
-		       (cl-loop
-			for each in groups
-			do (setq metadata
-				 (get-header-metadata
-				  (car each)
-				  (plist-get inherited :id)))
-			collect 
-			(cons (funcall reorg--grouper-action-function
-				       metadata
-				       nil
-				       level)
-			      (list 
-			       (drill! (cdr each)
-				       prop						
-				       (1+ (or n 0))
-				       (1+ level)
-				       (plist-put 
-					inherited-props
-					:id 
-					(alist-get 'id metadata)))))))
+		       (append 
+			(cl-loop
+			 for each in groups                         
+			 when (car each)
+			 do (progn 
+			      (setq metadata
+				    (get-header-metadata
+				     (car each)
+				     (plist-get inherited :id))))
+			 and collect
+			 (cons (funcall reorg--grouper-action-function
+					metadata
+					nil
+					level)
+			       (list 
+				(drill! (cdr each)
+					prop						
+					(1+ (or n 0))
+					(1+ level)
+					(plist-put 
+					 inherited-props
+					 :id 
+					 (alist-get 'id metadata))))))
+			(when (alist-get nil groups)
+			  (cl-loop for each in (alist-get nil groups)
+				   collect (reorg--create-headline-string
+					    each
+					    format-results
+					    level
+					    (plist-get template :overrides)
+					    (plist-get template :post-overrides))))))
+
+
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
 				collect (reorg--get-group-and-sort

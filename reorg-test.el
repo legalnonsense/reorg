@@ -163,10 +163,11 @@
 (defun reorg-test-file-tree ()
   (interactive)
   (reorg-open-sidebar
-   `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony -type f | grep pdf"))
+   `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony -type f | grep .pdf"))
       :group .!parent-dirs
       :sort-results ((.filename . reorg-string<))
-      :format-results (.filename))))
+      :bullet ""
+      :format-results (.stars " " .filename))))
 
 ;; (defun reorg-test-file-tree-BAD ()
 ;;   (interactive)
