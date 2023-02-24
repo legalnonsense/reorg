@@ -444,7 +444,7 @@ if there is not one."
 (reorg-create-data-type
  :name delegatee
  :class org
- :parse (org-entry-get (point) "DELEGATED"))
+ :parse (org-entry-get (point) "DELEGATEE"))
 
 (reorg-create-data-type
  :name tag-list
