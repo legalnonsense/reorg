@@ -519,8 +519,8 @@ if there is not one."
  :parse (org-entry-get (point) "PRIORITY")
  :display (pcase (alist-get 'priority data)
 	    ("A" "⚡")
-	    ("B" "➙")
-	    ("C" "﹍")
+	    ("B" "⇥")
+	    ("C" "⬊")
 	    (_ " ")))
 
 (reorg-create-data-type :name body
