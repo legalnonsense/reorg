@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 
 (setq reorg-test-org-file-list (org-agenda-files))
+(setq reorg-test-org-file-list "~/tmp/tmp.org")
 ;; (defun reorg-test-blank-header ()
 ;;   (interactive)
 ;;   (reorg-open-sidebar '( :sources ((org . "~/tmp/tmp.org"))
