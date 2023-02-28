@@ -1266,6 +1266,7 @@ to the results."
 		  (cons 'reorg-branch t)
 		  (cons 'branch-type 'branch)
 		  (cons 'sort-results sort-results)
+		  (cons 'sort-group sort-groups)
 		  (cons 'bullet bullet)
 		  (cons 'folded-bullet folded-bullet)
 		  (cons 'reorg-level level)
