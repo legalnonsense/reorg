@@ -195,6 +195,7 @@ contains a timestamp."
 				 "PM"))))
 		ts))
 
+
 (defun reorg-org--format-time-string (ts no-time-format &optional time-format)
   "Format a ts object.  I am honestly not sure what this is doing."
   (format-time-string
@@ -475,6 +476,7 @@ if there is not one."
 			  "%a, %b %d, %Y"
 			  "%a, %b %d, %Y at %-l:%M%p")))))
 
+
 (reorg-create-data-type
  :name ts
  :class org
@@ -484,24 +486,48 @@ if there is not one."
 	   (org-no-properties (reorg-org--timestamp-parser)))
 	 (when (reorg-org--timestamp-parser nil t)
 	   (org-no-properties (reorg-org--timestamp-parser nil t)))
-	 (org-entry-get (point) "SCHEDULED"))
- :display (if-let ((ts (alist-get 'ts data)))
-	      (if (=
-		   (string-to-number
-		    (format-time-string "%Y"))
-		   (ts-year (ts-parse-org ts)))
-		  (s-pad-right 22 " "
-			       (reorg-org--format-time-string
-				ts
+	 (org-entry-get (point) "SCHEDULED")))
 
-				"%a, %b %d"
-				"%a, %b %d at %-l:%M%p"))
-		(s-pad-right 22 " "
-			     (reorg-org--format-time-string
-			      ts
-			      "%a, %b %d, %Y"
-			      "%a, %b %d, %Y at %-l:%M%p")))
-	    nil))
+(defmacro reorg--create-string-comparison-funcs ()
+  "Create string comparison functions that ignore case:
+reorg-string<, reorg-string=, reorg-string>.  These functions
+are convenience functions for writing templates." 
+  `(progn 
+     ,@(cl-loop for each in '("<" ">" "=" )
+		collect `(defun ,(intern (concat "reorg-string" each)) (a b)
+			   ,(concat "like string" each " but ignore case"
+				    "and allow nils")
+			   (,(intern (concat "string" each))
+			    (if a (downcase a) "")
+			    (if b (downcase b) ""))))))
+
+;; (reorg-create-data-type
+;;  :name ts
+;;  :class org
+;;  :parse (or
+;; 	 (org-entry-get (point) "DEADLINE")
+;; 	 (when (reorg-org--timestamp-parser)
+;; 	   (org-no-properties (reorg-org--timestamp-parser)))
+;; 	 (when (reorg-org--timestamp-parser nil t)
+;; 	   (org-no-properties (reorg-org--timestamp-parser nil t)))
+;; 	 (org-entry-get (point) "SCHEDULED"))
+;;  :display (if-let ((ts (alist-get 'ts data)))
+;; 	      (if (=
+;; 		   (string-to-number
+;; 		    (format-time-string "%Y"))
+;; 		   (ts-year (ts-parse-org ts)))
+;; 		  (s-pad-right 22 " "
+;; 			       (reorg-org--format-time-string
+;; 				ts
+
+;; 				"%a, %b %d"
+;; 				"%a, %b %d at %-l:%M%p"))
+;; 		(s-pad-right 22 " "
+;; 			     (reorg-org--format-time-string
+;; 			      ts
+;; 			      "%a, %b %d, %Y"
+;; 			      "%a, %b %d, %Y at %-l:%M%p")))
+;; 	    nil))
 
 (reorg-create-data-type
  :name timestamp-all
