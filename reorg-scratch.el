@@ -83,21 +83,16 @@
 							0
 							'reorg-field-type
 							(car x))))))))
-    (cl-loop for group in yyy
+    (cl-loop for group in data
 	     collect (cl-loop with leaf = (car (last group))
 			      with headings = (butlast group)
-			      with y = nil
+			      with n from 0 
 			      for heading in headings
-			      for x from 0
-			      ;; try to find the lowest header possible 
-			      do (let ((props (get-text-property 1 'reorg-data heading)))
-				   (when (reorg--goto-next-prop 'id (alist-get 'id props))
-				     (setq y x)))
-			      finally (if (= y 0) (
-						   
-						   do (cl-loop for y from x downto 0
-							       do (reorg--insert-header-at-point (nth y headings)))
-						   
+			      unless (->> (get-text-property 0 'reorg-data heading)
+					  (alist-get 'id)
+					  (reorg--goto-next-prop 'id))
+			      finally (reorg--find-leaf-location leaf 
+
 
 
 
