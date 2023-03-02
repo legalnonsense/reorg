@@ -1,5 +1,8 @@
 ;; -*- lexical-binding: t; -*-
 
+(benchmark 1
+	   '(reorg-client-1))
+
 (setq reorg-test-org-file-list (org-agenda-files))
 (setq reorg-test-org-file-list "~/tmp/tmp.org")
 ;; (defun reorg-test-blank-header ()
@@ -21,6 +24,45 @@
       :sort-results ((.filename . string<))
       :sort-groups string<)))
 
+(defun reorg-client-todo-1 ()
+  (interactive)
+  (let ((now (ts-format "<%Y-%m-%d" (ts-dec 'day 1 (ts-now)))))
+    (reorg-open-sidebar
+     (setq reorg-client-template
+	   `( :sources ((org . ,reorg-test-org-file-list))
+	      :group (when (and 
+			    (member .todo '("TASK"
+					    "DELEGATED"
+					    "EVENT"
+					    "OPP_DUE"
+					    "DEADLINE"))
+			    (if .ts
+				(string> .ts ,now)
+			      t))
+		       .root)
+	      ;; (propertize .root
+	      ;; 		  'face
+	      ;; 		  `(( t ( :foreground ,(face-foreground 'default)
+	      ;; 			  :height 1.5
+	      ;; 			  :family "ETBembo"
+	      ;; 			  :weight bold
+	      ;; 			  :underline t)))))
+	      :format-results ("   " (s-pad-right 5 " " .priority)
+			       (s-pad-right 15 " " .todo)
+			       " "
+			       (if .ts
+				   (s-pad-right 50 "." .headline)
+				 .headline)
+			       .ts)
+	      :sort-results ((.ts . string<)
+			     ;; (.todo . (lambda (a b)
+			     ;; 		(reorg--sort-by-list a b '("TODO"
+			     ;; 					   "WAITING"
+			     ;; 					   "DELEGATED"))
+
+			     (.priority . string<))
+	      :sort-groups reorg-string<)))))
+
 (defun reorg-client-todo ()
   (interactive)
   (let ((now (ts-format "<%Y-%m-%d" (ts-dec 'day 1 (ts-now)))))
@@ -36,6 +78,7 @@
 			    (if .ts
 				(string> .ts ,now)
 			      t))
+
 		       (propertize .root
 				   'face
 				   `(( t ( :foreground ,(face-foreground 'default)
@@ -58,6 +101,53 @@
 
 			     (.priority . string<))
 	      :sort-groups reorg-string<)))))
+
+(defun reorg-client-1 ()
+  (interactive)
+  (let ((now (ts-format "<%Y-%m-%d" (ts-dec 'day 1 (ts-now)))))
+    (reorg-open-sidebar
+     (setq reorg-client-template
+	   `( :sources ((org . ,reorg-test-org-file-list))
+	      :group (when (or 
+			    (member .todo '("TASK"
+					    "DELEGATED"
+					    "EVENT"
+					    "OPP_DUE"
+					    "DEADLINE"))
+			    (and .ts
+				 (string> .ts ,now))
+			    (string= .headline "_NOTES_"))
+		       (propertize .root
+				   'face
+				   `(( t ( :foreground ,(face-foreground 'default)
+					   :height 1.5
+					   :family "ETBembo"
+					   :weight bold
+					   :underline t)))))
+	      :format-results (.stars "   " (s-pad-right 5 " " .priority)
+				      (s-pad-right 15 " " .todo)
+				      " "
+				      (if .ts
+					  (s-pad-right 50 "." .headline)
+					.headline)
+				      .ts)
+	      :sort-groups reorg-string<
+	      :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
+				    "TASKS")
+			   :sort-groups (lambda (a b)
+					  (reorg--sort-by-list a b
+							       '("TASK"
+								 "DELEGATED"
+								 "WAITING")))
+			   :sort-results ((.priority . string<)))
+			 ( :group (when (and .ts
+					     (not (member .todo '("TASK"
+								  "DELEGATED"
+								  "WAITING"))))
+				    "CALENDAR")
+			   :sort-results ((.ts . string<)))
+			 ( :group (when (equal "_NOTES_" .headline) "")
+			   :format-results (.stars "  NOTES"))))))))
 
 (defun reorg-client ()
   (interactive)
