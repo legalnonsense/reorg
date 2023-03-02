@@ -94,7 +94,12 @@
 			  unless (->> (get-text-property 0 'reorg-data heading)
 				      (alist-get 'id)
 				      (reorg--goto-next-prop 'id))
-			  finally (reorg--find-leaf-location leaf 
+			  do (reorg--find-header-location-within-groups header)
+			  and
+			  do (cl-loop for x from n to (length headings)
+				      do 
+				      (reorg--insert-header-at-point (nth x headings)))
+			  finally (reorg--find-leaf-location leaf)
 
 
 
