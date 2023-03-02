@@ -1,8 +1,5 @@
 ;; -*- lexical-binding: t; -*-
 
-(benchmark 1
-	   '(reorg-client-1))
-
 (setq reorg-test-org-file-list (org-agenda-files))
 (setq reorg-test-org-file-list "~/tmp/tmp.org")
 ;; (defun reorg-test-blank-header ()
@@ -808,7 +805,7 @@
 	    (lambda (a b)
 	      (string< (downcase a)
 		       (downcase b)))			
-	    :chnildren
+	    :children
 	    (( :group
 	       (when
 		   (and

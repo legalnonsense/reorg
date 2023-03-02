@@ -410,6 +410,9 @@ Does not run 'reorg--navigation-hooks'."
 	(> (point) limit)
       (= (point) (point-max)))
     nil)
+   ;; ((equal (alist-get property (get-text-property (point) 'reorg-data))
+   ;; 	   value)
+   ;;  (point))
    (t    
     (let ((origin (point))
 	  (ended nil)
@@ -1085,7 +1088,6 @@ parser for that data type."
 	   append
 	   (cl-loop
 	    for dsym in (reorg--get-all-dotted-symbols template)
-
 	    when (alist-get dsym (alist-get class reorg--parser-list))
 	    collect (cons dsym
 			  (reorg--get-parser-func-name class dsym))
