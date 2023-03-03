@@ -1467,7 +1467,8 @@ to the results."
 	    (cond ((and (plist-get template :children)
 			(= 1 (length results))
 			(equal "" (caar results)))
-
+		   (setq metadata (get-header-metadata
+				   "" (plist-get inherited-props :id)))
 		   (cl-loop for (header . children) in results  
 			    append
 			    (cl-loop for child in (plist-get template :children)
@@ -1482,12 +1483,12 @@ to the results."
 				       :parent-template template
 				       :format-results format-results
 				       :sort-results sort-results
-				       :id "asdf"
+				       :id (alist-get 'id metadata)
 				       :bullet bullet
 				       :folded-bullet folded-bullet
 				       :face face)
 				      'recursed))))
-		  ((plist-get template :children) ;; if there are childre
+		  ((plist-get template :children) ;; if there are children
 		   (cl-loop
 		    for (header . children) in results
 		    append
