@@ -204,7 +204,7 @@
       :children (( :group (when (and .priority
 				     (string= .priority "A")
 				     (member .todo '("TASK")))
-			    "Top Priority")
+			    "TOP PRIORITY")
 		   :sort-results ((.category-inherited . reorg-string<)))
 		 ( :group (when (member .todo '("TASK"
 						"WAITING"

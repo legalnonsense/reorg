@@ -1267,6 +1267,7 @@ to the results."
 	results metadata)
     (cl-labels ((get-header-metadata ;; sloppy
 		 (header parent-id)
+		 ;; (debug nil header parent-id group-id)
 		 (list
 		  (cons 'branch-name header)
 		  (cons 'reorg-branch t)
@@ -1276,9 +1277,9 @@ to the results."
 		  (cons 'bullet bullet)
 		  (cons 'folded-bullet folded-bullet)
 		  (cons 'reorg-level level)
-		  (cons 'id (concat parent-id group-id header))
-		  (cons 'parent-id parent-id)
-		  (cons 'group-id group-id)))
+		  (cons 'id (org-no-properties (concat parent-id group-id header)))
+		  (cons 'parent-id (org-no-properties parent-id))
+		  (cons 'group-id (org-no-properties group-id))))
 		(drill!
 		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
