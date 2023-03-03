@@ -399,9 +399,11 @@ supplied, get that property from 'reorg-data'."
 				       value
 				       limit
 				       predicate
-				       visible-only)
+				       visible-only
+				       current)
   "Assume we are getting 'reorg-data and PROPERTY is the key of that alist.
-Does not run 'reorg--navigation-hooks'."
+Does not run 'reorg--navigation-hooks'.  NEXT means ignore the property
+you are on."
   ;; There must be a better way.
   (cond
    ((eobp)
@@ -410,9 +412,11 @@ Does not run 'reorg--navigation-hooks'."
 	(> (point) limit)
       (= (point) (point-max)))
     nil)
-   ;; ((equal (alist-get property (get-text-property (point) 'reorg-data))
-   ;; 	   value)
-   ;;  (point))
+   ((and current
+	 (funcall (or predicate #'equal)
+		  (alist-get property (reorg--get-prop))
+		  value))
+    (point))
    (t    
     (let ((origin (point))
 	  (ended nil)

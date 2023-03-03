@@ -3,58 +3,12 @@
 ;; This buffer is for text that is not saved, and for Lisp evaluation.
 ;; To create a file, visit it with C-x C-f and enter text in its buffer.
 
-'((( :headline "* By client\n"
-     :id "b92c491098343a3ee048af2ae7d5eebaBy client"
-     :group-id "b92c491098343a3ee048af2ae7d5eeba"
-     :parent-id nil)
-   ( :headline "** Abraha, Seifu\n"
-     :id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu"
-     :group-id "8c7bd4ee270a7b45899af20b5cb0f702"
-     :parent-id "b92c491098343a3ee048af2ae7d5eebaBy client")
-   ( :headline "*** Tasks\n"
-     :id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu4297c1f66ff67d8df8962821c7d8d81eTasks"
-     :group-id "4297c1f66ff67d8df8962821c7d8d81e"
-     :parent-id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu")
-   ( :headline "⚡ TASK            this is a test!\n"
-     :id "d51e0c82-2005-4e7a-90d9-eb3024c4276a"
-     :group-id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu4297c1f66ff67d8df8962821c7d8d81eTasks"
-     :parent-id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu4297c1f66ff67d8df8962821c7d8d81eTasks"))
-  (( :headline "* By client\n"
-     :id "b92c491098343a3ee048af2ae7d5eebaBy client"
-     :group-id "b92c491098343a3ee048af2ae7d5eeba"
-     :parent-id nil)
-   ( :headline "** Abraha, Seifu\n"
-     :id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu"
-     :group-id "8c7bd4ee270a7b45899af20b5cb0f702"
-     :parent-id "b92c491098343a3ee048af2ae7d5eebaBy client")
-   ( :headline "*** Calendar\n"
-     :id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu235fe0000369a4c2d171b16de8008479Calendar"
-     :group-id "235fe0000369a4c2d171b16de8008479"
-     :parent-id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu")
-   ( :headline " Thu, Feb 23                    this is a test!\n"
-     :id "d51e0c82-2005-4e7a-90d9-eb3024c4276a"
-     :group-id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu235fe0000369a4c2d171b16de8008479Calendar"
-     :parent-id "b92c491098343a3ee048af2ae7d5eebaBy client8c7bd4ee270a7b45899af20b5cb0f702Abraha, Seifu235fe0000369a4c2d171b16de8008479Calendar"))
-  (( :headline "* Calendar\n"
-     :id "4345f7664a902987ddd4372b5789b9bcCalendar"
-     :group-id "4345f7664a902987ddd4372b5789b9bc"
-     :parent-id nil)
-   ( :headline "** 2023\n"
-     :id "4345f7664a902987ddd4372b5789b9bcCalendar70fa3bddc1a414cff7cf6a31c3b481a32023"
-     :group-id "70fa3bddc1a414cff7cf6a31c3b481a3"
-     :parent-id "4345f7664a902987ddd4372b5789b9bcCalendar")
-   ( :headline "*** February\n"
-     :id "4345f7664a902987ddd4372b5789b9bcCalendar70fa3bddc1a414cff7cf6a31c3b481a32023ad56c1a9eb4e272501b3d49a683ea2a9February"
-     :group-id "ad56c1a9eb4e272501b3d49a683ea2a9"
-     :parent-id "4345f7664a902987ddd4372b5789b9bcCalendar70fa3bddc1a414cff7cf6a31c3b481a32023")
-   ( :headline "**** 23 Thursday    Abraha, Seifu       this is a test!\n"
-     :id "d51e0c82-2005-4e7a-90d9-eb3024c4276a"
-     :group-id "4345f7664a902987ddd4372b5789b9bcCalendar70fa3bddc1a414cff7cf6a31c3b481a32023ad56c1a9eb4e272501b3d49a683ea2a9February"
-     :parent-id "4345f7664a902987ddd4372b5789b9bcCalendar70fa3bddc1a414cff7cf6a31c3b481a32023ad56c1a9eb4e272501b3d49a683ea2a9February")))
+
 
 
 (setq xxx (reorg--parser nil 'org reorg--temp-parser-list))
 xxx
+zzz
 ;; (setq yyy (-->
 ;; 	   (reorg--get-group-and-sort (list xxx) reorg--current-template 1 t)
 ;; 	   (reorg--get-all-tree-paths it (lambda (x)
@@ -74,8 +28,7 @@ xxx
 ;; 	   ;; 				  :parent-id (alist-get 'parent-id props)))))
 ;; 	   ))
 (setq zzz
-      (let* ((data (reorg--get-group-and-sort
-		    (list xxx) reorg--current-template 1 t))
+      (let* ((data )
 	     (data (reorg--get-all-tree-paths data (lambda (x)
 						     (and (listp x)
 							  (stringp (car x))
@@ -87,26 +40,47 @@ xxx
 							    (car x))))))))
 	data))
 
-(defun lll ()
+(defun reorg--new-insert-new (data)
   "asdf"
-  (cl-loop for group in zzz
-	   collect (cl-loop with leaf = (car (last group))
-			    with headings = (butlast group)
-			    with stop = nil 
-			    for heading in headings
-			    for n from 0
-			    unless (let* ((props (get-text-property 0 'reorg-data heading))
-					  (id (alist-get 'id props)))
-				     (setq qqq id)
-				     (reorg--goto-next-prop 'id id))
-			    do (reorg--find-header-location-within-groups heading)
-			    and
-			    do (cl-loop for x from n to (length headings)
-					do 
-					(reorg--insert-header-at-point (nth x headings))
-					finally (setq stop t))
-			    when stop return (reorg--find-leaf-location leaf)
-			    finally (reorg--find-leaf-location leaf))))
+  (setq cursor-type 'box)
+  (setq yyy data
+	data (reorg--get-group-and-sort
+	      (list data)
+	      reorg--current-template
+	      1
+	      t)
+	data (reorg--get-all-tree-paths
+	      data
+	      (lambda (x)
+		(and (listp x)
+		     (stringp (car x))
+		     (eq
+		      'leaf
+		      (get-text-property
+		       0
+		       'reorg-field-type
+		       (car x))))))
+	zzz data)
+  (goto-char (point-min))
+  (cl-loop for group in data
+	   do (cl-loop with leaf = (car (last group))
+		       with headings = (butlast group)
+		       with stop = nil 
+		       for heading in headings
+		       for n from 0
+		       unless (let* ((props (get-text-property 0 'reorg-data heading))
+				     (id (alist-get 'id props)))
+				(reorg--goto-next-prop 'id id nil nil nil t))
+		       do (reorg--goto-next-prop 'group-id 
+		       and do (reorg--find-header-location-within-groups heading)
+		       and
+		       do (cl-loop for x from n to (1- (length headings))
+				   do 
+				   (reorg--insert-header-at-point (nth x headings) t)
+				   finally (setq stop t))
+		       when stop return (reorg--find-leaf-location leaf)
+		       finally (reorg--find-leaf-location leaf))
+	   and do (reorg--insert-header-at-point (car (last group)) t)))
 
 
 
