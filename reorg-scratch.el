@@ -81,8 +81,8 @@ zzz
 				       do
 				       (reorg--insert-header-at-point (nth x headings) t) ;;FIXME
 				       finally (progn (setq stop t)
-						      (reorg--find-leaf-location leaf)
-						      (reorg--insert-header-at-point leaf t))))))))
+						      (reorg--find-leaf-location leaf)))))
+		       finally (reorg--insert-header-at-point leaf t))))
 
 
 

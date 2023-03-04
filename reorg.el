@@ -797,7 +797,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 				  .branch-name
 				  (reorg--get-prop 'branch-name))
 		 return nil
-		 while (reorg--goto-next-sibling-same-group
+		 while (reorg--goto-next-sibling-same-group ;; check this next
 			(get-text-property 0 'reorg-data header-string))
 		 finally return (progn (goto-char point)
 				       nil))
