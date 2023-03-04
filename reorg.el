@@ -1277,7 +1277,11 @@ to the results."
 		  (cons 'bullet bullet)
 		  (cons 'folded-bullet folded-bullet)
 		  (cons 'reorg-level level)
-		  (cons 'id (org-no-properties (concat parent-id group-id header)))
+		  (cons 'id (org-no-properties (concat parent-id
+						       group-id
+						       (if (equal "" header)
+							   "BLANK"
+							 header))))
 		  (cons 'parent-id (org-no-properties parent-id))
 		  (cons 'group-id (org-no-properties group-id))))
 		(drill!
@@ -1469,6 +1473,7 @@ to the results."
 			(equal "" (caar results)))
 		   (setq metadata (get-header-metadata
 				   "" (plist-get inherited-props :id)))
+		   (debug nil "reached here")
 		   (cl-loop for (header . children) in results  
 			    append
 			    (cl-loop for child in (plist-get template :children)
@@ -1553,12 +1558,25 @@ to the results."
 			       collect
 			       (funcall
 				action-function
-				(append result
-					(list 
-					 (cons 'group-id
-					       (alist-get 'id metadata))
-					 (cons 'parent-id
-					       (alist-get 'id metadata))))
+				(progn (setf (alist-get 'group-id result)
+					     group-id
+					     (alist-get 'parent-id result)
+					     (plist-get inherited-props :id) 
+					     (alist-get 'id result)
+					     (alist-get 'id metadata))
+				       result)
+				;; (append result
+				;; 	(progn
+				;; 	  ;; (debug nil
+				;; 	  ;; 	 :header
+				;; 	  ;; 	 header
+				;; 	  ;; 	 :alist-get-id-from-metadata
+				;; 	  ;; 	 (alist-get 'id metadata))
+				;; 	  (list
+				;; 	   (cons 'group-id
+				;; 		 group-id)
+				;; 	   (cons 'parent-id
+				;; 		 (plist-get inherited-props :id)))))
 				format-results
 				(if (equal ""
 					   (alist-get
