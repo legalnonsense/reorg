@@ -65,22 +65,28 @@ zzz
   (cl-loop for group in data
 	   do (cl-loop with leaf = (car (last group))
 		       with headings = (butlast group)
-		       with stop = nil 
+		       with stop = nil
+		       while (not stop)
 		       for heading in headings
 		       for n from 0
-		       unless (let* ((props (get-text-property 0 'reorg-data heading))
-				     (id (alist-get 'id props)))
-				(reorg--goto-next-prop 'id id nil nil nil t))
-		       do (reorg--goto-next-prop 'group-id 
-		       and do (reorg--find-header-location-within-groups heading)
-		       and
-		       do (cl-loop for x from n to (1- (length headings))
-				   do 
-				   (reorg--insert-header-at-point (nth x headings) t)
-				   finally (setq stop t))
-		       when stop return (reorg--find-leaf-location leaf)
-		       finally (reorg--find-leaf-location leaf))
-	   and do (reorg--insert-header-at-point (car (last group)) t)))
+		       do (let* ((props (get-text-property 0 'reorg-data heading))
+				 (id (alist-get 'id props)))
+			    ;; if we don't find the first header, then none
+			    ;; of them exist 
+			    (unless (reorg--goto-next-prop 'id id nil nil nil t)
+			      ;; check to see if there is an existing group
+			      (when (reorg--goto-next-prop 'group-id)
+				(reorg--find-header-location-within-groups heading)) ;;FIXME
+			      (cl-loop for x from n to (1- (length headings))
+				       do
+				       (reorg--insert-header-at-point (nth x headings) t) ;;FIXME
+				       finally (progn (setq stop t)
+						      (reorg--find-leaf-location leaf)
+						      (reorg--insert-header-at-point leaf t))))))))
+
+
+
+
 
 
 
