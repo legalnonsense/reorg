@@ -1305,13 +1305,14 @@ to the results."
 			     (cons
 			      'new-id 
 			      (let ((new-id (org-id-uuid)))
-				(setq parent-id (concat parent-id
-							new-id
-							(if (equal "" header)
-							    "BLANK"
-							  header)))
-				new-id))
-			     (cons 'new-parent-id parent-id))))
+				;; (setq parent-id (concat parent-id
+				;; 			new-id
+				;; 			(if (equal "" header)
+				;; 			    "BLANK"
+				;; 			  header)))
+				(concat new-id header)))
+			     ;; START HERE; CONCAT PREVIOUS IDs
+			     (cons 'new-path-id parent-id))))
 		   ret))
 		;; (cons 'new-path (concat parent-id)))
 		;; (cons 'id (org-no-properties (concat parent-id
@@ -1416,7 +1417,7 @@ to the results."
 				       (list
 					(cons 'group-id
 					      (alist-get 'new-id metadata))
-					(cons 'new-parent-id
+					(cons 'new-path-id
 					      (alist-get 'new-id metadata))))
 			       format-results
 			       level
@@ -1597,7 +1598,7 @@ to the results."
 				action-function
 				(progn (setf (alist-get 'group-id result)
 					     group-id
-					     (alist-get 'new-parent-id result)
+					     (alist-get 'new-path-id result)
 					     (plist-get inherited-props :new-id) 
 					     (alist-get 'new-id result)
 					     (alist-get 'new-id metadata))
@@ -2054,7 +2055,7 @@ the buffer."
   (interactive)
   (list
    :new-id (reorg--get-prop 'new-id)
-   :new-path (reorg--get-prop 'new-path)
+   :new-path (reorg--get-prop 'new-path-id)
    :new-parent (reorg--get-prop 'new-parent-id)
    :id (reorg--get-prop 'id)
    :group-id (reorg--get-prop 'group-id)
