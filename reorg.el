@@ -1293,22 +1293,34 @@ to the results."
     (cl-labels ((get-header-metadata ;; sloppy
 		 (header parent-id)
 		 ;; (debug nil header parent-id group-id)
-		 (list
-		  (cons 'branch-name header)
-		  (cons 'reorg-branch t)
-		  (cons 'branch-type 'branch)
-		  (cons 'sort-results sort-results)
-		  (cons 'sort-group sort-groups)
-		  (cons 'bullet bullet)
-		  (cons 'folded-bullet folded-bullet)
-		  (cons 'reorg-level level)
-		  (cons 'id (org-no-properties (concat parent-id
-						       group-id
-						       (if (equal "" header)
-							   "BLANK"
-							 header))))
-		  (cons 'parent-id (org-no-properties parent-id))
-		  (cons 'group-id (org-no-properties group-id))))
+		 (let ((ret (list
+			     (cons 'branch-name header)
+			     (cons 'reorg-branch t)
+			     (cons 'branch-type 'branch)
+			     (cons 'sort-results sort-results)
+			     (cons 'sort-group sort-groups)
+			     (cons 'bullet bullet)
+			     (cons 'folded-bullet folded-bullet)
+			     (cons 'reorg-level level)
+			     (cons
+			      'new-id 
+			      (let ((new-id (org-id-uuid)))
+				(setq parent-id (concat parent-id
+							new-id
+							(if (equal "" header)
+							    "BLANK"
+							  header)))
+				new-id))
+			     (cons 'new-parent-id parent-id))))
+		   ret))
+		;; (cons 'new-path (concat parent-id)))
+		;; (cons 'id (org-no-properties (concat parent-id
+		;; 				       group-id
+		;; 				       (if (equal "" header)
+		;; 					   "BLANK"
+		;; 					 header))))
+		;; (cons 'parent-id (org-no-properties parent-id))
+		;; (cons 'group-id (org-no-properties group-id))))
 		(drill!
 		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
@@ -1352,7 +1364,7 @@ to the results."
 			      (setq metadata
 				    (get-header-metadata
 				     (car each)
-				     (plist-get inherited :id))))
+				     (plist-get inherited-props :new-id))))
 			 and collect
 			 (cons (funcall reorg--grouper-action-function
 					metadata
@@ -1365,8 +1377,8 @@ to the results."
 					(1+ level)
 					(plist-put 
 					 inherited-props
-					 :id 
-					 (alist-get 'id metadata))))))
+					 :new-id 
+					 (alist-get 'new-id metadata))))))
 			(when (alist-get nil groups)
 			  (cl-loop for each in (alist-get nil groups)
 				   collect (reorg--create-headline-string
@@ -1385,7 +1397,7 @@ to the results."
 					 ignore-sources
 					 (list :header nil
 					       :format-results format-results
-					       :id (plist-get inherited :id)
+					       :new-id (plist-get inherited :new-id)
 					       :sort-results sort-results
 					       :parent-template template
 					       :bullet bullet
@@ -1403,9 +1415,9 @@ to the results."
 			       (append each
 				       (list
 					(cons 'group-id
-					      (alist-get 'id metadata))
-					(cons 'parent-id
-					      (alist-get 'id metadata))))
+					      (alist-get 'new-id metadata))
+					(cons 'new-parent-id
+					      (alist-get 'new-id metadata))))
 			       format-results
 			       level
 			       (plist-get template :overrides)
@@ -1426,7 +1438,7 @@ to the results."
 			    ignore-sources
 			    (list :header nil
 				  :format-results format-results
-				  :id nil
+				  :new-id nil
 				  :sort-results sort-results
 				  :parent-template template
 				  :bullet bullet
@@ -1497,7 +1509,7 @@ to the results."
 			(= 1 (length results))
 			(equal "" (caar results)))
 		   (setq metadata (get-header-metadata
-				   "" (plist-get inherited-props :id)))
+				   "" (plist-get inherited-props :new-id)))
 		   (debug nil "reached here")
 		   (cl-loop for (header . children) in results  
 			    append
@@ -1513,7 +1525,7 @@ to the results."
 				       :parent-template template
 				       :format-results format-results
 				       :sort-results sort-results
-				       :id (alist-get 'id metadata)
+				       :new-id (alist-get 'new-id metadata)
 				       :bullet bullet
 				       :folded-bullet folded-bullet
 				       :face face)
@@ -1526,7 +1538,7 @@ to the results."
 		     (funcall action-function
 			      (setq metadata
 				    (get-header-metadata
-				     header (plist-get inherited-props :id)))
+				     header (plist-get inherited-props :new-id)))
 
 			      nil
 			      level
@@ -1552,7 +1564,7 @@ to the results."
 				:parent-template template
 				:format-results format-results
 				:sort-results sort-results
-				:id (alist-get 'id metadata)
+				:new-id (alist-get 'new-id metadata)
 				:bullet bullet
 				:folded-bullet folded-bullet
 				:face face)
@@ -1566,7 +1578,7 @@ to the results."
 			      (setq metadata
 				    (get-header-metadata
 				     header
-				     (plist-get inherited-props :id)))
+				     (plist-get inherited-props :new-id)))
 			      nil
 			      level
 			      (plist-get template :overrides)
@@ -1585,10 +1597,10 @@ to the results."
 				action-function
 				(progn (setf (alist-get 'group-id result)
 					     group-id
-					     (alist-get 'parent-id result)
-					     (plist-get inherited-props :id) 
-					     (alist-get 'id result)
-					     (alist-get 'id metadata))
+					     (alist-get 'new-parent-id result)
+					     (plist-get inherited-props :new-id) 
+					     (alist-get 'new-id result)
+					     (alist-get 'new-id metadata))
 				       result)
 				;; (append result
 				;; 	(progn
@@ -2040,9 +2052,13 @@ the buffer."
 
 (defun reorg--debug-show-groups ()
   (interactive)
-  (list :id (reorg--get-prop 'id)
-	:group-id (reorg--get-prop 'group-id)
-	:parent-id (reorg--get-prop 'parent-id)))
+  (list
+   :new-id (reorg--get-prop 'new-id)
+   :new-path (reorg--get-prop 'new-path)
+   :new-parent (reorg--get-prop 'new-parent-id)
+   :id (reorg--get-prop 'id)
+   :group-id (reorg--get-prop 'group-id)
+   :parent-id (reorg--get-prop 'parent-id)))
 
 
 (provide 'reorg)

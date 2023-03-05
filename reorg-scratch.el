@@ -40,6 +40,11 @@ zzz
 							    (car x))))))))
 	data))
 
+;; id - the unique ID associated with each entry
+;; path - a hash of all the complete path
+;; parent - just the parent
+;; group-id - common across all groups (why ever use this?)
+
 (defun reorg--new-insert-new (data)
   "asdf"
   (setq cursor-type 'box)
