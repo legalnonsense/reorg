@@ -754,9 +754,9 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 (defun reorg--goto-next-sibling-same-group (&optional data)
   "goot next sibing same group"
   (let ((id (or
-	     (and data (alist-get 'group-id data))
-	     (reorg--get-prop 'group-id))))
-    (reorg--goto-next-prop 'group-id id)))
+	     (and data (alist-get 'parent-id data))
+	     (reorg--get-prop 'parent-id))))
+    (reorg--goto-next-prop 'parent-id id)))
 
 ;; (defun reorg--goto-next-leaf-sibling ()
 ;;   "goto next sibling"
@@ -786,6 +786,31 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
       nil)))
 
 (defun reorg--find-header-location-within-groups (header-string)
+  "assume the point is on the first header in the group"
+  (let-alist (get-text-property 0 'reorg-data header-string)
+    (if .sort-groups
+	(cl-loop with point = (point)
+		 if (equal .branch-name
+			   (reorg--get-prop 'branch-name))
+		 return (point)
+		 else if (funcall .sort-groups
+				  .branch-name
+				  (reorg--get-prop 'branch-name))
+		 return nil
+		 while (reorg--goto-next-sibling-same-group ;; check this next
+			(get-text-property 0 'reorg-data header-string))
+		 finally return (progn (goto-char point)
+				       nil))
+      (cl-loop with point = (point)
+	       when (equal .branch-name
+			   (reorg--get-prop 'branch-name))
+	       return t
+	       while (reorg--goto-next-sibling-same-group
+		      (get-text-property 0 'reorg-data header-string))
+	       finally return (progn (goto-char point)
+				     nil)))))
+
+(defun reorg--find-header-location-within-groups* (header-string)
   "assume the point is on the first header in the group"
   (let-alist (get-text-property 0 'reorg-data header-string)
     (if .sort-groups
