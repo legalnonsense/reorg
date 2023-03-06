@@ -1313,28 +1313,10 @@ to the results."
 				 id))
 			      (cons 'new-path-id (concat parent-id id)))))
 		   ret))
-		;; (cons 'new-path (concat parent-id)))
-		;; (cons 'id (org-no-properties (concat parent-id
-		;; 				       group-id
-		;; 				       (if (equal "" header)
-		;; 					   "BLANK"
-		;; 					 header))))
-		;; (cons 'parent-id (org-no-properties parent-id))
-		;; (cons 'group-id (org-no-properties group-id))))
 		(drill!
 		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
 		 (if-let ((groups (reorg--seq-group-by				   
-				   ;; `(lambda (x)
-				   ;;    (let-alist x
-				   ;; 	(eval 
-				   ;; 	 (reorg--walk-tree 
-				   ;; 	  ',prop
-				   ;; 	  (lambda (xx)
-				   ;; 	    (reorg--turn-dot-bang-to-val
-				   ;; 	     xx
-				   ;; 	     ,(or n 0)
-				   ;; 	     x))))))
 				   `(lambda (x)				      
 				      (eval ;; I believe I had no choice.
 				       (reorg--walk-tree
@@ -1366,7 +1348,7 @@ to the results."
 				     (car each)
 				     (plist-get inherited-props :new-path-id))))
 			 and collect
-			 (cons (funcall reorg--grouper-action-function
+			 (cons (funcall action-function
 					metadata
 					nil
 					level)
@@ -1418,7 +1400,7 @@ to the results."
 					(cons 'group-id
 					      (alist-get 'new-id metadata))
 					(cons 'new-path-id
-					      (alist-get 'new-id metadata))))
+					      (alist-get 'new-path-id metadata))))
 			       format-results
 			       level
 			       (plist-get template :overrides)
