@@ -1293,26 +1293,25 @@ to the results."
     (cl-labels ((get-header-metadata ;; sloppy
 		 (header parent-id)
 		 ;; (debug nil header parent-id group-id)
-		 (let ((ret (list
-			     (cons 'branch-name header)
-			     (cons 'reorg-branch t)
-			     (cons 'branch-type 'branch)
-			     (cons 'sort-results sort-results)
-			     (cons 'sort-group sort-groups)
-			     (cons 'bullet bullet)
-			     (cons 'folded-bullet folded-bullet)
-			     (cons 'reorg-level level)
-			     (cons
-			      'new-id 
-			      (let ((new-id (org-id-uuid)))
-				;; (setq parent-id (concat parent-id
-				;; 			new-id
-				;; 			(if (equal "" header)
-				;; 			    "BLANK"
-				;; 			  header)))
-				(concat new-id header)))
-			     ;; START HERE; CONCAT PREVIOUS IDs
-			     (cons 'new-path-id parent-id))))
+		 (let* ((id "")
+			(ret (list
+			      (cons 'branch-name header)
+			      (cons 'reorg-branch t)
+			      (cons 'branch-type 'branch)
+			      (cons 'sort-results sort-results)
+			      (cons 'sort-group sort-groups)
+			      (cons 'bullet bullet)
+			      (cons 'folded-bullet folded-bullet)
+			      (cons 'reorg-level level)
+			      (cons
+			       'new-id 
+			       (let ((new-id (org-id-uuid)))
+				 (setq id (concat new-id
+						  (if (equal "" header)
+						      "BLANK"
+						    header)))
+				 id))
+			      (cons 'new-path-id (concat parent-id id)))))
 		   ret))
 		;; (cons 'new-path (concat parent-id)))
 		;; (cons 'id (org-no-properties (concat parent-id
@@ -1365,7 +1364,7 @@ to the results."
 			      (setq metadata
 				    (get-header-metadata
 				     (car each)
-				     (plist-get inherited-props :new-id))))
+				     (plist-get inherited-props :new-path-id))))
 			 and collect
 			 (cons (funcall reorg--grouper-action-function
 					metadata
@@ -1398,6 +1397,7 @@ to the results."
 					 ignore-sources
 					 (list :header nil
 					       :format-results format-results
+					       :new-path-id (plist-get inherited :new-path-id)
 					       :new-id (plist-get inherited :new-id)
 					       :sort-results sort-results
 					       :parent-template template
@@ -1440,6 +1440,7 @@ to the results."
 			    (list :header nil
 				  :format-results format-results
 				  :new-id nil
+				  :new-path-id nil ;; NOT SURE
 				  :sort-results sort-results
 				  :parent-template template
 				  :bullet bullet
@@ -1510,7 +1511,7 @@ to the results."
 			(= 1 (length results))
 			(equal "" (caar results)))
 		   (setq metadata (get-header-metadata
-				   "" (plist-get inherited-props :new-id)))
+				   "" (plist-get inherited-props :new-path-id)))
 		   (debug nil "reached here")
 		   (cl-loop for (header . children) in results  
 			    append
@@ -1527,6 +1528,7 @@ to the results."
 				       :format-results format-results
 				       :sort-results sort-results
 				       :new-id (alist-get 'new-id metadata)
+				       :new-path-id (alist-get 'new-path-id metadata)
 				       :bullet bullet
 				       :folded-bullet folded-bullet
 				       :face face)
@@ -1539,7 +1541,7 @@ to the results."
 		     (funcall action-function
 			      (setq metadata
 				    (get-header-metadata
-				     header (plist-get inherited-props :new-id)))
+				     header (plist-get inherited-props :new-path-id)))
 
 			      nil
 			      level
@@ -1566,6 +1568,7 @@ to the results."
 				:format-results format-results
 				:sort-results sort-results
 				:new-id (alist-get 'new-id metadata)
+				:new-path-id (alist-get 'new-path-id metadata)
 				:bullet bullet
 				:folded-bullet folded-bullet
 				:face face)
@@ -1579,7 +1582,7 @@ to the results."
 			      (setq metadata
 				    (get-header-metadata
 				     header
-				     (plist-get inherited-props :new-id)))
+				     (plist-get inherited-props :new-path-id)))
 			      nil
 			      level
 			      (plist-get template :overrides)
