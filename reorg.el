@@ -1318,7 +1318,7 @@ to the results."
 		 (setq level (or level 1))
 		 (if-let ((groups (reorg--seq-group-by				   
 				   `(lambda (x)				      
-				      (eval ;; I believe I had no choice.
+				      (eval
 				       (reorg--walk-tree
 					(reorg--walk-tree 
 					 ',prop
