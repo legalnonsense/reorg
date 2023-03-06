@@ -1363,12 +1363,12 @@ to the results."
 					 (alist-get 'new-id metadata))))))
 			(when (alist-get nil groups)
 			  (cl-loop for each in (alist-get nil groups)
-				   collect (reorg--create-headline-string
-					    each
-					    format-results
-					    level
-					    (plist-get template :overrides)
-					    (plist-get template :post-overrides))))))
+				   collect (funcall action-function
+						    each
+						    format-results
+						    level
+						    (plist-get template :overrides)
+						    (plist-get template :post-overrides))))))
 
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
@@ -1494,7 +1494,6 @@ to the results."
 			(equal "" (caar results)))
 		   (setq metadata (get-header-metadata
 				   "" (plist-get inherited-props :new-path-id)))
-		   (debug nil "reached here")
 		   (cl-loop for (header . children) in results  
 			    append
 			    (cl-loop for child in (plist-get template :children)
@@ -1524,7 +1523,6 @@ to the results."
 			      (setq metadata
 				    (get-header-metadata
 				     header (plist-get inherited-props :new-path-id)))
-
 			      nil
 			      level
 			      (list 
@@ -1581,25 +1579,14 @@ to the results."
 			       collect
 			       (funcall
 				action-function
-				(progn (setf (alist-get 'group-id result)
-					     group-id
-					     (alist-get 'new-path-id result)
-					     (plist-get inherited-props :new-id) 
-					     (alist-get 'new-id result)
-					     (alist-get 'new-id metadata))
-				       result)
-				;; (append result
-				;; 	(progn
-				;; 	  ;; (debug nil
-				;; 	  ;; 	 :header
-				;; 	  ;; 	 header
-				;; 	  ;; 	 :alist-get-id-from-metadata
-				;; 	  ;; 	 (alist-get 'id metadata))
-				;; 	  (list
-				;; 	   (cons 'group-id
-				;; 		 group-id)
-				;; 	   (cons 'parent-id
-				;; 		 (plist-get inherited-props :id)))))
+				(let ((idx (org-id-uuid)))
+				  (setf (alist-get 'group-id result) group-id)
+				  (setf (alist-get 'new-id result) idx)
+				  (setf (alist-get 'new-path-id result)
+					(concat
+					 (alist-get 'new-path-id metadata)
+					 idx))
+				  result)
 				format-results
 				(if (equal ""
 					   (alist-get
@@ -1782,6 +1769,8 @@ string or to nil."
 					  headline-text)
 				    (cons 'reorg-class
 					  (alist-get 'class data))
+				    ;; (cons 'new-id
+				    ;; 	  (org-id-uuid))
 				    (cons 'parent-id
 					  (alist-get 'parent-id data))
 				    (cons 'reorg-field-type
