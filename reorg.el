@@ -1313,30 +1313,12 @@ to the results."
 				 id))
 			      (cons 'new-path-id (concat parent-id id)))))
 		   ret))
-		;; (cons 'new-path (concat parent-id)))
-		;; (cons 'id (org-no-properties (concat parent-id
-		;; 				       group-id
-		;; 				       (if (equal "" header)
-		;; 					   "BLANK"
-		;; 					 header))))
-		;; (cons 'parent-id (org-no-properties parent-id))
-		;; (cons 'group-id (org-no-properties group-id))))
 		(drill!
 		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
 		 (if-let ((groups (reorg--seq-group-by				   
-				   ;; `(lambda (x)
-				   ;;    (let-alist x
-				   ;; 	(eval 
-				   ;; 	 (reorg--walk-tree 
-				   ;; 	  ',prop
-				   ;; 	  (lambda (xx)
-				   ;; 	    (reorg--turn-dot-bang-to-val
-				   ;; 	     xx
-				   ;; 	     ,(or n 0)
-				   ;; 	     x))))))
 				   `(lambda (x)				      
-				      (eval ;; I believe I had no choice.
+				      (eval
 				       (reorg--walk-tree
 					(reorg--walk-tree 
 					 ',prop
