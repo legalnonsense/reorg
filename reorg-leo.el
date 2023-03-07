@@ -87,6 +87,7 @@
 (reorg-create-data-type
  :class leo
  :name id
+ :disable t
  :parse (alist-get 'id data))
 
 (provide 'reorg-leo)

@@ -154,8 +154,6 @@ numbers, strings, symbols."
 			'--display-
 			name))
 
-
-
 ;;;;  requires
 (require 'reorg-macs)
 (require 'reorg-org)
@@ -1062,32 +1060,25 @@ function's code."
 	(save-restriction
 	  (goto-char mark)
 	  (narrow-to-defun)
-	  (cl-loop while (re-search-forward "\\_<.*?\\_>" nil t)
-		   collect (match-string-no-properties 0) into results
-		   finally return
-		   (seq-filter
-		    (lambda (x) x)
-		    (seq-map (lambda (x)
-			       (intern 
-				(cond ((or (s-starts-with-p ".!" x)
-					   (s-starts-with-p ".@" x))
-				       (substring x 2))
-				      ((s-starts-with-p "." x)
-				       (substring x 1)))))
-			     (seq-uniq
-			      (seq-filter
-			       (lambda (s)
-				 (string-match
-				  "\\`\\.[@!]*\\(.+\\)" s))
-			       results))))))))))
-
-;; (defun reorg--pre-parser-sort-funcs (alist class)
-;;   "sort"
-;;   (let ((list (copy-tree alist)))
-;;     (sort list
-;; 	  (lambda (a b)
-;; 	    (reorg--sort-by-list a b (alist-get class reorg--parser-list)
-;; 				 #'>)))))
+	  (cl-loop
+	   while (re-search-forward "\\_<.*?\\_>" nil t)
+	   collect (match-string-no-properties 0) into results
+	   finally return
+	   (seq-filter
+	    (lambda (x) x)
+	    (seq-map (lambda (x)
+		       (intern 
+			(cond ((or (s-starts-with-p ".!" x)
+				   (s-starts-with-p ".@" x))
+			       (substring x 2))
+			      ((s-starts-with-p "." x)
+			       (substring x 1)))))
+		     (seq-uniq
+		      (seq-filter
+		       (lambda (s)
+			 (string-match
+			  "\\`\\.[@!]*\\(.+\\)" s))
+		       results))))))))))
 
 (defun reorg--pre-parser-sort (parsers)
   "sort"
@@ -1164,21 +1155,6 @@ parser for that data type."
 							  each))))
 				    'recursed))
 			  ))))
-
-;; (unless recursed 
-;;   (cl-loop for each in results
-;; 	       collect (cons (car each)
-;; 			     (sort (cdr each)
-;; 				   (lambda (a b)
-;; 				     (reorg--sort-by-list a b reorg--parser-list))))))))
-
-
-;; (progn 
-;;   (setq xxx (reorg--pre-parser '(:sources ((org . "~/tmp/tmp.org")
-;; 					   (files . "whatever"))
-;; 					  :group (and .ts-day .parent-dirs)))) 
-;;   (reorg--pre-parser-sort xxx)) ;;;test
-
 
 (defun reorg--parser (data class parser-list)
   "Call each parser in CLASS on DATA and return
@@ -1624,6 +1600,7 @@ See `let-alist--deep-dot-search'."
     (reorg--dot-bang-search (cadr data)))
    (t (append (reorg--dot-bang-search (car data))
 	      (reorg--dot-bang-search (cdr data))))))
+
 ;; TODO consolidate these two functions
 (defun reorg--dot-at-search (data)
   "Return alist of symbols inside DATA that start with a `.@'.
