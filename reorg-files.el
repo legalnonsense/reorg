@@ -83,6 +83,7 @@
 
 (reorg-create-data-type
  :name id
+ :disable t
  :class files
  :parse (org-id-uuid))
 

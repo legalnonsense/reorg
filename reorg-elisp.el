@@ -63,6 +63,7 @@ the point and return nil."
 
 (reorg-create-data-type
  :class elisp
+ :disable t
  :name id
  :parse (org-id-new))
 
