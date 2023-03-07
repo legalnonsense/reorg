@@ -288,8 +288,7 @@
 
 (defun reorg-test-file-tree ()
   (interactive)
-  (reorg-open-sidebar
-   
+  (reorg-open-sidebar   
    `( :sources ((files . "find ~/legal/Dropbox/Wilson-Anthony -type f | grep .pdf")
 		(org . "~/tmp/tmp.org"))
       :group (when (eq .class 'files) "")

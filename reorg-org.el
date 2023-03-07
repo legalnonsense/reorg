@@ -665,6 +665,7 @@ are convenience functions for writing templates."
 
 (reorg-create-data-type
  :name id
+ :disable t
  :class org
  :parse (org-id-new))
 ;; :parse (org-id-get-create))
