@@ -1281,7 +1281,12 @@ to the results."
 			      (cons 'reorg-level level)
 			      (cons
 			       'id 
-			       (let ((idx (org-id-uuid)))
+			       (let ;; ((idx (org-id-uuid)))
+				   ((idx (md5 (concat (pp-to-string template)
+						      header
+						      (car   
+						       parent-id)))))
+				 
 				 (setq id (concat idx
 						  (if (equal "" header)
 						      "BLANK"
