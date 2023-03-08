@@ -1286,7 +1286,8 @@ to the results."
 						  (if (equal "" header)
 						      "BLANK"
 						    header)))))
-			      (cons 'id-path (concat parent-id id)))))
+			      (cons 'id-path (append (-list parent-id)
+						     (-list id))))))
 		   ret))
 		(drill!
 		 (seq prop &optional n level inherited)
@@ -1374,9 +1375,9 @@ to the results."
 				 (setf (alist-get 'group-id each) group-id)
 				 (setf (alist-get 'id each) idx)
 				 (setf (alist-get 'id-path each)
-				       (concat
-					(alist-get 'id-path metadata)
-					idx))
+				       (append (-list 
+						(alist-get 'id-path metadata))
+					       (-list idx)))
 				 each)
 			       format-results
 			       level
@@ -1560,9 +1561,11 @@ to the results."
 				  (setf (alist-get 'group-id result) group-id)
 				  (setf (alist-get 'id result) idx)
 				  (setf (alist-get 'id-path result)
-					(concat
-					 (alist-get 'id-path metadata)
-					 idx))
+					(append
+					 (-list 
+					  (alist-get 'id-path metadata))
+					 (-list 
+					  idx)))
 				  result)
 				format-results
 				(if (equal ""
