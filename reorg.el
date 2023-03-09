@@ -1342,21 +1342,38 @@ to the results."
 					 inherited-props
 					 :id-path
 					 (alist-get 'id-path metadata))))))
-			(when (alist-get nil groups)
-			  (cl-loop for each in (alist-get nil groups)
-				   collect (funcall action-function
-						    (let ((idx (org-id-uuid)))
-						      (setf (alist-get 'group-id each) group-id)
-						      (setf (alist-get 'id each) idx)
-						      (setf (alist-get 'id-path each)
-							    (append (-list 
-								     (alist-get 'id-path metadata))
-								    (-list idx)))
-						      each)
-						    format-results
-						    level
-						    (plist-get template :overrides)
-						    (plist-get template :post-overrides))))))
+			(when-let ((gg (alist-get nil groups)))
+			  (if-let ((children (plist-get template :children)))
+			      (cl-loop for child in children
+				       collect (reorg--get-group-and-sort
+						gg
+						child
+						level
+						t
+						(list
+						 :format-results format-results
+						 :id-path (plist-get inherited :id-path)
+						 ;; :id (plist-get inherited :id)
+						 :sort-results sort-results
+						 :parent-template template
+						 :bullet bullet
+						 :folded-bullet folded-bullet
+						 :face face) 
+						t))
+			    (cl-loop for each in (alist-get nil groups)
+				     collect (funcall action-function
+						      (let ((idx (org-id-uuid)))
+							(setf (alist-get 'group-id each) group-id)
+							(setf (alist-get 'id each) idx)
+							(setf (alist-get 'id-path each)
+							      (append (-list 
+								       (alist-get 'id-path metadata))
+								      (-list idx)))
+							each)
+						      format-results
+						      level
+						      (plist-get template :overrides)
+						      (plist-get template :post-overrides)))))))
 		   ;; FIX DRILL GROUPS
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)

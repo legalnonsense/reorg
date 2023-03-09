@@ -19,6 +19,20 @@
       :format-results (.filename)
       :group .!parent-dirs
       :sort-results ((.filename . string<))
+      :sort-groups string<
+      :children (( :group (if (= (mod (length .filename) 2) 0)
+			      "EVEN"
+			    "ODD"))))))
+
+(defun reorg-files (&optional dir)
+  (interactive "D")
+  (reorg-open-sidebar
+   `( :sources ((files . ,(concat "find "
+				  dir
+				  " -type f")))
+      :format-results (.filename)
+      :group .!parent-dirs
+      :sort-results ((.filename . string<))
       :sort-groups string<)))
 
 (defun reorg-client-todo-1 ()
