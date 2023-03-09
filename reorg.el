@@ -1345,7 +1345,14 @@ to the results."
 			(when (alist-get nil groups)
 			  (cl-loop for each in (alist-get nil groups)
 				   collect (funcall action-function
-						    each
+						    (let ((idx (org-id-uuid)))
+						      (setf (alist-get 'group-id each) group-id)
+						      (setf (alist-get 'id each) idx)
+						      (setf (alist-get 'id-path each)
+							    (append (-list 
+								     (alist-get 'id-path metadata))
+								    (-list idx)))
+						      each)
 						    format-results
 						    level
 						    (plist-get template :overrides)
