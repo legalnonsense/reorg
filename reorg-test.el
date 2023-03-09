@@ -10,7 +10,21 @@
 ;; 			 :children (( :group (when .todo "")
 ;; 				      :format-results (.headline))))))
 
-(defun reorg-files (&optional dir)
+(defun reorg*-group-then-drill (&optional dir)
+  (interactive "D")
+  (reorg-open-sidebar
+   `( :sources ((files . ,(concat "find "
+				  dir
+				  " -type f")))
+      :format-results (.filename)
+      :sort-results ((.filename . string<))
+      :sort-groups string<
+      :group (if (= (mod (length .filename) 2) 0)
+		 "EVEN"
+	       "ODD")
+      :children  (( :group .!parent-dirs)))))
+
+(defun reorg*-drill-then-group (&optional dir)
   (interactive "D")
   (reorg-open-sidebar
    `( :sources ((files . ,(concat "find "

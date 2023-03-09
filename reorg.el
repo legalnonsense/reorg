@@ -1342,18 +1342,17 @@ to the results."
 					 inherited-props
 					 :id-path
 					 (alist-get 'id-path metadata))))))
-			(when-let ((gg (alist-get nil groups)))
+			(when (alist-get nil groups)
 			  (if-let ((children (plist-get template :children)))
 			      (cl-loop for child in children
 				       collect (reorg--get-group-and-sort
-						gg
+						(alist-get nil groups)
 						child
 						level
 						t
 						(list
 						 :format-results format-results
 						 :id-path (plist-get inherited :id-path)
-						 ;; :id (plist-get inherited :id)
 						 :sort-results sort-results
 						 :parent-template template
 						 :bullet bullet
