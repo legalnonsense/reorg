@@ -1373,7 +1373,6 @@ to the results."
 						      level
 						      (plist-get template :overrides)
 						      (plist-get template :post-overrides)))))))
-		   ;; FIX DRILL GROUPS
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
 				collect (reorg--get-group-and-sort
