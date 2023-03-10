@@ -1352,27 +1352,33 @@ to the results."
 						t
 						(list
 						 :format-results format-results
-						 :id-path (plist-get inherited :id-path)
+						 :id-path
+						 (plist-get inherited :id-path)
 						 :sort-results sort-results
 						 :parent-template template
 						 :bullet bullet
 						 :folded-bullet folded-bullet
 						 :face face) 
 						t))
-			    (cl-loop for each in (alist-get nil groups)
-				     collect (funcall action-function
-						      (let ((idx (org-id-uuid)))
-							(setf (alist-get 'group-id each) group-id)
-							(setf (alist-get 'id each) idx)
-							(setf (alist-get 'id-path each)
-							      (append (-list 
-								       (alist-get 'id-path metadata))
-								      (-list idx)))
-							each)
-						      format-results
-						      level
-						      (plist-get template :overrides)
-						      (plist-get template :post-overrides)))))))
+			    (cl-loop
+			     for each in (alist-get nil groups)
+			     collect
+			     (funcall
+			      action-function
+			      (let ((idx (or (alist-get 'id each)
+					     (org-id-uuid))))
+				(setf (alist-get 'group-id each) group-id)
+				(setf (alist-get 'id each) idx)
+				(setf (alist-get 'id-path each)
+				      (append
+				       (-list 
+					(alist-get 'id-path metadata))
+				       (-list idx)))
+				each)
+			      format-results
+			      level
+			      (plist-get template :overrides)
+			      (plist-get template :post-overrides)))))))
 		   (if (plist-get template :children)
 		       (cl-loop for child in (plist-get template :children)
 				collect (reorg--get-group-and-sort
@@ -1382,8 +1388,8 @@ to the results."
 					 ignore-sources
 					 (list :header nil
 					       :format-results format-results
-					       :id-path (plist-get inherited :id-path)
-					       ;; :id (plist-get inherited :id)
+					       :id-path
+					       (plist-get inherited :id-path)
 					       :sort-results sort-results
 					       :parent-template template
 					       :bullet bullet
@@ -1584,7 +1590,8 @@ to the results."
 			       collect
 			       (funcall
 				action-function
-				(let ((idx (org-id-uuid)))
+				(let ((idx (or (alist-get 'id result)
+					       (org-id-uuid))))
 				  (setf (alist-get 'group-id result) group-id)
 				  (setf (alist-get 'id result) idx)
 				  (setf (alist-get 'id-path result)
