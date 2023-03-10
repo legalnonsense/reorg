@@ -10,19 +10,36 @@
 ;; 			 :children (( :group (when .todo "")
 ;; 				      :format-results (.headline))))))
 
-(defun reorg*-group-then-drill (&optional dir)
-  (interactive "D")
+(defun reorg*-mix-org-and-files ()
+  (interactive)
   (reorg-open-sidebar
-   `( :sources ((files . ,(concat "find "
-				  dir
-				  " -type f")))
-      :format-results (.filename)
-      :sort-results ((.filename . string<))
-      :sort-groups string<
-      :group (if (= (mod (length .filename) 2) 0)
-		 "EVEN"
-	       "ODD")
-      :children  (( :group .!parent-dirs)))))
+   `( :sources ((files . "find ~/Downloads -type f | grep pdf")
+		(org . ,reorg-test-org-file-list))
+      :group "Everything"
+      :sort-results ((.filename . reorg-string<))
+      :format-results (.stars " "
+			      (or .filename
+				  .headline)
+			      " "
+			      (if .headline
+				  "org"
+				"files")
+
+			      ))))
+
+  (defun reorg*-group-then-drill (&optional dir)
+    (interactive "D")
+    (reorg-open-sidebar
+     `( :sources ((files . ,(concat "find "
+				    dir
+				    " -type f")))
+	:format-results (.filename)
+	:sort-results ((.filename . string<))
+	:sort-groups string<
+	:group (if (= (mod (length .filename) 2) 0)
+		   "EVEN"
+		 "ODD")
+	:children  (( :group .!parent-dirs)))))
 
 (defun reorg*-drill-then-group (&optional dir)
   (interactive "D")

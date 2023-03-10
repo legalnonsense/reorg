@@ -29,7 +29,7 @@
 	   (setf (alist-get ',name reorg--parser-list) nil)
 	 (defvar reorg--parser-list nil "Parser list for all classes."))
        (defun ,(reorg--get-parser-func-name name 'class) (&rest _)
-	 "" ',name)
+	 "" (symbol-name ',name))
        (cl-pushnew (cons 'class (reorg--get-parser-func-name ',name 'class))
 		   (alist-get ',name reorg--parser-list))
        (defun ,(reorg--get-parser-func-name name 'id) (&rest _)

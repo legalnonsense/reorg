@@ -682,7 +682,7 @@ are convenience functions for writing templates."
 (reorg-create-data-type
  :name filename
  :class org
- :parse (abbreviate-file-name (buffer-file-name)))
+ :parse (f-filename (buffer-file-name)))
 
 (reorg-create-data-type
  :name buffer-name
