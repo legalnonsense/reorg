@@ -1279,6 +1279,7 @@ to the results."
 			      (cons 'bullet bullet)
 			      (cons 'folded-bullet folded-bullet)
 			      (cons 'reorg-level level)
+			      (cons 'group-id group-id)
 			      (cons
 			       'id 
 			       (let ;; ((idx (org-id-uuid)))
