@@ -393,6 +393,9 @@ supplied, get that property from 'reorg-data'."
 	(alist-get property props)
       props)))
 
+(reorg--goto-next-prop 'id-path id nil (lambda (a b)
+					 (reorg--get-parent a
+
 (defun reorg--goto-next-prop (property &optional
 				       value
 				       limit
@@ -417,11 +420,11 @@ you are on."
     (point))
    (t    
     (let ((origin (point))
-	  (ended nil)
+	  (done nil)
 	  (limit (or limit (point-max)))
 	  pos)
       (cl-loop with found = nil
-	       while (not ended)
+	       while (not done)
 	       do (setq pos (next-single-property-change
 			     (point)
 			     'reorg-data nil limit))
@@ -430,7 +433,7 @@ you are on."
 	       return
 	       (progn (reorg--goto-char origin)
 		      (run-hooks 'reorg--navigation-hook)
-		      (setq ended t)
+		      (setq done t)
 		      nil)
 	       else do
 	       (progn (goto-char pos)
@@ -448,12 +451,12 @@ you are on."
 					  (get-text-property (point)
 							     'reorg-data))))
 			  (progn 
-			    (setq ended t)
+			    (setq done t)
 			    (setq found t))
 			(when (or (not pos)
 				  (>= pos limit))
 			  (goto-char origin)
-			  (setq ended t))))
+			  (setq done t))))
 	       finally return (if (not found)
 				  nil
 				(point)))))))
@@ -749,12 +752,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 
 ;;;; insertion code
 
-(defun reorg--goto-next-sibling-same-group (&optional data)
-  "goot next sibing same group"
-  (let ((id (or
-	     (and data (alist-get 'parent-id data))
-	     (reorg--get-prop 'parent-id))))
-    (reorg--goto-next-prop 'parent-id id)))
+
 
 ;; (defun reorg--goto-next-leaf-sibling ()
 ;;   "goto next sibling"
@@ -1287,11 +1285,12 @@ to the results."
 						      header
 						      (car   
 						       parent-id)))))
-				 
-				 (setq id (concat idx
-						  (if (equal "" header)
-						      "BLANK"
-						    header)))))
+				 (setq id idx)
+				 ;; (setq id (concat idx
+				 ;; 		  (if (equal "" header)
+				 ;; 		      "BLANK"
+				 ;; 		    header)))
+				 ))
 			      (cons 'id-path (append (-list parent-id)
 						     (-list id))))))
 		   ret))
