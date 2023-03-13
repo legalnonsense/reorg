@@ -86,7 +86,7 @@ zzz
 				  .branch-name
 				  (reorg--get-prop 'branch-name))
 		 return nil
-		 while (reorg--goto-next-sibling-same-group ;; check this next
+		 while (reorg--goto-next-sibling-same-group
 			(get-text-property 0 'reorg-data header-string))
 		 finally return (progn (goto-char point)
 				       nil))
@@ -98,6 +98,7 @@ zzz
 		      (get-text-property 0 'reorg-data header-string))
 	       finally return (progn (goto-char point)
 				     nil)))))
+
 
 (defun reorg--new-insert-new (data)
   "asdf"
@@ -120,6 +121,7 @@ zzz
 		       'reorg-field-type
 		       (car x))))))
 	zzz data)
+
   (goto-char (point-min))
   (cl-loop for group in data
 	   do (cl-loop with leaf = (car (last group))
@@ -137,10 +139,12 @@ zzz
 			      (reorg--find-header-location-within-groups heading) ;;FIXME
 			      (cl-loop for x from n to (1- (length headings))
 				       do
-				       (reorg--insert-header-at-point (nth x headings) t) ;;FIXME
+				       (reorg--insert-header-at-point (nth x headings) t)
 				       finally (progn (setq stop t)
 						      (reorg--find-leaf-location leaf)))))
-		       finally (reorg--insert-header-at-point leaf t))))
+		       finally (progn (reorg--find-leaf-location leaf)
+				      (reorg--insert-header-at-point leaf t)))))
+
 
 
 
