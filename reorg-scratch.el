@@ -122,8 +122,8 @@ zzz
 		       (car x))))))
 	zzz data)
 
-  (goto-char (point-min))
   (cl-loop for group in data
+	   do (goto-char (point-min))
 	   do (cl-loop with leaf = (car (last group))
 		       with headings = (butlast group)
 		       with stop = nil
