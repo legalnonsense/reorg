@@ -320,13 +320,16 @@ switch to that buffer in the window."
 
 (defun reorg--render-source ()
   "Render the heading at point."
-  (when-let ((func (alist-get
-		    (reorg--get-prop 'class)
-		    reorg--render-func-list)))
-    (funcall func)
-    ;;FIXME this is redundant. see `reorg--goto-source'
-    (when (reorg--buffer-in-side-window-p)
-      (reorg--select-tree-window))))
+  (when (reorg--get-prop 'class)
+    (when-let ((func (alist-get
+		      (intern 
+		       (reorg--get-prop 'class))
+		      reorg--render-func-list
+		      nil nil #'equal)))
+      (funcall func)
+      ;;FIXME this is redundant. see `reorg--goto-source'
+      (when (reorg--buffer-in-side-window-p)
+	(reorg--select-tree-window)))))
 
 (defun reorg--goto-source ()
   "Goto rendered source buffer."
@@ -392,9 +395,6 @@ supplied, get that property from 'reorg-data'."
     (if property
 	(alist-get property props)
       props)))
-
-(reorg--goto-next-prop 'id-path id nil (lambda (a b)
-					 (reorg--get-parent a
 
 (defun reorg--goto-next-prop (property &optional
 				       value
