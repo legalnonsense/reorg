@@ -855,7 +855,7 @@ point where the leaf should be inserted (ie, insert before)"
 		    (or result-sorters
 			(save-excursion 
 			  (reorg--goto-parent)
-			  (reorg--get-prop 'result-sorters))))) 
+			  (reorg--get-prop 'sort-results))))) 
 	  (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
 	    (cl-loop
 	     with point = (point)

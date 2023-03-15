@@ -6,9 +6,11 @@
 
 
 
-(setq xxx (reorg--parser nil 'org reorg--temp-parser-list))
-xxx
-zzz
+;; (setq xxx (reorg--parser
+
+;; 	   'org reorg--temp-parser-list))
+;; xxx
+;; zzz
 ;; (setq yyy (-->
 ;; 	   (reorg--get-group-and-sort (list xxx) reorg--current-template 1 t)
 ;; 	   (reorg--get-all-tree-paths it (lambda (x)
@@ -27,18 +29,18 @@ zzz
 ;; 	   ;; 				  :group-id (alist-get 'group-id props)
 ;; 	   ;; 				  :parent-id (alist-get 'parent-id props)))))
 ;; 	   ))
-(setq zzz
-      (let* ((data )
-	     (data (reorg--get-all-tree-paths data (lambda (x)
-						     (and (listp x)
-							  (stringp (car x))
-							  (eq
-							   'leaf
-							   (get-text-property
-							    0
-							    'reorg-field-type
-							    (car x))))))))
-	data))
+;; (setq zzz				;
+;;       (let* ((data )
+;; 	     (data (reorg--get-all-tree-paths data (lambda (x)
+;; 						     (and (listp x)
+;; 							  (stringp (car x))
+;; 							  (eq
+;; 							   'leaf
+;; 							   (get-text-property
+;; 							    0
+;; 							    'reorg-field-type
+;; 							    (car x))))))))
+;; 	data))
 
 ;; id - the unique ID associated with each entry
 ;; path - a hash of all the complete path
@@ -121,7 +123,10 @@ zzz
 		       'reorg-field-type
 		       (car x))))))
 	zzz data)
+  data)
 
+(defun reorg--test-insert-new (data)
+  (setq data (reorg--new-insert-new data))
   (cl-loop for group in data
 	   do (goto-char (point-min))
 	   do (cl-loop with leaf = (car (last group))
@@ -132,7 +137,7 @@ zzz
 		       for n from 0
 		       do (let* ((props (get-text-property 0 'reorg-data heading))
 				 (id (alist-get 'id props)))
-			    ;; if we don't find the first header, then none
+			    ;; if we don't find thefirst header, then none
 			    ;; of them exist 
 			    (unless (reorg--goto-next-prop 'id id nil nil nil t)
 			      ;; check to see if there is an existing group
