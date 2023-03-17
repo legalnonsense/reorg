@@ -1226,9 +1226,9 @@ if the pair is properly sorted."
 
 (defun reorg--get-group-and-sort (data
 				  template
+				  &optional
 				  level
 				  ignore-sources
-				  &optional
 				  inherited-props
 				  recursed)
   "Apply TEMPLATE to DATA and apply the :action-function 
@@ -1239,6 +1239,7 @@ to the results."
     (setq reorg--current-template template)
     (setq reorg--temp-parser-list (->> (reorg--pre-parser template)
 				       (reorg--pre-parser-sort))))
+  (setq level (or level 1))
   ;; inheritence 
   (let ((group-id (md5 (pp-to-string template)))
 	(format-results (or (plist-get template :format-results)
@@ -1267,35 +1268,31 @@ to the results."
 	(sort-groups (or (plist-get template :sort-groups)
 			 (plist-get template :sort-groups)))
 	results metadata)
-    (cl-labels ((get-header-metadata ;; sloppy
+    (cl-labels ((get-header-metadata
 		 (header parent-id)
 		 ;; (debug nil header parent-id group-id)
 		 (let* ((id "")
-			(ret (list
-			      (cons 'branch-name header)
-			      (cons 'reorg-branch t)
-			      (cons 'branch-type 'branch)
-			      (cons 'sort-results sort-results)
-			      (cons 'sort-group sort-groups)
-			      (cons 'bullet bullet)
-			      (cons 'folded-bullet folded-bullet)
-			      (cons 'reorg-level level)
-			      (cons 'group-id group-id)
-			      (cons
-			       'id 
-			       (let ;; ((idx (org-id-uuid)))
-				   ((idx (md5 (concat (pp-to-string template)
-						      header
-						      (car   
-						       parent-id)))))
-				 (setq id idx)
-				 ;; (setq id (concat idx
-				 ;; 		  (if (equal "" header)
-				 ;; 		      "BLANK"
-				 ;; 		    header)))
-				 ))
-			      (cons 'id-path (append (-list parent-id)
-						     (-list id))))))
+			(ret
+			 (list
+			  (cons 'branch-name header)
+			  (cons 'reorg-branch t)
+			  (cons 'branch-type 'branch)
+			  (cons 'sort-results sort-results)
+			  (cons 'sort-group sort-groups)
+			  (cons 'bullet bullet)
+			  (cons 'folded-bullet folded-bullet)
+			  (cons 'reorg-level level)
+			  (cons 'group-id group-id)
+			  (cons
+			   'id 
+			   (let
+			       ((idx (md5 (concat (pp-to-string template)
+						  header
+						  (car   
+						   parent-id)))))
+			     (setq id idx)))
+			  (cons 'id-path (append (-list parent-id)
+						 (-list id))))))
 		   ret))
 		(drill!
 		 (seq prop &optional n level inherited)
@@ -1949,7 +1946,7 @@ the buffer."
   (with-current-buffer (get-buffer-create reorg-buffer-name)
     (erase-buffer)
     (reorg--insert-all
-     (reorg--get-group-and-sort data template 1 nil))
+     (reorg--get-group-and-sort data template))
     (setq reorg--current-sources
 	  (reorg--get-all-sources-from-template template)
 	  reorg--current-template

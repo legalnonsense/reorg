@@ -127,30 +127,31 @@
 
 (defun reorg--test-insert-new (data)
   ""
-  (setq data (reorg--new-insert-new data))
-  (cl-loop for group in data
-	   do (goto-char (point-min))
-	   do (cl-loop with leaf = (car (last group))
-		       with headings = (butlast group)
-		       with stop = nil
-		       while (not stop)
-		       for heading in headings
-		       for n from 0
-		       do (let* ((props (get-text-property 0 'reorg-data heading))
-				 (id (alist-get 'id props)))
-			    ;; if we don't find thefirst header, then none
-			    ;; of them exist 
-			    (unless (reorg--goto-next-prop 'id id nil nil nil t)
-			      ;; check to see if there is an existing group
-			      (reorg--find-header-location-within-groups heading) ;;FIXME
-			      (cl-loop for x from n to (1- (length headings))
-				       do
-				       (reorg--insert-header-at-point (nth x headings) t)
-				       finally (progn (setq stop t)
-						      (reorg--insert-header-at-point leaf t)))))
-		       finally (progn (unless stop
-					(let ((afterp (reorg--find-leaf-location leaf)))
-					  (reorg--insert-header-at-point leaf afterp)))))))
+  (save-excursion 
+    (setq data (reorg--new-insert-new data))
+    (cl-loop for group in data
+	     do (goto-char (point-min))
+	     do (cl-loop with leaf = (car (last group))
+			 with headings = (butlast group)
+			 with stop = nil
+			 while (not stop)
+			 for heading in headings
+			 for n from 0
+			 do (let* ((props (get-text-property 0 'reorg-data heading))
+				   (id (alist-get 'id props)))
+			      ;; if we don't find thefirst header, then none
+			      ;; of them exist 
+			      (unless (reorg--goto-next-prop 'id id nil nil nil t)
+				;; check to see if there is an existing group
+				(reorg--find-header-location-within-groups heading) ;;FIXME
+				(cl-loop for x from n to (1- (length headings))
+					 do
+					 (reorg--insert-header-at-point (nth x headings) t)
+					 finally (progn (setq stop t)
+							(reorg--insert-header-at-point leaf t)))))
+			 finally (progn (unless stop
+					  (let ((afterp (reorg--find-leaf-location leaf)))
+					    (reorg--insert-header-at-point leaf afterp))))))))
 
 (defun reorg--refresh-org-visual-outline ()
   ""
