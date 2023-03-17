@@ -75,16 +75,16 @@
 			   (equal (reorg--get-parent-id a)
 				  (reorg--get-parent-id b)))))
 
-(defun reorg--find-header-location-within-group (header-string)
+(defun reorg--find-header-location-within-groups (header-string)
   "Find the location of HEADER-STRING in the current outline."
   (reorg--goto-first-sibling-same-group)
   (let-alist (get-text-property 0 'reorg-data header-string)
-    (if .sort-groups
+    (if .sort-group
 	(cl-loop with point = (point)
 		 if (equal .branch-name
 			   (reorg--get-prop 'branch-name))
 		 return (point)
-		 else if (funcall .sort-groups
+		 else if (funcall .sort-group
 				  .branch-name
 				  (reorg--get-prop 'branch-name))
 		 return nil
@@ -125,7 +125,7 @@
 	zzz data)
   data)
 
-(defun reorg--test-insert-new (data)
+(defun reorg--insert-new-heading (data)
   ""
   (save-excursion 
     (setq data (reorg--new-insert-new data))
@@ -143,12 +143,15 @@
 			      ;; of them exist 
 			      (unless (reorg--goto-next-prop 'id id nil nil nil t)
 				;; check to see if there is an existing group
-				(reorg--find-header-location-within-groups heading) ;;FIXME
-				(cl-loop for x from n to (1- (length headings))
-					 do
-					 (reorg--insert-header-at-point (nth x headings) t)
-					 finally (progn (setq stop t)
-							(reorg--insert-header-at-point leaf t)))))
+				(let ((afterp 
+				       (reorg--find-header-location-within-groups heading)))
+				  (cl-loop for x from n to (1- (length headings))
+					   do
+					   (reorg--insert-header-at-point (nth x headings) afterp)
+					   finally
+					   (progn
+					     (setq stop t)
+					     (reorg--insert-header-at-point leaf (not afterp)))))))
 			 finally (progn (unless stop
 					  (let ((afterp (reorg--find-leaf-location leaf)))
 					    (reorg--insert-header-at-point leaf afterp))))))))

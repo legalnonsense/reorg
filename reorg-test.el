@@ -140,8 +140,8 @@
 			     ;; 		(reorg--sort-by-list a b '("TODO"
 			     ;; 					   "WAITING"
 			     ;; 					   "DELEGATED"))
-
-			     (.priority . string<))
+			     (.priority . string<)
+			     (.headline . string<))
 	      :sort-groups reorg-string<)))))
 
 (defun reorg-client-1 ()

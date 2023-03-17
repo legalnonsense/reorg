@@ -10,19 +10,17 @@
 				    nil
 				    (reorg--parser
 				     nil
-				     (reorg--get-prop 'class)))
-   reorg--current-template))
+				     (reorg--get-prop 'class)))))
 
 (defmacro reorg-org--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
 update the heading at point."
   (declare (indent defun))
   `(progn
-     (let ((data nil)
-	   (buffer (reorg--get-prop 'buffer))
-	   (marker (reorg--get-prop 'marker))
-	   (id (reorg--get-prop 'id)))
-
+     (let* ((data nil)
+	    (marker (reorg--get-prop 'marker))
+	    (buffer (marker-buffer marker))
+	    (id (reorg--get-prop 'id)))
        (org-with-remote-undo buffer
 	 (with-current-buffer buffer 
 	   (let ((old-point (point))
@@ -30,18 +28,13 @@ update the heading at point."
 	     (widen)
 	     (ov-clear)
 	     (goto-char marker)
-	     ;; (if (re-search-forward id nil t)
-	     ;; 	 (progn (goto-char (match-beginning 0))
-	     ;; 		(org-back-to-heading)
-	     ;; 		(reorg-org--source--narrow-to-heading))
-	     ;;   (goto-char old-point)))
 	     ,@body
-	     (setq data (reorg--parser nil 'org)))
+	     (setq data (reorg--parser nil 'org reorg--temp-parser-list)))
 	   (with-current-buffer reorg-buffer-name
 	     (save-excursion
 	       (save-restriction
 		 (reorg--delete-entries id)
-		 (reorg--insert-new-heading data reorg--current-template)))))))))
+		 (reorg--insert-new-heading data)))))))))
 
 ;;; org-capture integration 
 
@@ -62,7 +55,7 @@ recently captured heading belongs in the outline."
 		      (alist-get 'filename data)))
 		    reorg--current-sources)
 	;; try to insert it into the outline 
-	(reorg--insert-new-heading data reorg--current-template)))))
+	(reorg--insert-new-heading data)))))
 
 (defun reorg-org-capture (&optional goto keys)
   "Wrapper for org-capture to handle window

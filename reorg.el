@@ -780,55 +780,55 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
       (reorg--goto-char point)
       nil)))
 
-(defun reorg--find-header-location-within-groups (header-string)
-  "assume the point is on the first header in the group"
-  (let-alist (get-text-property 0 'reorg-data header-string)
-    (if .sort-groups
-	(cl-loop with point = (point)
-		 if (equal .branch-name
-			   (reorg--get-prop 'branch-name))
-		 return (point)
-		 else if (funcall .sort-groups
-				  .branch-name
-				  (reorg--get-prop 'branch-name))
-		 return nil
-		 while (reorg--goto-next-sibling-same-group ;; check this next
-			(get-text-property 0 'reorg-data header-string))
-		 finally return (progn (goto-char point)
-				       nil))
-      (cl-loop with point = (point)
-	       when (equal .branch-name
-			   (reorg--get-prop 'branch-name))
-	       return t
-	       while (reorg--goto-next-sibling-same-group
-		      (get-text-property 0 'reorg-data header-string))
-	       finally return (progn (goto-char point)
-				     nil)))))
+;; (defun reorg--find-header-location-within-groups (header-string)
+;;   "assume the point is on the first header in the group"
+;;   (let-alist (get-text-property 0 'reorg-data header-string)
+;;     (if .sort-groups
+;; 	(cl-loop with point = (point)
+;; 		 if (equal .branch-name
+;; 			   (reorg--get-prop 'branch-name))
+;; 		 return (point)
+;; 		 else if (funcall .sort-groups
+;; 				  .branch-name
+;; 				  (reorg--get-prop 'branch-name))
+;; 		 return nil
+;; 		 while (reorg--goto-next-sibling-same-group ;; check this next
+;; 			(get-text-property 0 'reorg-data header-string))
+;; 		 finally return (progn (goto-char point)
+;; 				       nil))
+;;       (cl-loop with point = (point)
+;; 	       when (equal .branch-name
+;; 			   (reorg--get-prop 'branch-name))
+;; 	       return t
+;; 	       while (reorg--goto-next-sibling-same-group
+;; 		      (get-text-property 0 'reorg-data header-string))
+;; 	       finally return (progn (goto-char point)
+;; 				     nil)))))
 
-(defun reorg--find-header-location-within-groups* (header-string)
-  "assume the point is on the first header in the group"
-  (let-alist (get-text-property 0 'reorg-data header-string)
-    (if .sort-groups
-	(cl-loop with point = (point)
-		 if (equal .branch-name
-			   (reorg--get-prop 'branch-name))
-		 return (point)
-		 else if (funcall .sort-groups
-				  .branch-name
-				  (reorg--get-prop 'branch-name))
-		 return nil
-		 while (reorg--goto-next-sibling-same-group ;; check this next
-			(get-text-property 0 'reorg-data header-string))
-		 finally return (progn (goto-char point)
-				       nil))
-      (cl-loop with point = (point)
-	       when (equal .branch-name
-			   (reorg--get-prop 'branch-name))
-	       return t
-	       while (reorg--goto-next-sibling-same-group
-		      (get-text-property 0 'reorg-data header-string))
-	       finally return (progn (goto-char point)
-				     nil)))))
+;; (defun reorg--find-header-location-within-groups* (header-string)
+;;   "assume the point is on the first header in the group"
+;;   (let-alist (get-text-property 0 'reorg-data header-string)
+;;     (if .sort-groups
+;; 	(cl-loop with point = (point)
+;; 		 if (equal .branch-name
+;; 			   (reorg--get-prop 'branch-name))
+;; 		 return (point)
+;; 		 else if (funcall .sort-groups
+;; 				  .branch-name
+;; 				  (reorg--get-prop 'branch-name))
+;; 		 return nil
+;; 		 while (reorg--goto-next-sibling-same-group ;; check this next
+;; 			(get-text-property 0 'reorg-data header-string))
+;; 		 finally return (progn (goto-char point)
+;; 				       nil))
+;;       (cl-loop with point = (point)
+;; 	       when (equal .branch-name
+;; 			   (reorg--get-prop 'branch-name))
+;; 	       return t
+;; 	       while (reorg--goto-next-sibling-same-group
+;; 		      (get-text-property 0 'reorg-data header-string))
+;; 	       finally return (progn (goto-char point)
+;; 				     nil)))))
 
 (defun reorg--find-first-header-group-member (header-data)
   "goto the first header that matches the group-id of header-data"
@@ -953,7 +953,7 @@ are no children.  Assume the point is at a branch."
       (recurse data))))
 
 (defun reorg--delete-header-at-point ()
-  "delete the header at point"n
+  "delete the header at point"
   (delete-region (point-at-bol)
 		 (line-beginning-position 2)))
 
@@ -977,52 +977,52 @@ insert it on the next line.  Run navigation hook after insertion."
 		     (goto-char parent)
 		     (reorg--delete-headers-maybe)))))
 
-(defun reorg--insert-new-heading (data template)
-  "Parse DATA according to TEMPLATE, delete old headers
-that contained DATA, and insert the new header(s)
-into the appropriate place(s) in the outline."
-  ;; FIXME this is buggy. 
-  (save-excursion 
-    (goto-char (point-min))
-    (cl-loop with header-groups = (reorg--get-all-tree-paths
-				   (reorg--get-group-and-sort
-				    (list data) template 1 t)
-				   (lambda (x)
-				     (and (listp x)
-					  (stringp (car x))
-					  (eq
-					   'leaf
-					   (get-text-property
-					    0
-					    'reorg-field-type
-					    (car x))))))
-	     for headers in header-groups
-	     do (goto-char (point-min))
-	     collect
-	     (cl-loop
-	      with leaf = (car (last headers))
-	      with leaf-props = (get-text-property 0 'reorg-data leaf)
-	      for header in (butlast headers)
-	      when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
-	      do (let* ((header-props (get-text-property 0 'reorg-data header))
-			(group-id (alist-get 'group-id header-props))
-			(id (alist-get 'id header-props)))
-		   (unless (or (reorg--goto-id header-props)
-			       (equal id (reorg--get-prop 'id)))
-		     (if (reorg--find-first-header-group-member header-props)
-			 (unless (reorg--find-header-location-within-groups
-				  header)
-			   (reorg--insert-header-at-point header))
-		       (reorg--insert-header-at-point header t))))
-	      finally (progn (setq point (point))
-			     (when (eq 'leaf (alist-get
-					      'reorg-field-type
-					      leaf-props))
-			       (reorg--find-leaf-location leaf)
-			       (reorg--insert-header-at-point leaf))
-			     (goto-char point))))
-    (org-indent-refresh-maybe (point-min) (point-max) nil))
-  (run-hooks 'reorg--navigation-hook))
+;; (defun reorg--insert-new-heading (data template)
+;;   "Parse DATA according to TEMPLATE, delete old headers
+;; that contained DATA, and insert the new header(s)
+;; into the appropriate place(s) in the outline."
+;;   ;; FIXME this is buggy. 
+;;   (save-excursion 
+;;     (goto-char (point-min))
+;;     (cl-loop with header-groups = (reorg--get-all-tree-paths
+;; 				   (reorg--get-group-and-sort
+;; 				    (list data) template 1 t)
+;; 				   (lambda (x)
+;; 				     (and (listp x)
+;; 					  (stringp (car x))
+;; 					  (eq
+;; 					   'leaf
+;; 					   (get-text-property
+;; 					    0
+;; 					    'reorg-field-type
+;; 					    (car x))))))
+;; 	     for headers in header-groups
+;; 	     do (goto-char (point-min))
+;; 	     collect
+;; 	     (cl-loop
+;; 	      with leaf = (car (last headers))
+;; 	      with leaf-props = (get-text-property 0 'reorg-data leaf)
+;; 	      for header in (butlast headers)
+;; 	      when (eq 'leaf (alist-get 'reorg-field-type leaf-props))
+;; 	      do (let* ((header-props (get-text-property 0 'reorg-data header))
+;; 			(group-id (alist-get 'group-id header-props))
+;; 			(id (alist-get 'id header-props)))
+;; 		   (unless (or (reorg--goto-id header-props)
+;; 			       (equal id (reorg--get-prop 'id)))
+;; 		     (if (reorg--find-first-header-group-member header-props)
+;; 			 (unless (reorg--find-header-location-within-groups
+;; 				  header)
+;; 			   (reorg--insert-header-at-point header))
+;; 		       (reorg--insert-header-at-point header t))))
+;; 	      finally (progn (setq point (point))
+;; 			     (when (eq 'leaf (alist-get
+;; 					      'reorg-field-type
+;; 					      leaf-props))
+;; 			       (reorg--find-leaf-location leaf)
+;; 			       (reorg--insert-header-at-point leaf))
+;; 			     (goto-char point))))
+;;     (org-indent-refresh-maybe (point-min) (point-max) nil))
+;;   (run-hooks 'reorg--navigation-hook))
 
 ;;; core functions (fetching, parsing, grouping, sorting, formatting)
 
