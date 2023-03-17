@@ -845,6 +845,8 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 	(goto-char point)
 	nil))))
 
+
+
 (defun reorg--find-leaf-location (leaf-string &optional result-sorters)
   "find the location for LEAF-DATA among the current leaves. put the
 point where the leaf should be inserted (ie, insert before)"
@@ -964,6 +966,7 @@ insert it on the next line.  Run navigation hook after insertion."
   (save-excursion 
     (insert header-string))
   (reorg-bullets--fontify-heading)
+  (reorg--refresh-org-visual-outline)
   (run-hooks 'reorg--navigation-hook))
 
 (defun reorg--delete-entries (id)
