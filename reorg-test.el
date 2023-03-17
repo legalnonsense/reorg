@@ -622,110 +622,111 @@
   (interactive)
   (reorg-open reorg-template--test-all))
 
-(setq reorg-template--test-all '( :sources ((org . "~/tmp/tmp.org"))
-				  :format-results (.stars " " .headline)
-				  :children
-				  (( :group "By client"
-				     :children
-				     (( :group
-					.category-inherited
-					:sort-groups
-					reorg-string<			
-					:children
-					(( :group
-					   (when
-					       (and
-						.todo
-						(not (string= "DONE" .todo))
-						(not (string= "EVENT" .todo))
-						(not (string= "DEADLINE" .todo)))
-					     "Tasks")
-					   :sort-groups
-					   reorg-string<
-					   :format-results
-					   (.priority
-					    " "
-					    (s-pad-right 15 " " .todo)
-					    " " .headline)
-					   :sort-results
-					   ((.priority . string<)
-					    (.headline . string<)))
-					 ( :group (when (and .ts-ts
-							     (ts> .ts-ts (ts-now)))
-						    "Calendar")
-					   :format-results
-					   (.ts-type
-					    " "
-					    (s-pad-right 30 " " .ts)
-					    " " .headline)
-					   :sort-results
-					   (( .ts . string<)))))))
-				   ( :group "By delegatee"
-				     :children (( :group
-						  .delegatee
-						  :sort-groups
-						  (lambda (a b)
-						    (string< a b)))))		 
-				   ( :group "Calendar"
-				     :children (( :group
-						  .ts-year
-						  :sort-groups
-						  (lambda (a b) (string< a b))
-						  :children
-						  (( :group
-						     .ts-month
-						     :sort-groups
-						     (lambda (a b)
-						       (let ((seq '("January"
-								    "February"
-								    "March"
-								    "April"
-								    "May"
-								    "June"
-								    "July"
-								    "August"
-								    "September"
-								    "October"
-								    "November"
-								    "December")))
-							 (< (seq-position seq a 'string=)
-							    (seq-position seq b 'string=))))
-						     :sort-results
-						     ((.ts-day . <))
-						     :format-results
-						     (.stars
-						      " "
-						      (s-pad-left 2 " "
-								  (number-to-string
-								   .ts-day))
-						      " "
-						      (s-pad-right 12 " "
-								   .ts-day-name)
-						      (s-pad-right
-						       20
-						       " "
-						       .category-inherited)
-						      .headline))))))
-				   ( :sources ((email . "subject:allums"))
-				     :group (when (equal .class "email")
-					      "Emails")
-				     :format-results (.stars
-						      " "
-						      .date
-						      "\t\t"
-						      .subject))
-				   ( :sources ((files . "find ~/legal/Dropbox/Allums\\,\\ Matthew/docket -type f"))
-				     :group (when (eq .class 'files) "")
-				     :children (( :group "File tree"
-						  :children (( :group .!parent-dirs
-							       :format-results (.stars " " .filename)
-							       :sort-results ((.filename . reorg-string<)))))
-						( :group "By extension"
-						  :children (( :group .extension
-							       :sort-groups (lambda (a b) (string< (downcase a)
-												   (downcase b)))
-							       :sort-results (((downcase .filename) . string<))
-							       :format-results (.filename)))))))))
+(setq reorg-template--test-all
+      '( :sources ((org . "~/tmp/tmp.org"))
+	 :format-results (.stars " " .headline)
+	 :children
+	 (( :group "By client"
+	    :children
+	    (( :group
+	       .category-inherited
+	       :sort-groups
+	       reorg-string<			
+	       :children
+	       (( :group
+		  (when
+		      (and
+		       .todo
+		       (not (string= "DONE" .todo))
+		       (not (string= "EVENT" .todo))
+		       (not (string= "DEADLINE" .todo)))
+		    "Tasks")
+		  :sort-groups
+		  reorg-string<
+		  :format-results
+		  (.priority
+		   " "
+		   (s-pad-right 15 " " .todo)
+		   " " .headline)
+		  :sort-results
+		  ((.priority . string<)
+		   (.headline . string<)))
+		( :group (when (and .ts-ts
+				    (ts> .ts-ts (ts-now)))
+			   "Calendar")
+		  :format-results
+		  (.ts-type
+		   " "
+		   (s-pad-right 30 " " .ts)
+		   " " .headline)
+		  :sort-results
+		  (( .ts . string<)))))))
+	  ( :group "By delegatee"
+	    :children (( :group
+			 .delegatee
+			 :sort-groups
+			 (lambda (a b)
+			   (string< a b)))))		 
+	  ( :group "Calendar"
+	    :children (( :group
+			 .ts-year
+			 :sort-groups
+			 (lambda (a b) (string< a b))
+			 :children
+			 (( :group
+			    .ts-month
+			    :sort-groups
+			    (lambda (a b)
+			      (let ((seq '("January"
+					   "February"
+					   "March"
+					   "April"
+					   "May"
+					   "June"
+					   "July"
+					   "August"
+					   "September"
+					   "October"
+					   "November"
+					   "December")))
+				(< (seq-position seq a 'string=)
+				   (seq-position seq b 'string=))))
+			    :sort-results
+			    ((.ts-day . <))
+			    :format-results
+			    (.stars
+			     " "
+			     (s-pad-left 2 " "
+					 (number-to-string
+					  .ts-day))
+			     " "
+			     (s-pad-right 12 " "
+					  .ts-day-name)
+			     (s-pad-right
+			      20
+			      " "
+			      .category-inherited)
+			     .headline))))))
+	  ( :sources ((email . "subject:allums"))
+	    :group (when (equal .class "email")
+		     "Emails")
+	    :format-results (.stars
+			     " "
+			     .date
+			     "\t\t"
+			     .subject))
+	  ( :sources ((files . "find ~/legal/Dropbox/Allums\\,\\ Matthew/docket -type f"))
+	    :group (when (eq .class 'files) "")
+	    :children (( :group "File tree"
+			 :children (( :group .!parent-dirs
+				      :format-results (.stars " " .filename)
+				      :sort-results ((.filename . reorg-string<)))))
+		       ( :group "By extension"
+			 :children (( :group .extension
+				      :sort-groups (lambda (a b) (string< (downcase a)
+									  (downcase b)))
+				      :sort-results (((downcase .filename) . string<))
+				      :format-results (.filename)))))))))
 
 (defun reorg-user--test-all ()
   (interactive)
@@ -953,23 +954,23 @@
 							 "Allums")
 						  (equal .todo "TASK"))
 					 "TASKS")
-				:format-results (.stars " " .task " " .headline))
-			      ( :group (when (and (equal .category-inherited
-							 "Allums")
-						  .ts-ts)
-					 "CALENDAR")
-				:format-results (.stars " " .headline))
-			      ( :group (when (eq .class 'files)
-					 "Docket")
-				:format-results (.stars " " .filename))
-			      ( :group (when (eq .class 'email)
-					 "Emails")
-				:format-results (.stars
-						 " "
-						 .date
-						 "\t\t"
-						 .subject)
-				:sort-results ((.date . string>)))))))))
+				:format-results (.stars " " .task " " .headline))))
+		 ( :group (when (and (equal .category-inherited
+					    "Allums")
+				     .ts-ts)
+			    "CALENDAR")
+		   :format-results (.stars " " .headline))
+		 ( :group (when (eq .class 'files)
+			    "DOCKET")
+		   :format-results (.stars " " .filename))
+		 ( :group (when (eq .class 'email)
+			    "Emails")
+		   :format-results (.stars
+				    " "
+				    .date
+				    "\t\t"
+				    .subject)
+		   :sort-results ((.date . string>)))))))
 
 (defun reorg-user--leo ()
   (interactive)

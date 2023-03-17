@@ -31,7 +31,7 @@
   (require 'cl-lib))
 (require 'outline)
 (require 'org)
-(require 'org-agenda) ;; needed for `org-with-remote-undo'
+(require 'org-agenda)
 (require 'seq)
 (require 'let-alist)
 (require 'dash)
@@ -322,8 +322,7 @@ switch to that buffer in the window."
   "Render the heading at point."
   (when (reorg--get-prop 'class)
     (when-let ((func (alist-get
-		      (intern 
-		       (reorg--get-prop 'class))
+		      (reorg--get-prop 'class)
 		      reorg--render-func-list
 		      nil nil #'equal)))
       (funcall func)
