@@ -80,6 +80,7 @@
   "Find the location of HEADER-STRING in the current outline."
   (reorg--goto-first-group-member
    (get-text-property 0 'reorg-data header-string))
+  (debug nil nil)
   (let-alist (get-text-property 0 'reorg-data header-string)
     (if .sort-group
 	(cl-loop with point = (point)

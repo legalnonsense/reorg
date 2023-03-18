@@ -153,13 +153,13 @@ DEADLINE: <2023-06-06 Tue>
 :END:
 
 * 1 :odd:
-DEADLINE: <2023-03-18 Sat>
+DEADLINE: <2021-01-01 Fri>
 :PROPERTIES:
 :ID:       7da9564c-416b-4db4-a853-bb603fcaa8f8
 :END:
 
 * 2 :even:
-DEADLINE: <2025-12-27 Sat>
+DEADLINE: <2021-01-01 Fri>
 :PROPERTIES:
 :PRIME:    t
 :ID:       d3facbbb-6c32-4e4f-aa80-dd67d976340c
