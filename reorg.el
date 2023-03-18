@@ -846,38 +846,7 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 
 
 
-(defun reorg--find-leaf-location (leaf-string &optional result-sorters)
-  "find the location for LEAF-DATA among the current leaves. put the
-point where the leaf should be inserted (ie, insert before)"
-  ;; goto the first leaf if at a branch 
-  (unless (eq 'leaf (reorg--get-prop 'reorg-field-type))
-    (if (reorg--goto-first-leaf)
-	(when-let ((result-sorters
-		    (or result-sorters
-			(save-excursion 
-			  (reorg--goto-parent)
-			  (reorg--get-prop 'sort-results))))) 
-	  (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
-	    (cl-loop
-	     with point = (point)
-	     when (cl-loop for (func . pred) in result-sorters
-			   unless (equal (funcall
-					  `(lambda (x) (let-alist x ,func))
-					  leaf-data)
-					 (funcall
-					  `(lambda (x) (let-alist x ,func))
-					  (reorg--get-prop)))
-			   return (funcall pred
-					   (funcall
-					    `(lambda (x) (let-alist x ,func))
-					    leaf-data)
-					   (funcall
-					    `(lambda (x) (let-alist x ,func))
-					    (reorg--get-prop))))
-	     return (point)
-	     while (reorg--goto-next-leaf-sibling)
-	     finally (goto-char (line-beginning-position 2)))))
-      (reorg--goto-next-heading))))
+
 
 (defun reorg--get-next-group-id-change ()
   "get next group id change"
@@ -1207,11 +1176,13 @@ if the pair is properly sorted."
   (seq-sort 
    (lambda (a b)
      (cl-loop for (form . pred) in functions-and-predicates	      
-	      unless (equal (funcall `(lambda (a) (let-alist a ,form)) a)
-			    (funcall `(lambda (b) (let-alist b ,form)) b))
+	      unless (let ((ax (funcall `(lambda (a) (let-alist a ,form)) a))
+			   (bx (funcall `(lambda (b) (let-alist b ,form)) b)))
+		       (and ax bx (funcall pred ax bx)))
 	      return (funcall pred
 			      (funcall `(lambda (a) (let-alist a ,form)) a)
-			      (funcall `(lambda (b) (let-alist b ,form)) b))))
+			      (funcall `(lambda (b) (let-alist b ,form)) b))
+	      finally return a))
    sequence))
 
 (defun reorg--check-template-keys (template)
@@ -1836,19 +1807,22 @@ one of the sources."
 ;; 		       (plist-get template :sources))))
 ;;   (seq-uniq (get-sources template))))
 
-(defun reorg--list-modules ()
+(defun reorg-help-list-modules ()
   "Let the modules available."
+  (interactive)
   (cl-loop for (module . parsers) in reorg--parser-list
-	   collect module))
+	   collect module into message
+	   finally (message (pp-to-string message))))
 
-(defun reorg-list-data-types ()
+(defun reorg-help-data-types ()
   "List data types for a given module"
+  (interactive)
   (let ((module
 	 (completing-read "Select module: " (reorg--list-modules))))
     (cl-loop for (name . func) in (alist-get (intern module)
 					     reorg--parser-list)
-	     collect name into results
-	     return results)))
+	     collect name into message 
+	     finally (message (pp-to-string message)))))
 
 ;;;; template completion functions 
 

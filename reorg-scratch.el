@@ -101,6 +101,38 @@
 	       finally return (progn (goto-char point)
 				     nil)))))
 
+(defun reorg--find-leaf-location (leaf-string &optional result-sorters)
+  "find the location for LEAF-DATA among the current leaves. put the
+point where the leaf should be inserted (ie, insert before)"
+  ;; goto the first leaf if at a branch 
+  (unless (eq 'leaf (reorg--get-prop 'reorg-field-type))
+    (if (reorg--goto-first-leaf)
+	(when-let ((result-sorters
+		    (or result-sorters
+			(save-excursion 
+			  (reorg--goto-parent)
+			  (reorg--get-prop 'sort-results))))) 
+	  (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
+	    (cl-loop
+	     with point = (point)
+	     when (cl-loop for (func . pred) in result-sorters
+			   unless (equal (funcall
+					  `(lambda (x) (let-alist x ,func))
+					  leaf-data)
+					 (funcall
+					  `(lambda (x) (let-alist x ,func))
+					  (reorg--get-prop)))
+			   return (funcall pred
+					   (funcall
+					    `(lambda (x) (let-alist x ,func))
+					    leaf-data)
+					   (funcall
+					    `(lambda (x) (let-alist x ,func))
+					    (reorg--get-prop))))
+	     return (point)
+	     while (reorg--goto-next-leaf-sibling)
+	     finally (goto-char (line-beginning-position 2)))))
+      (reorg--goto-next-heading))))
 
 (defun reorg--new-insert-new (data)
   "asdf"
