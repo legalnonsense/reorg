@@ -137,24 +137,25 @@ point where the leaf should be inserted (ie, insert before)"
 (defun reorg--new-insert-new (data)
   "asdf"
   (setq cursor-type 'box)
-  (setq yyy data
-	data (reorg--get-group-and-sort
-	      (list data)
-	      reorg--current-template
-	      1
-	      t)
-	data (reorg--get-all-tree-paths
-	      data
-	      (lambda (x)
-		(and (listp x)
-		     (stringp (car x))
-		     (eq
-		      'leaf
-		      (get-text-property
-		       0
-		       'reorg-field-type
-		       (car x))))))
-	zzz data)
+  (setq 
+   data (reorg--get-group-and-sort
+	 (list data)
+	 reorg--current-template
+	 1
+	 t)
+   yyy data
+   data (reorg--get-all-tree-paths
+	 data
+	 (lambda (x)
+	   (and (listp x)
+		(stringp (car x))
+		(eq
+		 'leaf
+		 (get-text-property
+		  0
+		  'reorg-field-type
+		  (car x))))))
+   zzz data)
   data)
 
 (defun reorg--insert-new-heading (data)
@@ -169,6 +170,7 @@ point where the leaf should be inserted (ie, insert before)"
 			 while (not stop)
 			 for heading in headings
 			 for n from 0
+			 when heading
 			 do (let* ((props (get-text-property 0 'reorg-data heading))
 				   (id (alist-get 'id props)))
 			      ;; if we don't find thefirst header, then none

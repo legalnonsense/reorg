@@ -934,8 +934,8 @@ insert it on the next line.  Run navigation hook after insertion."
   (save-excursion 
     (insert header-string))
   (reorg-bullets--fontify-heading)
-  (reorg--refresh-org-visual-outline)
-  (run-hooks 'reorg--navigation-hook))
+  (run-hooks 'reorg--navigation-hook)
+  (reorg--refresh-org-visual-outline))
 
 (defun reorg--delete-entries (id)
   "Delete all heads that are associated with ID."
