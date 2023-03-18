@@ -54,16 +54,17 @@
 	 (parent (cadr id-path)))
     parent))
 
-(defun reorg--goto-first-sibling-same-group (&optional data)
+(defun reorg--goto-first-group-member (data)
   ""
-  (while 
-      (reorg--goto-previous-prop 'parent-id
-				 (or data
-				     (reorg--get-prop))
-				 nil
-				 (lambda (a b)
-				   (equal (reorg--get-parent-id a)
-					  (reorg--get-parent-id b))))))
+  (let ((parent-id (reorg--get-parent-id data))
+	(group-id (reorg--get-prop 'group-id)))
+    (goto-char (point-min))
+    (cl-loop when (and (equal parent-id
+			      (reorg--get-parent-id))
+		       (equal group-id
+			      (reorg--get-prop 'group-id)))
+	     return t
+	     while (reorg--goto-next-branch))))
 
 (defun reorg--goto-next-sibling-same-group (&optional data)
   ""
@@ -77,7 +78,8 @@
 
 (defun reorg--find-header-location-within-groups (header-string)
   "Find the location of HEADER-STRING in the current outline."
-  (reorg--goto-first-sibling-same-group)
+  (reorg--goto-first-group-member
+   (get-text-property 0 'reorg-data header-string))
   (let-alist (get-text-property 0 'reorg-data header-string)
     (if .sort-group
 	(cl-loop with point = (point)

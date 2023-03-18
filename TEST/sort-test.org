@@ -153,38 +153,44 @@ DEADLINE: <2023-06-06 Tue>
 :END:
 
 * 1 :odd:
+DEADLINE: <2023-03-18 Sat>
 :PROPERTIES:
 :ID:       7da9564c-416b-4db4-a853-bb603fcaa8f8
 :END:
 
 * 2 :even:
+DEADLINE: <2025-12-27 Sat>
 :PROPERTIES:
 :PRIME:    t
 :ID:       d3facbbb-6c32-4e4f-aa80-dd67d976340c
 :END:
 
 * 3 :odd:
+DEADLINE: <2023-03-17 Fri>
 :PROPERTIES:
 :ID:       8ad4d7d2-cc3c-4f28-b19f-e9e41a2ca1ff
 :END:
 
 * 4 :even:
+DEADLINE: <2023-03-18 Sat>
 :PROPERTIES:
 :ID:       95578d40-461d-485c-8eab-ce4b504cb1bc
 :END:
 
-* 5 :odd:
+* 5aa :odd:
 :PROPERTIES:
 :PRIME:    t
 :ID:       a670385b-370b-46eb-97f7-4b00c16b1712
 :END:
 
 * 6a :even:
+DEADLINE: <2023-04-23 Sun>
 :PROPERTIES:
 :ID:       9ce64bbc-fa3d-436d-a4ed-0e990bd2b14d
 :END:
 
-* 7aaa :odd:
+* 7 :odd:
+DEADLINE: <2023-03-18 Sat>
 :PROPERTIES:
 :PRIME:    t
 :ID:       1fb55b96-fd8d-4b26-9ef5-bdece39f5b3f

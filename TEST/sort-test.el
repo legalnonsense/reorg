@@ -23,6 +23,7 @@
   (interactive)
   (reorg-open-sidebar
    '( :sources ((org . "~/.emacs.d/lisp/reorg/TEST/sort-test.org"))
+      :group "group"
       :children (( :group .deadline
 		   :sort-groups reorg-string<)
 		 ( :group .headline
