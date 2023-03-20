@@ -16,10 +16,11 @@
   "Execute BODY in the source buffer and
 update the heading at point."
   (declare (indent defun))
-  `(progn
+  `(progn 
      (let* ((data nil)
 	    (marker (reorg--get-prop 'marker))
 	    (buffer (marker-buffer marker))
+	    (group-id (reorg--get-prop 'group-id))
 	    (id (reorg--get-prop 'id)))
        (org-with-remote-undo buffer
 	 (with-current-buffer buffer 
@@ -34,7 +35,9 @@ update the heading at point."
 	     (save-excursion
 	       (save-restriction
 		 (reorg--delete-entries id)
-		 (reorg--insert-new-heading data)))))))))
+		 (reorg--insert-new-heading data))))))
+       (reorg--goto-group-and-id id group-id)
+       (run-hooks 'reorg--navigation-hook))))
 
 ;;; org-capture integration 
 
@@ -312,24 +315,6 @@ the point and return nil."
     (reorg-org--source--narrow-to-heading)
     (reorg--select-tree-window)))
 
-;; (defun reorg--org--goto-source (&optional buffer id no-narrow)
-;;   "Move to buffer and find heading with ID.  If NARROW is non-nil,
-;; then narrow to that heading and return t.  If no heading is found, don't move
-;; the point and return nil."
-;;   (let ((id (or id (reorg--get-prop 'id))))
-;;     (with-current-buffer (or buffer (reorg--get-prop 'buffer))
-;;       (let ((old-point (point))
-;; 	    (search-invisible t))
-;; 	(widen)
-;; 	(ov-clear)
-;; 	(goto-char (point-min))
-;; 	(if (re-search-forward id nil t)
-;; 	    (progn (goto-char (match-beginning 0))
-;; 		   (org-back-to-heading)
-;; 		   (when (not no-narrow)
-;; 		     (reorg-org--source--narrow-to-heading)))
-;; 	  (goto-char old-point))))))
-
 (defun reorg-org--goto-end-of-meta-data ()
   "Go to the end of the meta data and insert a blank line
 if there is not one."
@@ -494,34 +479,6 @@ are convenience functions for writing templates."
 			    (if a (downcase a) "")
 			    (if b (downcase b) ""))))))
 
-;; (reorg-create-data-type
-;;  :name ts
-;;  :class org
-;;  :parse (or
-;; 	 (org-entry-get (point) "DEADLINE")
-;; 	 (when (reorg-org--timestamp-parser)
-;; 	   (org-no-properties (reorg-org--timestamp-parser)))
-;; 	 (when (reorg-org--timestamp-parser nil t)
-;; 	   (org-no-properties (reorg-org--timestamp-parser nil t)))
-;; 	 (org-entry-get (point) "SCHEDULED"))
-;;  :display (if-let ((ts (alist-get 'ts data)))
-;; 	      (if (=
-;; 		   (string-to-number
-;; 		    (format-time-string "%Y"))
-;; 		   (ts-year (ts-parse-org ts)))
-;; 		  (s-pad-right 22 " "
-;; 			       (reorg-org--format-time-string
-;; 				ts
-
-;; 				"%a, %b %d"
-;; 				"%a, %b %d at %-l:%M%p"))
-;; 		(s-pad-right 22 " "
-;; 			     (reorg-org--format-time-string
-;; 			      ts
-;; 			      "%a, %b %d, %Y"
-;; 			      "%a, %b %d, %Y at %-l:%M%p")))
-;; 	    nil))
-
 (reorg-create-data-type
  :name timestamp-all
  :class org
@@ -537,9 +494,9 @@ are convenience functions for writing templates."
  :class org
  :parse (org-entry-get (point) "PRIORITY")
  :display (pcase (alist-get 'priority data)
-	    ("A" "⚡")
-	    ("B" "⇥")
-	    ("C" "⬊")
+	    ("A" "↗")
+	    ("B" "→")
+	    ("C" "↘")
 	    (_ " ")))
 
 (reorg-create-data-type :name body

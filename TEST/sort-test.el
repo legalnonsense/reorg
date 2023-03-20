@@ -18,7 +18,7 @@
 
 
 
-(defun reorg--sort-test-drill ()
+(defun reorg--sort-test ()
   ""
   (interactive)
   (reorg-open-sidebar

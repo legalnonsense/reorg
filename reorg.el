@@ -31,7 +31,9 @@
   (require 'cl-lib))
 (require 'outline)
 (require 'org)
-(require 'org-agenda)
+;; (require 'org-agenda)
+(eval-when-compile
+  (require 'org-macs))
 (require 'seq)
 (require 'let-alist)
 (require 'dash)
