@@ -944,7 +944,8 @@ insert it on the next line.  Run navigation hook after insertion."
 		   (reorg-views--delete-leaf)
 		   (when parent
 		     (goto-char parent)
-		     (reorg--delete-headers-maybe)))))
+		     (reorg--delete-headers-maybe)
+		     (reorg--refresh-org-visual-outline)))))
 
 ;; (defun reorg--insert-new-heading (data template)
 ;;   "Parse DATA according to TEMPLATE, delete old headers

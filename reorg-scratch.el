@@ -57,7 +57,7 @@
 (defun reorg--goto-first-group-member (data)
   ""
   (let ((parent-id (reorg--get-parent-id data))
-	(group-id (reorg--get-prop 'group-id)))
+	(group-id (alist-get 'group-id data)))
     (goto-char (point-min))
     (cl-loop when (and (equal parent-id
 			      (reorg--get-parent-id))
@@ -76,11 +76,13 @@
 			   (equal (reorg--get-parent-id a)
 				  (reorg--get-parent-id b)))))
 
+
+
 (defun reorg--find-header-location-within-groups (header-string)
   "Find the location of HEADER-STRING in the current outline."
   (reorg--goto-first-group-member
    (get-text-property 0 'reorg-data header-string))
-  (debug nil nil)
+  (push header-string xxx)
   (let-alist (get-text-property 0 'reorg-data header-string)
     (if .sort-group
 	(cl-loop with point = (point)
