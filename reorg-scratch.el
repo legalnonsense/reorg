@@ -136,7 +136,8 @@ point where the leaf should be inserted (ie, insert before)"
 		       while (not stop)
 		       for heading in headings
 		       for n from 0
-		       when heading
+		       when (and heading
+				 (not (string= "" heading)))
 		       do (let* ((props (get-text-property 0 'reorg-data heading))
 				 (id (alist-get 'id props)))
 			    ;; if we don't find thefirst header, then none

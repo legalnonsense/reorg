@@ -7,13 +7,12 @@
   (reorg-open-sidebar
    '( :sources ((org . "~/.emacs.d/lisp/reorg/TEST/sort-test.org"))
       :group "NAME OF GROUP"
-      :sort-results ((.headline . reorg-string<)
-		     (.deadline . reorg-string>))
+      :sort-results ((.deadline . reorg-string<)
+		     (.headline . reorg-string<))
       :format-results (.stars
 		       " "
 		       (s-pad-right 30 " " .headline)
-		       .deadline
-		       ))))
+		       .deadline))))
 
 
 

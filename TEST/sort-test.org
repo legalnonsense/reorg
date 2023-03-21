@@ -1,4 +1,4 @@
-* ab :a:vowel:
+* a :a:vowel:
 DEADLINE: <2024-01-01 Mon>
 :PROPERTIES:
 :ID:       09b626c8-1c93-4b71-b799-f7db47c856bb
@@ -11,13 +11,13 @@ DEADLINE: <2024-01-02 Tue>
 :ID:       21c6c84c-963f-40e5-85ca-eaf97ec8a80e
 :END:
 
-* b
+* a
 DEADLINE: <2024-01-03 Wed>
 :PROPERTIES:
 :ID:       0e2466fd-d197-4a02-86c2-f9520099d00f
 :END:
 
-* bx :a:
+* a :a:
 DEADLINE: <2024-02-02 Fri>
 :PROPERTIES:
 :ID:       509bf74c-d14f-4669-bad4-a4f8ee13f350
@@ -31,8 +31,8 @@ DEADLINE: <2024-03-03 Sun>
 :LETTER-NUMBER: 3
 :END:
 
-* dddd :a:
-DEADLINE: <2023-04-04 Tue>
+* a :a:
+DEADLINE: <2024-04-04 Thu>
 :PROPERTIES:
 :ID:       9910e1a5-b904-438d-ad8f-f2e5f7492ab5
 :LETTER-NUMBER: 4
@@ -152,13 +152,13 @@ DEADLINE: <2023-06-06 Tue>
 :ID:       aed1b3b3-5244-44e7-8344-504a8c54a69d
 :END:
 
-* 1abadsf :odd:
+* a :odd:
 DEADLINE: <2023-12-13 Wed>
 :PROPERTIES:
 :ID:       7da9564c-416b-4db4-a853-bb603fcaa8f8
 :END:
 
-* 2aa :even:
+* 2aaba :even:
 DEADLINE: <2023-03-18 Sat>
 :PROPERTIES:
 :PRIME:    t
@@ -172,7 +172,7 @@ DEADLINE: <2023-03-19 Sun>
 :END:
 
 * 4ab :even:
-DEADLINE: <2023-03-18 Sat>
+DEADLINE: <2023-06-10 Sat>
 :PROPERTIES:
 :ID:       95578d40-461d-485c-8eab-ce4b504cb1bc
 :END:
