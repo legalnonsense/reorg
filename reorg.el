@@ -1178,14 +1178,15 @@ PREDICATE is a function that accepts two arguments and returns non-nil
 if the pair is properly sorted."
   (seq-sort 
    (lambda (a b)
-     (cl-loop for (form . pred) in functions-and-predicates	      
-	      unless (let ((ax (funcall `(lambda (a) (let-alist a ,form)) a))
-			   (bx (funcall `(lambda (b) (let-alist b ,form)) b)))
-		       (and ax bx (funcall pred ax bx)))
+     (cl-loop for (form . pred) in functions-and-predicates
+	      with ax = nil
+	      with bx = nil
+	      do (setq ax (funcall `(lambda (a) (let-alist a ,form)) a)
+		       bx (funcall `(lambda (b) (let-alist b ,form)) b))	      
+	      unless (equal ax bx)
 	      return (funcall pred
-			      (funcall `(lambda (a) (let-alist a ,form)) a)
-			      (funcall `(lambda (b) (let-alist b ,form)) b))
-	      finally return a))
+			      ax
+			      bx)))
    sequence))
 
 (defun reorg--check-template-keys (template)

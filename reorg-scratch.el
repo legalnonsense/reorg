@@ -155,7 +155,7 @@ point where the leaf should be inserted (ie, insert before)"
 					   (reorg--insert-header-at-point leaf (not afterp)))))))
 		       finally (progn (unless stop
 					(let ((afterp (reorg--find-leaf-location leaf)))
-					  (reorg--insert-header-at-point leaf afterp)))))))
+					  (reorg--insert-header-at-point leaf)))))))
 
 (defun reorg--refresh-org-visual-outline ()
   ""

@@ -32,7 +32,7 @@ DEADLINE: <2024-03-03 Sun>
 :END:
 
 * a :a:
-DEADLINE: <2024-04-04 Thu>
+DEADLINE: <2023-01-26 Thu>
 :PROPERTIES:
 :ID:       9910e1a5-b904-438d-ad8f-f2e5f7492ab5
 :LETTER-NUMBER: 4
@@ -201,8 +201,8 @@ DEADLINE: <2023-03-18 Sat>
 :ID:       e35b843a-1a9f-43d2-9f18-334b2aa0a6e2
 :END:
 
-* aaaaaaaaazzzz :odd:
-DEADLINE: <2025-03-15 Sat>
+* a :odd:
+DEADLINE: <2023-12-14 Thu>
 :PROPERTIES:
 :ID:       190e7178-9ec7-49a2-8a32-22fd615efd51
 :END:
