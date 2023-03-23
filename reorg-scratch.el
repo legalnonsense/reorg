@@ -34,18 +34,30 @@
 (defun reorg--goto-next-sibling-same-group (&optional data)
   ""
   (interactive)
-  (reorg--goto-next-prop 'parent-id (or data
-					(reorg--get-prop))
-			 nil
-			 (lambda (a b)
-			   (equal (reorg--get-parent-id a)
-				  (reorg--get-parent-id b)))))
+  (let ((parent-id (if data 
+		       (reorg--get-parent-id data)
+		     (reorg--get-parent-id (reorg--get-prop))))
+	(group-id (if data
+		      (alist-get 'group-id data)
+		    (reorg--get-prop 'group-id)))
+	(point (point)))
+    (when (reorg--goto-next-sibling)
+      (if (and (equal parent-id
+		      (reorg--get-parent-id))
+	       (equal group-id
+		      (reorg--get-prop 'group-id)))
+	  (point)
+	(goto-char point)
+	(run-hooks 'reorg--navigation-hook)
+	nil))))
 
-(defun reorg--find-header-location-within-groups (header-string)
+(defun reorg--find-header-location (header-string)
   "Find the location of HEADER-STRING in the current outline."
-  (reorg--goto-first-group-member
-   (get-text-property 0 'reorg-data header-string))
-  (let-alist (get-text-property 0 'reorg-data header-string)
+  (setq header-string (if (stringp header-string)
+			  (get-text-property 0 'reorg-data header-string)
+			header-string))
+  (reorg--goto-first-group-member header-string)
+  (let-alist header-string
     (if .sort-group
 	(cl-loop with point = (point)
 		 if (equal .branch-name
@@ -56,7 +68,7 @@
 				  (reorg--get-prop 'branch-name))
 		 return nil
 		 while (reorg--goto-next-sibling-same-group
-			(get-text-property 0 'reorg-data header-string))
+			header-string)
 		 finally return (progn (goto-char point)
 				       nil))
       (cl-loop with point = (point)
@@ -64,53 +76,64 @@
 			   (reorg--get-prop 'branch-name))
 	       return t
 	       while (reorg--goto-next-sibling-same-group
-		      (get-text-property 0 'reorg-data header-string))
+		      header-string)
 	       finally return (progn (goto-char point)
 				     nil)))))
 
 (defun reorg--find-leaf-location (leaf-string &optional result-sorters)
   "find the location for LEAF-DATA among the current leaves. put the
 point where the leaf should be inserted (ie, insert before)"
-  ;; goto the first leaf if at a branch 
+  ;; goto the first leaf if at a branch
+  ;; (push leaf-string xxx)
   (unless (eq 'leaf (reorg--get-prop 'reorg-field-type))
-    (if (reorg--goto-first-leaf)
-	(when-let ((result-sorters
-		    (or result-sorters
-			(save-excursion 
-			  (reorg--goto-parent)
-			  (reorg--get-prop 'sort-results))))) 
-	  (let ((leaf-data (get-text-property 0 'reorg-data leaf-string)))
-	    (cl-loop
-	     with point = (point)
-	     when (cl-loop for (func . pred) in result-sorters
-			   unless (equal (funcall
-					  `(lambda (x) (let-alist x ,func))
-					  leaf-data)
-					 (funcall
-					  `(lambda (x) (let-alist x ,func))
-					  (reorg--get-prop)))
-			   return (funcall pred
-					   (funcall
-					    `(lambda (x) (let-alist x ,func))
-					    leaf-data)
-					   (funcall
-					    `(lambda (x) (let-alist x ,func))
-					    (reorg--get-prop))))
-	     return (point)
-	     while (reorg--goto-next-leaf-sibling)
-	     finally (goto-char (line-beginning-position 2)))))
-      (reorg--goto-next-heading))))
+    (when-let ((result-sorters
+		(or result-sorters
+		    (reorg--get-prop 'sort-results))))
+      ;; (reorg--goto-first-leaf)
+      (reorg--goto-next-child)
+      (let ((leaf-data (if (stringp leaf-string)
+			   (get-text-property 0 'reorg-data leaf-string)
+			 leaf-string)))
+	(cl-loop
+	 with point = (point)
+	 when (cl-loop for (func . pred) in result-sorters
+		       unless (equal (funcall
+				      `(lambda (x) (let-alist x ,func))
+				      leaf-data)
+				     (funcall
+				      `(lambda (x) (let-alist x ,func))
+				      (reorg--get-prop)))
+		       return (funcall pred
+				       (funcall
+					`(lambda (x) (let-alist x ,func))
+					leaf-data)
+				       (funcall
+					`(lambda (x) (let-alist x ,func))
+					(reorg--get-prop))))
+	 return (point)
+	 while (reorg--goto-next-sibling-same-group)
+	 finally return (point))))))
 
-(defun reorg--new-insert-new (data)
-  "asdf"
-  (setq cursor-type 'box)
-  (setq 
+
+;; (let ((id (alist-get 'id (get-text-property 0 'reorg-data (car (car zzz))))))
+;;   (reorg--goto-next-prop 'id id nil nil nil t))
+
+;; (let ((id (alist-get 'id (get-text-property 0 'reorg-data (cadr (car zzz))))))
+;;   (reorg--goto-next-prop 'id id nil nil nil t))
+
+;; (let ((id (alist-get 'id (get-text-property 0 'reorg-data (cadr (cdr (car zzz)))))))
+;;   (reorg--goto-next-prop 'id id nil nil nil t))
+
+;; (reorg--find-leaf-location (cadr (cdr (cdr (car zzz)))))
+
+(defun reorg--insert-new-heading (data)
+  ""
+  (setq
    data (reorg--get-group-and-sort
 	 (list data)
 	 reorg--current-template
 	 1
 	 t)
-   yyy data
    data (reorg--get-all-tree-paths
 	 data
 	 (lambda (x)
@@ -123,45 +146,45 @@ point where the leaf should be inserted (ie, insert before)"
 		  'reorg-field-type
 		  (car x))))))
    zzz data)
-  data)
-
-(defun reorg--insert-new-heading (data)
-  ""
-  (setq data (reorg--new-insert-new data))
+  (setq cursor-type 'box)
   (cl-loop for group in data
 	   do (goto-char (point-min))
-	   do (cl-loop with leaf = (car (last group))
-		       with headings = (butlast group)
-		       with stop = nil
-		       while (not stop)
-		       for heading in headings
-		       for n from 0
-		       when (and heading
-				 (not (string= "" heading)))
-		       do (let* ((props (get-text-property 0 'reorg-data heading))
-				 (id (alist-get 'id props)))
-			    ;; if we don't find thefirst header, then none
-			    ;; of them exist 
-			    (unless (reorg--goto-next-prop 'id id nil nil nil t)
-			      ;; check to see if there is an existing group
-			      (let ((afterp 
-				     (reorg--find-header-location-within-groups heading)))
-				(cl-loop for x from n to (1- (length headings))
-					 do
-					 (reorg--insert-header-at-point (nth x headings) afterp)
-					 finally
-					 (progn
-					   (setq stop t)
-					   (let ((afterp (reorg--at-last-leaf-p)))
-					     (reorg--insert-header-at-point leaf afterp)))))))
-		       finally (progn (unless stop
-					(let ((afterp (reorg--find-leaf-location leaf)))
-					  (reorg--insert-header-at-point leaf)))))))
+	   and do (cl-loop
+		   with leaf = (car (last group))
+		   with headings = (butlast group)
+		   with stop = nil
+		   while (not stop)
+		   for heading in headings
+		   for n from 0
+		   when (and heading
+			     (not (string= "" heading)))
+		   do (let* ((props (get-text-property 0 'reorg-data heading))
+			     (id (alist-get 'id props)))
+			(unless (reorg--goto-next-prop 'id id nil nil nil t)
+			  (let ((afterp 
+				 (reorg--find-header-location
+				  heading)))
+			    (cl-loop for x from n to (1- (length headings))
+				     do
+				     (reorg--insert-header-at-point
+				      (nth x headings)
+				      afterp)
+				     finally
+				     (progn
+				       (setq stop t)
+				       (let ((afterp (reorg--at-last-leaf-p)))
+					 (reorg--insert-header-at-point
+					  leaf
+					  afterp)))))))
+		   finally (unless stop
+			     ;; (let ((afterp (reorg--find-leaf-location leaf)))
+			     (reorg--insert-header-at-point leaf)))))
+  ;; )
 
-(defun reorg--at-last-leaf-p ()
-  "at the last leaf?"
-  (save-excursion 
-    (reorg--goto-next-leaf-sibling)))
+  (defun reorg--at-last-leaf-p ()
+    "at the last leaf?"
+    (save-excursion 
+      (reorg--goto-next-leaf-sibling)))
 
 (defun reorg--refresh-org-visual-outline ()
   ""
@@ -170,3 +193,11 @@ point where the leaf should be inserted (ie, insert before)"
 	     (end (or (reorg--get-next-parent)
 		      (point-max))))
     (org-visual-indent--org-indent-add-properties beg end)))
+
+;; check to see if the last header exists
+;; if so, find the leaf location (reorg--traverse-leaf-group)
+;; find the first header
+;; if it doesn't exist, find it's location in the header groups (reorg--traverse-header-group)
+;; insert all remaining headers and leaf
+;; if it exists, loop for next header
+

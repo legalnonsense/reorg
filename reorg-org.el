@@ -2,15 +2,15 @@
 
 ;;; syncing function
 
-(defun reorg-org--update-heading-at-point ()
-  "update the current heading"
-  (interactive)
-  (reorg--insert-new-heading
-   (reorg--with-point-at-orig-entry nil
-				    nil
-				    (reorg--parser
-				     nil
-				     (reorg--get-prop 'class)))))
+;; (defun reorg-org--update-heading-at-point ()
+;;   "update the current heading"
+;;   (interactive)
+;;   (reorg--insert-new-heading
+;;    (reorg--with-point-at-orig-entry nil
+;; 				    nil
+;; 				    (reorg--parser
+;; 				     nil
+;; 				     (reorg--get-prop 'class)))))
 
 (defmacro reorg-org--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
@@ -36,7 +36,6 @@ update the heading at point."
 	       (save-restriction
 		 (reorg--delete-entries id)
 		 (reorg--insert-new-heading data))))))
-       (reorg--goto-group-and-id id group-id)
        (run-hooks 'reorg--navigation-hook))))
 
 ;;; org-capture integration 

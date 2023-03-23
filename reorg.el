@@ -583,13 +583,13 @@ This creates two functions: reorg--get-NAME and reorg--goto-NAME."
 (reorg--create-navigation-commands
  ;; If you want to debug, just pp macro expand, and instrument
  ;; the defun in a scratch buffer. 
- ((first-leaf . (reorg--get-next-prop 'reorg-field-type
-				      'leaf
-				      (let ((sib (reorg--get-next-sibling))
-					    (par (reorg--get-next-parent)))
-					(if (and sib par)
-					    (if (< sib par) sib par)
-					  (if sib sib par)))))
+ (;; (first-leaf . (reorg--get-next-prop 'reorg-field-type
+  ;; 				      'leaf
+  ;; 				      (let ((sib (reorg--get-next-sibling))
+  ;; 					    (par (reorg--get-next-parent)))
+  ;; 					(if (and sib par)
+  ;; 					    (if (< sib par) sib par)
+  ;; 					  (if sib sib par)))))
   (next-leaf-sibling . (reorg--get-next-prop 'reorg-field-type
 					     'leaf
 					     (reorg--get-next-parent)))
