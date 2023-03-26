@@ -1258,13 +1258,17 @@ to the results."
 			  (cons 'reorg-level level)
 			  (cons 'group-id group-id)
 			  (cons
-			   'id 
+			   'id
+			   ;; (org-id-new)
+			   
 			   (let
 			       ((idx (md5 (concat (pp-to-string template)
 						  header
-						  (car   
+						  (pp-to-string 
 						   parent-id)))))
-			     (setq id idx)))
+			     ;; (debug nil parent-id header)
+			     (setq id idx))
+			   )
 			  (cons 'id-path (append (-list parent-id)
 						 (-list id))))))
 		   ret))
