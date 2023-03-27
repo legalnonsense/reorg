@@ -93,7 +93,7 @@
 (defun reorg--has-leaves-p ()
   "does the header have leaves?"
   (save-excursion 
-    (while (reorg--goto-next-child))))
+    (reorg--goto-next-child)))
 
 (defun reorg--find-leaf-location (leaf-string &optional result-sorters)
   "find the location for LEAF-DATA among the current leaves. put the
