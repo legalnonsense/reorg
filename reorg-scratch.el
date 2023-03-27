@@ -156,7 +156,8 @@ point where the leaf should be inserted (ie, insert before)"
 
 (defun reorg--insert-new-heading (data)
   ""
-  (let ((final-leaf nil))
+  (let ((final-leaf nil)
+	(point (point)))
     (save-excursion 
       (goto-char (point-min))
       (run-hooks 'reorg--navigation-hook)
@@ -212,6 +213,7 @@ point where the leaf should be inserted (ie, insert before)"
 				 (let ((afterp (not (reorg--find-leaf-location leaf))))
 				   (reorg--insert-header-at-point
 				    leaf afterp))))))
+    (goto-char point)
     (reorg--goto-same-id-after-insert final-leaf)))
 
 (defun reorg--at-last-leaf-p ()
