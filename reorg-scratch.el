@@ -54,6 +54,12 @@
 	(run-hooks 'reorg--navigation-hook)
 	nil))))
 
+(defun reorg--goto-last-leaf-depth-first ()
+  "goto last leaf of current tree"
+  ;; this function doesn't seem to work the
+  ;; way it was intended 
+  (while (reorg--goto-next-leaf-sibling)))
+
 (defun reorg--find-header-location (header-string)
   "Find the location of HEADER-STRING in the current outline."
   (setq header-string (if (stringp header-string)
@@ -63,10 +69,13 @@
     (let-alist header-string
       (if .sort-group
 	  (cl-loop with point = (point)
-		   unless (equal .branch-name
+		   when (funcall .sort-group
+				 .branch-name
 				 (reorg--get-prop 'branch-name))
+		   return (point)
 		   while (reorg--goto-next-sibling-same-group
 			  header-string)
+		   finally return (point))
 
 	(cl-loop with point = (point)
 		 when (equal .branch-name
@@ -74,9 +83,12 @@
 		 return t
 		 while (reorg--goto-next-sibling-same-group
 			header-string)
-		 finally return (progn (goto-char point)
-				       (forward-line)
-				       nil))))))
+		 finally return (reorg--goto-last-leaf)
+		 
+		 ;; (progn (goto-char point)
+		 ;;        (forward-line)
+		 ;;        nil)
+		 ))))))
 
 (defun reorg--find-leaf-location (leaf-string &optional result-sorters)
   "find the location for LEAF-DATA among the current leaves. put the
@@ -148,6 +160,7 @@ point where the leaf should be inserted (ie, insert before)"
 		   do (let* ((props (get-text-property 0 'reorg-data heading))
 			     (id (alist-get 'id props)))
 			(unless (reorg--goto-next-prop 'id id nil nil nil t)
+			  ;; THE ERROR IS HERE 
 			  (unless (reorg--find-header-location heading)
 			    (forward-line))
 			  (cl-loop for x from n to (1- (length headings))
@@ -163,6 +176,8 @@ point where the leaf should be inserted (ie, insert before)"
 		   finally (unless stop
 			     (reorg--find-leaf-location leaf)
 			     (reorg--insert-header-at-point leaf t)))))
+
+
 
 
 (defun reorg--at-last-leaf-p ()
@@ -185,3 +200,4 @@ point where the leaf should be inserted (ie, insert before)"
 ;; insert all remaining headers and leaf
 ;; if it exists, loop for next header
 
+zzz
