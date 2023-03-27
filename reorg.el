@@ -463,7 +463,7 @@ you are on."
 				(point)))))))
 
 (defun reorg--goto-previous-prop (property &optional value limit
-					   predicate visible-only)
+					   predicate visible-only current)
   "See `reorg--goto-next-prop'"
   (cond
    ((bobp)
@@ -524,27 +524,31 @@ you are on."
 					  value
 					  limit
 					  predicate
-					  visible-only)
+					  visible-only
+					  current)
   "Save-excursion wrapper for `reorg--goto-previous-prop'."
   (save-excursion (reorg--goto-previous-prop
 		   property
 		   value
 		   limit
 		   predicate
-		   visible-only)))
+		   visible-only
+		   current)))
 
 (defun reorg--get-next-prop (property &optional
 				      value
 				      limit
 				      predicate
-				      visible-only)
+				      visible-only
+				      current)
   "Save-excursion wrapper for `reorg--goto-previous-prop'."
   (save-excursion (reorg--goto-next-prop
 		   property
 		   value
 		   limit
 		   predicate
-		   visible-only)))
+		   visible-only
+		   current)))
 
 (defun reorg--goto-char (point &optional no-hook)
   "Goto POINT and run hook funcs."

@@ -32,10 +32,10 @@ update the heading at point."
 	     ,@body
 	     (setq data (reorg--parser nil 'org reorg--temp-parser-list)))
 	   (with-current-buffer reorg-buffer-name
-	     (save-excursion
-	       (save-restriction
-		 (reorg--delete-entries id)
-		 (reorg--insert-new-heading data))))))
+	     ;; (save-excursion
+	     ;;   (save-restriction
+	     (reorg--delete-entries id)
+	     (reorg--insert-new-heading data))))
        (run-hooks 'reorg--navigation-hook))))
 
 ;;; org-capture integration 
