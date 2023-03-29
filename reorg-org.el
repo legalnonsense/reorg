@@ -50,14 +50,13 @@ recently captured heading belongs in the outline."
   (let (data)
     (with-current-buffer 
 	(reorg--org-capture-goto-last-stored)
-      (setq data (reorg--parser nil 'org)))
+      (setq data (reorg--parser nil 'org reorg--temp-parser-list)))
     (with-current-buffer reorg-buffer-name
       ;; When the captured item belongs to a source
       ;; used to generate the outline
       (when (member (cons
 		     (alist-get 'class data)
-		     (abbreviate-file-name
-		      (alist-get 'buffer-file-name data)))
+		     (alist-get 'buffer-file-name data))
 		    reorg--current-sources)
 	;; try to insert it into the outline 
 	(reorg--insert-new-heading data)))))
@@ -421,6 +420,11 @@ if there is not one."
    (org-ql-select SOURCE nil :action #'PARSER)))
 
 ;;; org data 
+
+(reorg-create-data-type
+ :name buffer-file-name
+ :class org
+ :parse (buffer-file-name))
 
 (reorg-create-data-type
  :name delegatee
