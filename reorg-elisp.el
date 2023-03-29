@@ -1,4 +1,5 @@
 ;; -*- lexical-binding: t; -*-
+(require 'reorg)
 
 (defun reorg-elisp--render-source () 
   "Move to buffer and find heading with ID.  If NARROW is non-nil,

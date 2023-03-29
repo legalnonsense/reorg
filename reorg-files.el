@@ -1,5 +1,5 @@
 ;; -*- lexical-binding: t; -*-
-
+(require 'reorg)
 (reorg-create-class-type
  :name files
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string

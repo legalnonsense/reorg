@@ -32,11 +32,12 @@
 (require 'outline)
 (require 'org)
 ;; (require 'org-agenda)
+(require 'seq)
 (eval-when-compile
   (require 'org-macs))
-(require 'seq)
 (require 'let-alist)
 (require 'dash)
+(require 'f)
 (require 's)
 (require 'org-visual-indent nil t)
 
@@ -100,8 +101,6 @@
 
 (defvar reorg--temp-parser-list nil "")
 
-(defvar reorg--extra-prop-list nil "")
-
 (defvar reorg--grouper-action-function
   #'reorg--create-headline-string
   "")
@@ -124,12 +123,6 @@
 (defvar reorg--render-func-list nil "")
 
 ;;; reorg requires
-
-;; TODO rename to reorg-bullets
-(require 'reorg-bullets)
-
-;;;; macro helper functions 
-
 (defun reorg--create-symbol (&rest args)
   "Create a symbol from ARGS which can be
 numbers, strings, symbols."
@@ -142,12 +135,14 @@ numbers, strings, symbols."
 	   concat (symbol-name arg) into ret
 	   finally return (intern ret)))
 
-(defun reorg--get-parser-func-name (class name)
-  "Create `reorg--CLASS--parse-NAME' symbol."
-  (reorg--create-symbol 'reorg--
-			class
-			'--parse-
-			name))
+(defun reorg--get-prop (&optional property point)
+  "Get PROPERTY from the current heading.  If PROPERTY
+is omitted or nil, get the 'reorg-data' prop.  If it is
+supplied, get that property from 'reorg-data'."
+  (let ((props (get-text-property (or point (point)) 'reorg-data)))
+    (if property
+	(alist-get property props)
+      props)))
 
 (defun reorg--get-display-func-name (class name)
   "Create `reorg--CLASS--display-NAME' symbol."
@@ -156,15 +151,127 @@ numbers, strings, symbols."
 			'--display-
 			name))
 
-;;;;  requires
-(require 'reorg-macs)
-(require 'reorg-org)
-(require 'reorg-json)
-(require 'reorg-files)
-(require 'reorg-leo)
-(require 'reorg-email)
-(require 'reorg-elisp)
-(require 'reorg-test)
+(defun reorg--get-parser-func-name (class name)
+  "Create `reorg--CLASS--parse-NAME' symbol."
+  (reorg--create-symbol 'reorg--
+			class
+			'--parse-
+			name))
+
+;;;; Macros 
+
+(cl-defmacro reorg-create-class-type (&key name
+					   getter
+					   follow
+					   keymap
+					   extra-props
+					   render-func
+					   display-buffer)
+"Create a new class type"
+(let ((func-name (reorg--create-symbol 'reorg--
+				       name
+				       '--get-from-source)))
+  `(progn
+     (defun ,func-name
+	 (&rest sources)
+       (cl-flet ((PARSER (&optional d)
+			 (reorg--parser d ',name					  
+					reorg--temp-parser-list)))
+	 (cl-loop
+	  for SOURCE in sources
+	  append ,getter)))
+     (if (boundp 'reorg--getter-list)
+	 (setf (alist-get ',name reorg--getter-list) nil)
+       (defvar reorg--getter-list nil "Getter list for all classes"))
+     (cl-pushnew  #',func-name
+		  (alist-get ',name reorg--getter-list))
+     (if (boundp 'reorg--parser-list)
+	 (setf (alist-get ',name reorg--parser-list) nil)
+       (defvar reorg--parser-list nil "Parser list for all classes."))
+
+     (defun ,(reorg--get-parser-func-name name 'class-name) (&rest _)
+       "" (symbol-name ',name))
+     (cl-pushnew (cons 'class (reorg--get-parser-func-name ',name 'class-name))
+		 (alist-get ',name reorg--parser-list))
+     
+     (defun ,(reorg--get-parser-func-name name 'class) (&rest _)
+       "" ',name)
+     (cl-pushnew (cons 'class (reorg--get-parser-func-name ',name 'class))
+		 (alist-get ',name reorg--parser-list))
+
+     (defun ,(reorg--get-parser-func-name name 'buffer-file-name) (&rest _)
+       "" (buffer-file-name))
+     (cl-pushnew (cons 'class (reorg--get-parser-func-name ',name 'buffer-file-name))
+		 (alist-get ',name reorg--parser-list))
+
+     (defun ,(reorg--get-parser-func-name name 'id) (&rest _)
+       "" (org-id-new))
+     (cl-pushnew (cons 'id (reorg--get-parser-func-name ',name 'id))
+		 (alist-get ',name reorg--parser-list))
+     
+     ;; (setf (alist-get ',name reorg--parser-list)
+     ;; 	   (cons 'class (lambda () ',(name)))
+     (setf (alist-get ',name reorg--extra-prop-list)
+	   ',extra-props)
+     (when ',keymap
+       (setf (alist-get ',name reorg--extra-prop-list)
+	     (append (alist-get ',name reorg--extra-prop-list)
+		     (list 
+	     	      'keymap
+		      ',(let ((map (make-sparse-keymap)))
+			  (cl-loop for (key . func) in keymap
+				   collect (define-key map (kbd key) func))
+			  map)))))
+     (when ',render-func
+       (setf (alist-get ',name reorg--render-func-list)
+	     ',render-func)))))
+
+(cl-defmacro reorg-create-data-type (&optional ;
+				     &key
+				     class
+				     name
+				     parse
+				     disable
+				     display
+				     append)
+  "Create a new type within a class"
+  (let* ((parsing-func (reorg--create-symbol 'reorg--
+					     class
+					     '--parse-
+					     name))
+	 (display-func (reorg--create-symbol 'reorg--
+					     class
+					     '--display-
+					     name)))
+    `(progn
+       (cond ((not ,disable)
+	      (defun ,parsing-func (&optional data DATA)
+		(let-alist DATA 
+		  ,parse))
+	      (setf (alist-get ',class reorg--parser-list)
+		    (assoc-delete-all ',name
+				      (alist-get
+				       ',class
+				       reorg--parser-list)))
+	      (if ',append		     
+		  (setf (alist-get ',class reorg--parser-list)
+			(append (alist-get ',class reorg--parser-list)
+				(list 
+				 (cons ',name #',parsing-func))))
+		(cl-pushnew (cons ',name #',parsing-func)
+			    (alist-get ',class reorg--parser-list)))
+	      (if ',display 
+		  (defun ,display-func (data)
+		    (let-alist data 
+		      ,display))
+		(fmakunbound ',display-func)))
+	     (t ;;if disabled 
+	      (setf (alist-get ',class reorg--parser-list)
+		    (assoc-delete-all ',name
+				      (alist-get ',class reorg--parser-list)))
+	      (fmakunbound ',display-func)
+	      (fmakunbound ',parsing-func))))))
+
 
 ;;; code 
 
@@ -377,14 +484,6 @@ switch to that buffer in the window."
 
 ;;;; programatically interacting with tree buffer 
 
-(defun reorg--get-prop (&optional property point)
-  "Get PROPERTY from the current heading.  If PROPERTY
-is omitted or nil, get the 'reorg-data' prop.  If it is
-supplied, get that property from 'reorg-data'."
-  (let ((props (get-text-property (or point (point)) 'reorg-data)))
-    (if property
-	(alist-get property props)
-      props)))
 
 (defun reorg--goto-next-prop (property &optional
 				       value
@@ -509,45 +608,6 @@ text at point to see if it matches."
 				  nil
 				(point)))))))
 
-(defun reorg--get-previous-prop (property &optional
-					  value
-					  limit
-					  predicate
-					  visible-only
-					  current)
-  "Save-excursion wrapper for `reorg--goto-previous-prop'."
-  (save-excursion (reorg--goto-previous-prop
-		   property
-		   value
-		   limit
-		   predicate
-		   visible-only
-		   current)))
-
-(defun reorg--get-next-prop (property &optional
-				      value
-				      limit
-				      predicate
-				      visible-only
-				      current)
-  "Save-excursion wrapper for `reorg--goto-previous-prop'."
-  (save-excursion (reorg--goto-next-prop
-		   property
-		   value
-		   limit
-		   predicate
-		   visible-only
-		   current)))
-
-(defun reorg--goto-char (point &optional no-hook)
-  "Goto POINT and run hook funcs."
-  (goto-char point)
-  (unless no-hook 
-    (run-hooks 'reorg--navigation-hook))
-  (point))
-
-;;;; Tree buffer movement and commands
-
 (defmacro reorg--create-navigation-commands (alist)
   "Create navigation commands. ALIST is a list in the form of (NAME . FORM)
 where NAME is the name of what you are moving to, e.g., \"next-heading\"
@@ -669,6 +729,47 @@ This creates two interactive functions:
 			     (>= a b)))
 			  nil
 			  t)))))
+
+(defun reorg--get-previous-prop (property &optional
+					  value
+					  limit
+					  predicate
+					  visible-only
+					  current)
+  "Save-excursion wrapper for `reorg--goto-previous-prop'."
+  (save-excursion (reorg--goto-previous-prop
+		   property
+		   value
+		   limit
+		   predicate
+		   visible-only
+		   current)))
+
+(defun reorg--get-next-prop (property &optional
+				      value
+				      limit
+				      predicate
+				      visible-only
+				      current)
+  "Save-excursion wrapper for `reorg--goto-previous-prop'."
+  (save-excursion (reorg--goto-next-prop
+		   property
+		   value
+		   limit
+		   predicate
+		   visible-only
+		   current)))
+
+(defun reorg--goto-char (point &optional no-hook)
+  "Goto POINT and run hook funcs."
+  (goto-char point)
+  (unless no-hook 
+    (run-hooks 'reorg--navigation-hook))
+  (point))
+
+;;;; Tree buffer movement and commands
+
+
 
 (defun reorg--leaves-visible-p ()
   "are the leaves of the heading visible?"
@@ -911,7 +1012,6 @@ point where the leaf should be inserted (ie, insert before)"
       (goto-char (point-min))
       (run-hooks 'reorg--navigation-hook)
       (setq
-       xxx nil
        data (reorg--get-group-and-sort
 	     (list data)
 	     reorg--current-template
@@ -927,8 +1027,7 @@ point where the leaf should be inserted (ie, insert before)"
 		     (get-text-property
 		      0
 		      'reorg-field-type
-		      (car x))))))
-       zzz data)
+		      (car x)))))))
       (setq cursor-type 'box)
       (cl-loop for group in data
 	       do (goto-char (point-min))
@@ -2095,8 +2194,10 @@ the buffer."
   (global-set-key (kbd reorg-toggle-shortcut) #'reorg--toggle-tree-buffer)
   (reorg--goto-char 1))
 
-(add-hook 'reorg-mode-hook #'reorg-bullets-mode)
 (add-hook 'reorg-mode-hook #'org-visual-indent-mode)
+(add-hook 'reorg-mode-hook #'reorg-bullets-mode)
+
+(require 'reorg-bullets)
 
 (provide 'reorg)
 

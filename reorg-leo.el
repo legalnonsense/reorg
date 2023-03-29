@@ -1,5 +1,5 @@
 ;; -*- lexical-binding: t; -*-
-
+(require 'reorg)
 (defun reorg-leo--render-func (&optional id buffer)
   "render func"
   (let ((id (or id (reorg--get-prop 'id)))

@@ -202,6 +202,7 @@
 					    "DELEGATED"
 					    "EVENT"
 					    "OPP_DUE"
+					    "WAITING" ;
 					    "DEADLINE"))
 			    (and .ts
 				 (string> .ts ,now))
@@ -231,6 +232,7 @@
 			   :sort-results ((.priority . string<)))
 			 ( :group (when (and .ts
 					     (not (member .todo '("TASK"
+								  "DONE"
 								  "DELEGATED"
 								  "WAITING"))))
 				    "CALENDAR")

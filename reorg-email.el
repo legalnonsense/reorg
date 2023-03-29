@@ -1,4 +1,5 @@
 ;; -*- lexical-binding: t; -*-
+(require 'reorg)
 
 (reorg-create-class-type
  :name email

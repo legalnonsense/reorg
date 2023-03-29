@@ -1,4 +1,7 @@
+
 ;; -*- lexical-binding: t; -*-
+
+(require 'reorg)			
 
 ;;; syncing function
 
@@ -54,7 +57,7 @@ recently captured heading belongs in the outline."
       (when (member (cons
 		     (alist-get 'class data)
 		     (abbreviate-file-name
-		      (alist-get 'filename data)))
+		      (alist-get 'buffer-file-name data)))
 		    reorg--current-sources)
 	;; try to insert it into the outline 
 	(reorg--insert-new-heading data)))))

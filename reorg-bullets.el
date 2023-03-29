@@ -4,7 +4,6 @@
 ;;; Code:
 
 ;;;; Requirements
-
 (require 'org)
 (require 'org-element)
 (require 'outline)
@@ -324,4 +323,5 @@ if REMOVE is non-nil, remove the hook or advice."
 ;;;; Footer
 
 (provide 'reorg-bullets)
+
 ;;; reorg-bullets.el ends here
