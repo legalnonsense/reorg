@@ -1657,7 +1657,15 @@ to the results."
 	;; begin .@
 	;; If the value referenced in a .@variable
 	;; is a list with multiple values, create a copy
-	;; of the data for each value of the list 
+	;; of the data for each value of in the list. so:
+	;;
+	;; '(((a . 1) (b . (2 3 4))))
+	;;
+	;; becomes:
+	;;
+	;;   '(((a . 1) (b . 2))
+	;;     ((a . 1) (b . 3))
+	;;     ((a . 1) (b . 4)))
 	(when-let ((at-dots (seq-uniq 
 			     (reorg--dot-at-search
 			      group))))
@@ -1672,6 +1680,7 @@ to the results."
 				collect
 				(let ((ppp (copy-alist d)))
 				  (setf (alist-get at-dot ppp) x)
+				  (setf (alist-get 'at-clone ppp) t)
 				  ppp))
 		       finally return data)))
 	  (setq group (reorg--walk-tree group
@@ -1854,7 +1863,8 @@ See `let-alist--deep-dot-search'."
    (t (append (reorg--dot-bang-search (car data))
 	      (reorg--dot-bang-search (cdr data))))))
 
-;; TODO consolidate these two functions
+;; This function and `reorg--dot-bang-search' should be
+;; made into a single function 
 (defun reorg--dot-at-search (data)
   "Return alist of symbols inside DATA that start with a `.@'.
 Perform a deep search and return a alist of any symbol
@@ -2045,7 +2055,7 @@ of an org-capture hook to make sure the captured entry belongs to
 one of the sources."
   (cl-loop for each in (reorg--get-all-x-from-template template :sources)
 	   collect (cons (car each) (cadr each))))
-  
+
 
 ;;; user interface/help 
 

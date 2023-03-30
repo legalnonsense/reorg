@@ -1,5 +1,5 @@
 ;; -*- lexical-binding: t;-*-
-
+(setq reorg-test-org-file-list (org-agenda-files))
 
 (defun jrf/reorg-client ()
   (interactive)
@@ -20,7 +20,7 @@
 		       (propertize .root
 				   'face
 				   `(( t ( :foreground ,(face-foreground 'default)
-					   :height 1.5
+					   :height 1.2
 					   :family "ETBembo"
 					   :weight bold
 					   :underline t)))))
@@ -56,7 +56,10 @@
    `( :sources ((org . ,(org-agenda-files)))
       :group "Calendar"
       :children (( :group
-		   .ts-year
+		   (when (and .ts-year
+			      (= (string-to-number .ts-year)
+				 (ts-year (ts-now))))
+		     .ts-year)
 		   :sort-groups
 		   reorg-string>
 		   :children
