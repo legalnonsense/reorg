@@ -447,12 +447,7 @@ switch to that buffer in the window."
 ;; fix this remenant of a bad idea
 ;; so that the current header is highlighted
 ;; in a responsible manner 
-(defvar reorg-edits--current-field-overlay
-  (let ((overlay (make-overlay 1 2)))
-    (overlay-put overlay 'face `( :box (:line-width -1)
-				  :foreground ,(face-foreground 'default)))
-    (overlay-put overlay 'priority 1000)
-    overlay)
+(defvar reorg-edits--current-field-overlay nil
   "Overlay for field at point.")
 
 ;; old stuff that has stuck around
@@ -1346,8 +1341,7 @@ parser for that data type."
 						 (concat "."
 							 (symbol-name 
 							  each))))
-				    'recursed))
-			  ))))
+				    'recursed))))))
 
 (defun reorg--parser (data class parser-list)
   "Call each parser in CLASS on DATA and return
@@ -2253,6 +2247,12 @@ the buffer."
   ;; (org-indent-mode)
   (toggle-truncate-lines 1)
   (setq-local cursor-type nil)
+  (setq reorg-edits--current-field-overlay
+	(let ((overlay (make-overlay 1 2)))
+	  (overlay-put overlay 'face `( :box (:line-width -1)
+					:foreground ,(face-foreground 'default)))
+	  (overlay-put overlay 'priority 1000)
+	  overlay))
   ;; (reorg--map-all-branches #'reorg--delete-headers-maybe)  
   (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
