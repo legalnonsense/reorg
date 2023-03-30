@@ -61,23 +61,23 @@ recently captured heading belongs in the outline."
 	;; try to insert it into the outline 
 	(reorg--insert-new-heading data)))))
 
-(defun reorg-org-capture (&optional goto keys)
-  "Wrapper for org-capture to handle window
-and buffer switching.  This should be called instead of
-`org-capture'."
-  ;;TODO re-write this as advice 
-  (interactive "P")
-  (let ((in-side-p (reorg--buffer-in-side-window-p))
-	(in-reorg-buffer-p (string=
-			    reorg-buffer-name
-			    (buffer-name (current-buffer)))))
-    (when in-side-p
-      (reorg--toggle-tree-buffer))
-    (org-capture goto keys)
-    (when in-reorg-buffer-p
-      (if in-side-p
-	  (reorg--toggle-tree-buffer)
-	(set-window-buffer reorg-buffer-name)))))
+;; (defun reorg-org-capture (&optional goto keys)
+;;   "Wrapper for org-capture to handle window
+;; and buffer switching.  This should be called instead of
+;; `org-capture'."
+;;   ;;TODO re-write this as advice 
+;;   (interactive "P")
+;;   (let ((in-side-p (reorg--buffer-in-side-window-p))
+;; 	(in-reorg-buffer-p (string=
+;; 			    reorg-buffer-name
+;; 			    (buffer-name (current-buffer)))))
+;;     (when in-side-p
+;;       (reorg--toggle-tree-buffer))
+;;     (org-capture goto keys)
+;;     (when in-reorg-buffer-p
+;;       (if in-side-p
+;; 	  (reorg--toggle-tree-buffer)
+;; 	(set-window-buffer reorg-buffer-name)))))
 
 (defun reorg-org-capture-enable (&optional disable)
   "Set up reorg to process anything captured by
@@ -256,7 +256,9 @@ RANGE is non-nil, only look for timestamp ranges."
 (defun reorg-org--get-body ()
   "get headings body text"  
   ;; FIXME this adds way too much time to parsing the
-  ;; org file.  A regexp would probably be faster
+  ;; org file.
+  ;;
+  ;; First attempt:
   ;; (org-no-properties
   ;;  (org-element-interpret-data
   ;;   (org-element--parse-elements (save-excursion (org-back-to-heading)
@@ -265,6 +267,7 @@ RANGE is non-nil, only look for timestamp ranges."
   ;; 				 (or (save-excursion (outline-next-heading))
   ;; 				     (point-max))
   ;; 				 'first-section nil nil nil nil)))
+  ;; Second attempt: 
   (save-excursion
     (when (reorg-org--goto-end-of-meta-data)
       (string-trim 
