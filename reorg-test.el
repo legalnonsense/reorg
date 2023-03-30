@@ -264,7 +264,6 @@
 							 "DELEGATED"
 							 "OPP_DUE"))))))))
 
-
 (defun reorg-calendar ()
   (interactive)
   (reorg-open-sidebar 
@@ -277,8 +276,7 @@
 		   :children
 		   (( :group
 		      .ts-month
-		      :sort-groups
-		      
+		      :sort-groups		      
 		      (lambda (a b)
 			(let ((seq '("January"
 				     "February"

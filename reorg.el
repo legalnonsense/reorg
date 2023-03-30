@@ -405,9 +405,8 @@ because the data in the leaf could be a list or tree itself."
   ;; TODO figure out a dwim method of setting sidebar size
   ;; or make it a defcustom. See `reorg--get-longest-line-length'
   ;; It's suprisingly tricky to calculate the length of a line that
-  ;; includes :align-to display text props and includes fonts of a different
-  ;; height.  There must be an easier way.
-  ;; For now, just balance the windows. 
+  ;; includes :align-to display text props and includes fonts of
+  ;; a different height.  There must be an easier way.
   (balance-windows))
 
 (defun reorg--select-main-window (&optional buffer)
@@ -445,7 +444,7 @@ switch to that buffer in the window."
 
 ;;;; Box cursor line overlay 
 
-;; TODO fix this remenant of a bad idea
+;; fix this remenant of a bad idea
 ;; so that the current header is highlighted
 ;; in a responsible manner 
 (defvar reorg-edits--current-field-overlay
@@ -456,6 +455,7 @@ switch to that buffer in the window."
     overlay)
   "Overlay for field at point.")
 
+;; old stuff that has stuck around
 (defun reorg-edits--get-field-bounds ()
   "Get the bounds of the field at point."
   (let ((match (save-excursion (text-property--find-end-forward
@@ -468,7 +468,7 @@ switch to that buffer in the window."
      (prop-match-end match))))
 
 
-(let ((point nil)) ;; I don't know why I did this.
+(let ((point nil)) ;; I don't know why I did this
   (defun reorg-edits--update-box-overlay ()
     "Tell the user what field they are on."
     (unless (= (point) (or point 0))
@@ -494,7 +494,7 @@ switch to that buffer in the window."
   "Assume we are getting 'reorg-data and PROPERTY is the key of that alist.
 Does not run 'reorg--navigation-hooks'.  CURRENT means to consider the
 text at point to see if it matches."
-  ;; There must be a better way.
+  ;; I'd be shocked if there are no bugs here. 
   (cond
    ((eobp)
     nil)
@@ -521,7 +521,6 @@ text at point to see if it matches."
 		      (> pos limit))
 	       return
 	       (progn (reorg--goto-char origin)
-		      (run-hooks 'reorg--navigation-hook)
 		      (setq done t)
 		      nil)
 	       else do
@@ -637,7 +636,7 @@ This creates two interactive functions:
 
 (reorg--create-navigation-commands
  ;; If you want to debug, just pp macro expand and instrument
- ;; the defun in a scratch buffer. 
+ ;; the defun in a scratch buffer.  
  ((next-leaf-sibling . (reorg--get-next-prop 'reorg-field-type
 					     'leaf
 					     (reorg--get-next-parent)))
@@ -851,14 +850,14 @@ This creates two interactive functions:
       nil)))
 
 (defun reorg--get-parent-id (&optional data)
-  "go to next sibing same group"
+  "get the parent ID of DATA or of the header at point"
   (let* ((id-path (reverse (if data (alist-get 'id-path data)
 			     (reorg--get-prop 'id-path))))
 	 (parent (cadr id-path)))
     parent))
 
 (defun reorg--goto-group-and-id (id group-id)
-  ""
+  "goto the next heading that has ID and GROUP-ID"
   (let ((point (point)))
     (goto-char (point-min))
     (cl-loop when (and (equal id
@@ -866,11 +865,13 @@ This creates two interactive functions:
 		       (equal group-id
 			      (reorg--get-prop 'group-id)))
 	     return t
+	     ;; this is a hack.  It should use
+	     ;; `reorg--goto-next-prop'
 	     while (reorg--goto-next-heading)
 	     finally (progn (goto-char point) nil))))
 
 (defun reorg--goto-first-group-member (data)
-  ""
+  "Same hacky bullshit."
   (let ((parent-id (reorg--get-parent-id data))
 	(group-id (alist-get 'group-id data))
 	(point (point)))
@@ -885,7 +886,10 @@ This creates two interactive functions:
 				   nil))))
 
 (defun reorg--goto-next-sibling-same-group (&optional data)
-  ""
+  "Just what the function name says."
+  ;; I won't pretend to enjoy writing code to nativate
+  ;; an outline.  Whatever hacky shit seems to work
+  ;; is what I use. 
   (interactive)
   (let ((parent-id (if data 
 		       (reorg--get-parent-id data)
@@ -907,11 +911,13 @@ This creates two interactive functions:
 (defun reorg--goto-last-leaf-depth-first ()
   "goto last leaf of current tree"
   ;; this function doesn't seem to work the
-  ;; way it was intended 
+  ;; way it was intended, but it might still
+  ;; be in use somewhere. 
   (while (reorg--goto-next-leaf-sibling)))
 
 (defun reorg--find-header-location (header-string)
-  "Find the location of HEADER-STRING in the current outline."
+  "Find the location of HEADER-STRING in the current outline.
+Assume that the point is on the first header of the group."
   (setq header-string (if (stringp header-string)
 			  (get-text-property 0 'reorg-data header-string)
 			header-string))
@@ -943,7 +949,9 @@ This creates two interactive functions:
 		     (forward-line))))))))
 
 (defun reorg--has-leaves-p ()
-  "does the header have leaves?"
+  "does the header have leaves?  Maybe.  You won't know because
+this function actually checks to see if the current header
+has any children."
   (save-excursion 
     (reorg--goto-next-child)))
 
@@ -953,10 +961,13 @@ This creates two interactive functions:
 
 (defun reorg--find-leaf-location (leaf-string &optional result-sorters)
   "find the location for LEAF-DATA among the current leaves. put the
-point where the leaf should be inserted (ie, insert before)"
+point where the leaf should be inserted (ie, insert before). Assume
+that the point is on the parent heading, and the location is within
+the following leaves."
   ;; goto the first leaf if at a branch
   ;; (push leaf-string xxx)
-  (unless (eq 'leaf (reorg--get-prop 'reorg-field-type))
+  (if (eq 'leaf (reorg--get-prop 'reorg-field-type))
+      (error "You cannot run this function on a leaf.")
     (if-let ((result-sorters
 	      (or result-sorters
 		  (reorg--get-prop 'sort-results))))
@@ -985,7 +996,10 @@ point where the leaf should be inserted (ie, insert before)"
       (forward-line))))
 
 (defun reorg--goto-same-id-after-insert (data)
-  "goto the same thing that was just changed"
+  "goto the same thing that was just changed, and if it's disappeared
+find the nearest clone."
+  ;; THIS IS PROBABLY NOT THE DESIRED BEHAVIOR AFTER A HEADING IS CHANGED
+  ;; USER MIGHT WANT TO KEEP THE POINT AT POINT
   (let* ((id (if (stringp data)
 		 (alist-get 'id 
 			    (get-text-property 0 'reorg-data data))
@@ -1005,11 +1019,15 @@ point where the leaf should be inserted (ie, insert before)"
     (run-hooks 'reorg--navigation-hook)))
 
 (defun reorg--insert-new-heading (data)
-  ""
+  "take DATA (a suitable alist) run it through the parser,
+and insert as many copies of it as necessary in the appropriate
+locations."
   (let ((final-leaf nil)
 	(point (point)))
     (save-excursion 
       (goto-char (point-min))
+      ;; This code is so fragile that I dare not
+      ;; remove this obviously unnecessary hook.
       (run-hooks 'reorg--navigation-hook)
       (setq
        data (reorg--get-group-and-sort
@@ -1028,7 +1046,7 @@ point where the leaf should be inserted (ie, insert before)"
 		      0
 		      'reorg-field-type
 		      (car x)))))))
-      (setq cursor-type 'box)
+      ;; (setq cursor-type 'box)
       (cl-loop for group in data
 	       do (goto-char (point-min))
 	       and do (cl-loop
@@ -1039,6 +1057,9 @@ point where the leaf should be inserted (ie, insert before)"
 		       for heading in headings
 		       for n from 0
 		       when (and heading
+				 ;; This is sure to be a problem in
+				 ;; some rare cases as I have not
+				 ;; solved how to deal with blank headings
 				 (not (string= "" heading)))
 		       do (let* ((props (get-text-property 0 'reorg-data heading))
 				 (id (alist-get 'id props)))
@@ -1072,6 +1093,7 @@ point where the leaf should be inserted (ie, insert before)"
 
 (defun reorg--get-next-group-id-change ()
   "get next group id change"
+  ;; this could be defined in the macro
   (reorg--get-next-prop 'group-id
 			(reorg--get-prop)
 			nil
@@ -1088,6 +1110,8 @@ point where the leaf should be inserted (ie, insert before)"
 
 
 ;; I am very wary of this function along with `reorg--render-maybe'.
+;; Window handling code is not fun.  I hate it. 
+;; I will never learn how to use `display-buffer-alist'
 (defun reorg--select-window-run-func-maybe (window &optional func switch-back)
   "WINDOW is either 'main or 'tree. FUNC is a function with no args."
   (when-let ((win
@@ -1144,6 +1168,10 @@ are no children.  Error if the point is at a branch."
    #'reorg--delete-headers-maybe))
 
 (defun reorg--insert-all (data)
+  ;; it might be better to change `reorg--grouper-action-function'
+  ;; i.e., `reorg--create-headline-string', so that it inserts
+  ;; directly into the buffer and then bypass this method of printing
+  ;; the outline. 
   "Insert grouped and sorted data into outline."
   (let (results)
     (cl-labels ((recurse (data)
@@ -1253,6 +1281,11 @@ function's code."
   "Call each parser in CLASS on DATA and return
 the result.  If TYPE is provided, only run the
 parser for that data type."
+  ;; the purpose of the pre-parser is so that
+  ;; the parser only fetches the data needed to generate
+  ;; the outline.  This speeds parsing considerably
+  ;; when dealing with something like parsing an
+  ;; org-mode file.  
   (cl-loop for class in
 	   (seq-uniq
 	    (-flatten 
@@ -1285,6 +1318,10 @@ parser for that data type."
 	   collect (cons class  
 			 (cl-loop
 			  for dsym in (append (reorg--get-all-dotted-symbols template)
+					      ;; These are defaults that need
+					      ;; to be included in the parsed data
+					      ;; even if the user does not define them
+					      ;; this is hack to deal with that problem.
 					      (list 'marker
 						    'class
 						    'buffer-file-name
@@ -1316,6 +1353,20 @@ parser for that data type."
   "Call each parser in CLASS on DATA and return
 the result.  If TYPE is provided, only run the
 parser for that data type."
+  ;; to call this on an org heading at point
+  ;; using all parsers that have been defined for
+  ;; that type of file, run:
+  ;; (reorg--parser nil 'org reorg--parser-list)
+  ;; if you want to run it on an alist of data
+  ;; about a file, run:
+  ;; (reorg--parser ALIST 'files reorg--parser-list)
+  ;;
+  ;; Remember that `reorg-parser-list' is automatically
+  ;; created and mantained by the `reorg-create-data-type'
+  ;; and `reorg-create-class-type' macros.
+  ;;
+  ;; `reorg-temp-parser' contains the parser list
+  ;; used to generate the current outline. 
   (if (= 1 (length (alist-get class parser-list)))
       data
     (cl-loop with DATA = nil
@@ -1326,13 +1377,13 @@ parser for that data type."
 (defun reorg--seq-group-by (form sequence &optional return-nils)
   "Apply FORM to each element of SEQUENCE and group
 the results.  See `seq-group-by'. Do not group
-nil results. If FORM is a function, then call
-the function with a single argument.  If FORM
-is not a function, then create an anonymous function
+nil results unless RETURN-NiLS is non-nil. If FORM is
+a function, then call the function with a single argument.
+
+If FORM is not a function, then create an anonymous function
 that wraps FORM in a `let-alist' and makes all of the
 data in each element of SEQENCE available using
-dotted notation.  If RETURN-NILS is non-nil, then
-return a nil group; otherwise, omit any nil result."
+dotted notation."
   (seq-reduce
    (lambda (acc elt)
      (let* ((key (if (functionp form)
@@ -1340,7 +1391,7 @@ return a nil group; otherwise, omit any nil result."
 		   ;; To avoid a backquoted lambda,
 		   ;; this could be done using
 		   ;; `reorg--turn-dot-to-val'
-		   ;; but requires using `eval'
+		   ;; but that requires using `eval'
 		   (funcall `(lambda (e)
 			       (let-alist e ,form))
 			    elt)))
@@ -1374,7 +1425,7 @@ if the pair is properly sorted."
    sequence))
 
 (defun reorg--check-template-keys (template)
-  "check keys"
+  "Ensure that the keywords in TEMPLATE are valid."
   (when-let ((invalid-keys
 	      (seq-difference 
 	       (cl-loop for key in template by #'cddr
@@ -1392,6 +1443,8 @@ if the pair is properly sorted."
   "Apply TEMPLATE to DATA and apply the :action-function 
 specified in the template or `reorg--grouper-action-function'
 to the results."
+  ;; this is the core sorting function.
+  ;; it's quite a ride. 
   (unless recursed
     (setq reorg--current-sources nil)
     (reorg--check-template-keys template)  
@@ -1429,37 +1482,32 @@ to the results."
 	results metadata)
     (cl-labels ((get-header-metadata
 		 (header parent-id)
-		 (let* ((id "")
-			(ret
-			 (list
-			  (cons 'branch-name header)
-			  (cons 'reorg-branch t)
-			  (cons 'branch-type 'branch)
-			  (cons 'sort-results sort-results)
-			  (cons 'sort-group sort-groups)
-			  (cons 'bullet bullet)
-			  (cons 'folded-bullet folded-bullet)
-			  (cons 'reorg-level level)
-			  (cons 'group-id group-id)
-			  (cons
-			   'id
-			   ;; (org-id-new)
-			   
-			   (let
-			       ((idx (md5 (concat (pp-to-string template)
-						  header
-						  (pp-to-string 
-						   parent-id)))))
-			     ;; (debug nil parent-id header)
-			     (setq id idx))
-			   )
-			  (cons 'id-path (append (-list parent-id)
-						 (-list id))))))
-		   ret))
+		 (let* ((id ""))
+		   (list
+		    (cons 'branch-name header)
+		    (cons 'reorg-branch t)
+		    (cons 'branch-type 'branch)
+		    (cons 'sort-results sort-results)
+		    (cons 'sort-group sort-groups)
+		    (cons 'bullet bullet)
+		    (cons 'folded-bullet folded-bullet)
+		    (cons 'reorg-level level)
+		    (cons 'group-id group-id)
+		    (cons
+		     'id
+		     (let
+			 ((idx (md5 (concat (pp-to-string template)
+					    header
+					    (pp-to-string 
+					     parent-id)))))
+		       (setq id idx)))
+		    (cons 'id-path (append (-list parent-id)
+					   (-list id))))))
 		(drill!
+		 ;; DANGER.  
 		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
-		 (if-let ((groups (reorg--seq-group-by				   
+		 (if-let ((groups (reorg--seq-group-by
 				   `(lambda (x)				      
 				      (eval
 				       (reorg--walk-tree
@@ -1578,7 +1626,7 @@ to the results."
 			       level
 			       (plist-get template :overrides)
 			       (plist-get template :post-overrides)))))))
-      ;; end drill 
+      ;; end drill
       
       (when (and sources (not ignore-sources))
 	(cl-loop for each in sources
@@ -1587,6 +1635,8 @@ to the results."
 	(setq data (append data (reorg--getter sources))))
 
       (if (null group) ;; if there's no group, skip to kids
+	  ;; this allows the user to have multiple top-level
+	  ;; groups instead of only one group. 
 	  (cl-loop for child in (plist-get template :children)
 		   collect (reorg--get-group-and-sort
 			    data
@@ -1605,6 +1655,9 @@ to the results."
 			    'recursed))
 	
 	;; begin .@
+	;; If the value referenced in a .@variable
+	;; is a list with multiple values, create a copy
+	;; of the data for each value of the list 
 	(when-let ((at-dots (seq-uniq 
 			     (reorg--dot-at-search
 			      group))))
@@ -2153,7 +2206,6 @@ the buffer."
     (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "<left>") #'reorg--goto-parent)
-    (define-key map (kbd "g") #'reorg-org--update-heading-at-point)
     (define-key map (kbd "G") (lambda () (interactive)
 				(reorg--close-tree-buffer)
 				(kill-buffer reorg-buffer-name)
