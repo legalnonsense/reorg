@@ -1429,7 +1429,6 @@ to the results."
 	results metadata)
     (cl-labels ((get-header-metadata
 		 (header parent-id)
-		 ;; (debug nil header parent-id group-id)
 		 (let* ((id "")
 			(ret
 			 (list
@@ -1583,9 +1582,8 @@ to the results."
       
       (when (and sources (not ignore-sources))
 	(cl-loop for each in sources
-		 do (debug nil each)
-		 and do (push each
-			      reorg--current-sources)) 
+		 do (push each
+			  reorg--current-sources)) 
 	(setq data (append data (reorg--getter sources))))
 
       (if (null group) ;; if there's no group, skip to kids
