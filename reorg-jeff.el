@@ -30,7 +30,7 @@
 				      (if .ts
 					  (s-pad-right 50 "." .headline)
 					.headline)
-				      .ts)
+				      .ts-pretty)
 	      :sort-groups reorg-string<
 	      :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
 				    "TASKS")

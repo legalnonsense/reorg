@@ -1436,7 +1436,7 @@ to the results."
   ;; this is the core sorting function.
   ;; it's quite a ride. 
   (unless recursed
-    (setq reorg--current-sources nil)
+
     (reorg--check-template-keys template)  
     (setq reorg--current-template template)
     (setq reorg--temp-parser-list (->> (reorg--pre-parser template)
@@ -1619,9 +1619,9 @@ to the results."
       ;; end drill
       
       (when (and sources (not ignore-sources))
-	(cl-loop for each in sources
-		 do (push each
-			  reorg--current-sources)) 
+	;; 	(cl-loop for each in sources
+	;; 		 do (push each
+	;; 			  reorg--current-sources)) 
 	(setq data (append data (reorg--getter sources))))
 
       (if (null group) ;; if there's no group, skip to kids
