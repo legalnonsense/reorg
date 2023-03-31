@@ -430,9 +430,9 @@ if there is not one."
  :parse (buffer-file-name))
 
 (reorg-create-data-type
- :name delegatee
+ :name delegated
  :class org
- :parse (org-entry-get (point) "DELEGATEE"))
+ :parse (org-entry-get (point) "DELEGATED"))
 
 (reorg-create-data-type
  :name tag-list
