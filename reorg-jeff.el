@@ -51,52 +51,52 @@
 			 ( :group (when (equal "_NOTES_" .headline) "")
 			   :format-results (.stars "  NOTES"))))))))
 
-(defun jrf/reorg-calendar-journal ()
-  (interactive)
-  (reorg-open-sidebar 
-   `( :sources ((org . ,(org-agenda-files)))
-      :group "Calendar"
-      :children (( :group
-		   (when (and .ts-year
-			      (= (string-to-number .ts-year)
-				 (ts-year (ts-now))))
-		     .ts-year)
-		   :sort-groups
-		   reorg-string>
-		   :children
-		   (( :group
-		      .ts-month
-		      :sort-groups		      
-		      (lambda (a b)
-			(let ((seq '("January"
-				     "February"
-				     "March"
-				     "April"
-				     "May"
-				     "June"
-				     "July"
-				     "August"
-				     "September"
-				     "October"
-				     "November"
-				     "December")))
-			  (reorg--sort-by-list a b seq)))
-		      :sort-results
-		      ((.ts-day . <))
-		      :format-results
-		      (.stars
-		       " "
-		       (s-pad-left 2 " "
-				   (number-to-string
-				    .ts-day))
-		       " "
-		       (s-pad-right 12 " "
-				    .ts-day-name)
-		       (s-pad-right
-			20
-			" "
-			.category-inherited)
-		       .headline))))))))
+;; (defun jrf/reorg-calendar-journal ()
+;;   (interactive)
+;;   (reorg-open-sidebar 
+;;    `( :sources ((org . ,(org-agenda-files)))
+;;       :group "Calendar"
+;;       :children (( :group
+;; 		   (when (and .ts-year
+;; 			      (= (string-to-number .ts-year)
+;; 				 (ts-year (ts-now))))
+;; 		     .ts-year)
+;; 		   :sort-groups
+;; 		   reorg-string>
+;; 		   :children
+;; 		   (( :group
+;; 		      .ts-month
+;; 		      :sort-groups		      
+;; 		      (lambda (a b)
+;; 			(let ((seq '("January"
+;; 				     "February"
+;; 				     "March"
+;; 				     "April"
+;; 				     "May"
+;; 				     "June"
+;; 				     "July"
+;; 				     "August"
+;; 				     "September"
+;; 				     "October"
+;; 				     "November"
+;; 				     "December")))
+;; 			  (reorg--sort-by-list a b seq)))
+;; 		      :sort-results
+;; 		      ((.ts-day . <))
+;; 		      :format-results
+;; 		      (.stars
+;; 		       " "
+;; 		       (s-pad-left 2 " "
+;; 				   (number-to-string
+;; 				    .ts-day))
+;; 		       " "
+;; 		       (s-pad-right 12 " "
+;; 				    .ts-day-name)
+;; 		       (s-pad-right
+;; 			20
+;; 			" "
+;; 			.category-inherited)
+;; 		       .headline))))))))
 
 (defun jrf/reorg-calendar-journal-log ()
   ""
