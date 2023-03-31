@@ -2046,25 +2046,30 @@ one of the sources."
   (cl-loop for each in (reorg--get-all-x-from-template template :sources)
 	   collect (cons (car each) (cadr each))))
 
-
 ;;; user interface/help 
 
 (defun reorg-help-list-modules ()
   "Let the modules available."
   (interactive)
-  (cl-loop for (module . parsers) in reorg--parser-list
-	   collect module into message
-	   finally (message (pp-to-string message))))
+  (pop-to-buffer (get-buffer-create "*REORG HELP*"))
+  (help-mode)
+  (let ((inhibit-read-only t))
+    (insert "\nAvailable modules: \n")
+    (cl-loop for (module . parsers) in reorg--parser-list
+	     collect module into message
+	     finally (insert (pp-to-string message)))))
 
-(defun reorg-help-data-types ()
-  "List data types for a given module"
-  (interactive)
-  (let ((module
-	 (completing-read "Select module: " (reorg--list-modules))))
-    (cl-loop for (name . func) in (alist-get (intern module)
-					     reorg--parser-list)
-	     collect name into message 
-	     finally (message (pp-to-string message)))))
+;; (defun reorg-help-data-types ()
+;;   "List data types for a given module"
+;;   (interactive)
+;;   (pop-to-buffer (get-buffer-create "*REORG HELP*"))
+;;   (help-mode)
+;;   (let ((module
+;; 	 (completing-read "Select module: " (reorg--list-modules))))
+;;     (cl-loop for (name . func) in (alist-get (intern module)
+;; 					     reorg--parser-list)
+;; 	     collect name into message 
+;; 	     finally (message (pp-to-string message)))))
 
 ;;;; template completion functions 
 
@@ -2259,8 +2264,6 @@ the buffer."
     (org-visual-indent-mode 1))
   (global-set-key (kbd reorg-toggle-shortcut) #'reorg--toggle-tree-buffer)
   (reorg--goto-char 1))
-
-
 
 (provide 'reorg)
 
