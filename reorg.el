@@ -280,7 +280,8 @@ supplied, get that property from 'reorg-data'."
 (defmacro reorg--create-string-comparison-funcs ()
   "Create string comparison functions that ignore case:
 reorg-string<, reorg-string=, reorg-string>.  These functions
-are convenience functions for writing templates." 
+are convenience functions for writing templates.  Also
+transform any nil value into an empty string." 
   `(progn 
      ,@(cl-loop for each in '("<" ">" "=" )
 		collect `(defun ,(intern (concat "reorg-string" each)) (a b)
@@ -333,8 +334,7 @@ then return PROP with no colon prefix."
   "Apply func to each element of tree and return the results.
 If DATA is provided, call FUNC with DATA as an argument.
 Otherwise call FUNC with no arguments."
-  ;; I am not sure why I put the data option here. I don't think
-  ;; I used it. 
+  ;; I am not sure why I put the data option here.
   (cl-labels
       ((walk
 	(tree &optional d)
@@ -406,7 +406,7 @@ because the data in the leaf could be a list or tree itself."
   ;; or make it a defcustom. See `reorg--get-longest-line-length'
   ;; It's suprisingly tricky to calculate the length of a line that
   ;; includes :align-to display text props and includes fonts of
-  ;; a different height.  There must be an easier way.
+  ;; a different height.
   (balance-windows))
 
 (defun reorg--select-main-window (&optional buffer)
@@ -444,9 +444,7 @@ switch to that buffer in the window."
 
 ;;;; Box cursor line overlay 
 
-;; fix this remenant of a bad idea
-;; so that the current header is highlighted
-;; in a responsible manner 
+;; name needs updating 
 (defvar reorg-edits--current-field-overlay nil
   "Overlay for field at point.")
 
@@ -463,7 +461,8 @@ switch to that buffer in the window."
      (prop-match-end match))))
 
 
-(let ((point nil)) ;; I don't know why I did this
+(let ((point nil))
+  ;; I don't know why I used a closure.
   (defun reorg-edits--update-box-overlay ()
     "Tell the user what field they are on."
     (unless (= (point) (or point 0))
@@ -602,6 +601,36 @@ text at point to see if it matches."
 				  nil
 				(point)))))))
 
+(defun reorg--get-previous-prop (property &optional
+					  value
+					  limit
+					  predicate
+					  visible-only
+					  current)
+  "Save-excursion wrapper for `reorg--goto-previous-prop'."
+  (save-excursion (reorg--goto-previous-prop
+		   property
+		   value
+		   limit
+		   predicate
+		   visible-only
+		   current)))
+
+(defun reorg--get-next-prop (property &optional
+				      value
+				      limit
+				      predicate
+				      visible-only
+				      current)
+  "Save-excursion wrapper for `reorg--goto-previous-prop'."
+  (save-excursion (reorg--goto-next-prop
+		   property
+		   value
+		   limit
+		   predicate
+		   visible-only
+		   current)))
+
 (defmacro reorg--create-navigation-commands (alist)
   "Create navigation commands. ALIST is a list in the form of (NAME . FORM)
 where NAME is the name of what you are moving to, e.g., \"next-heading\"
@@ -724,36 +753,6 @@ This creates two interactive functions:
 			  nil
 			  t)))))
 
-(defun reorg--get-previous-prop (property &optional
-					  value
-					  limit
-					  predicate
-					  visible-only
-					  current)
-  "Save-excursion wrapper for `reorg--goto-previous-prop'."
-  (save-excursion (reorg--goto-previous-prop
-		   property
-		   value
-		   limit
-		   predicate
-		   visible-only
-		   current)))
-
-(defun reorg--get-next-prop (property &optional
-				      value
-				      limit
-				      predicate
-				      visible-only
-				      current)
-  "Save-excursion wrapper for `reorg--goto-previous-prop'."
-  (save-excursion (reorg--goto-next-prop
-		   property
-		   value
-		   limit
-		   predicate
-		   visible-only
-		   current)))
-
 (defun reorg--goto-char (point &optional no-hook)
   "Goto POINT and run hook funcs."
   (goto-char point)
@@ -762,8 +761,6 @@ This creates two interactive functions:
   (point))
 
 ;;;; Tree buffer movement and commands
-
-
 
 (defun reorg--leaves-visible-p ()
   "are the leaves of the heading visible?"
@@ -831,7 +828,7 @@ This creates two interactive functions:
     (while (reorg--goto-next-branch)
       (funcall func))))
 
-;;;; insertion code
+;;;; insertion navigation code
 
 (defun reorg--goto-id (header &optional group)
   "goto ID that matches the header string"
@@ -1103,10 +1100,7 @@ locations."
 	   when (window-parameter window 'reorg)
 	   return window))
 
-
-;; I am very wary of this function along with `reorg--render-maybe'.
-;; Window handling code is not fun.  I hate it. 
-;; I will never learn how to use `display-buffer-alist'
+;; Be wary of this function along with `reorg--render-maybe'.
 (defun reorg--select-window-run-func-maybe (window &optional func switch-back)
   "WINDOW is either 'main or 'tree. FUNC is a function with no args."
   (when-let ((win
@@ -1166,7 +1160,9 @@ are no children.  Error if the point is at a branch."
   ;; it might be better to change `reorg--grouper-action-function'
   ;; i.e., `reorg--create-headline-string', so that it inserts
   ;; directly into the buffer and then bypass this method of printing
-  ;; the outline. 
+  ;; the outline.
+  ;;
+  ;; update: it's only slightly better.
   "Insert grouped and sorted data into outline."
   (let (results)
     (cl-labels ((recurse (data)
@@ -2140,6 +2136,7 @@ one of the sources."
   (reorg--select-tree-window))
 
 (defun reorg-open-raw-data (&optional template point data)
+  "I used this for debugging at some point."
   (interactive)
   (when (get-buffer reorg-buffer-name)
     (kill-buffer reorg-buffer-name))
@@ -2257,13 +2254,13 @@ the buffer."
   (add-hook 'reorg--navigation-hook #'org-show-context nil t)  
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
   (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
+  (reorg-bullets-mode 1)
+  (when (fboundp 'org-visual-indent-mode)
+    (org-visual-indent-mode 1))
   (global-set-key (kbd reorg-toggle-shortcut) #'reorg--toggle-tree-buffer)
   (reorg--goto-char 1))
 
-(add-hook 'reorg-mode-hook #'org-visual-indent-mode)
-(add-hook 'reorg-mode-hook #'reorg-bullets-mode)
 
-(require 'reorg-bullets)
 
 (provide 'reorg)
 
