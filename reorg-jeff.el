@@ -1,5 +1,6 @@
 ;; -*- lexical-binding: t;-*-
 (setq reorg-test-org-file-list (org-agenda-files))
+(setq reorg-test-org-file-list "~tmp/tmp.org")
 
 (defun jrf/reorg-client ()
   (interactive)
@@ -96,5 +97,45 @@
 			" "
 			.category-inherited)
 		       .headline))))))))
-  
+
+(defun jrf/reorg-calendar-journal-log ()
+  ""
+  (interactive)
+  (reorg-open-sidebar 
+   `( :sources ((org . ,reorg-test-org-file-list))
+      :group "Calendar"
+      :format-results (.stars
+		       " "
+		       (s-pad-left 2 " "
+				   (number-to-string
+				    (ts-day .ts-all)))
+		       " "
+		       (s-pad-right 12 " "
+				    (ts-day-name .ts-all))
+		       (s-pad-right
+			20
+			" "
+			.category-inherited)
+		       .headline)
+      :children (( :groups
+		   (when .@ts-all
+		     (ts-format "%Y" .ts-all))
+		   :sort-groups reorg-string>
+		   :children (( :group (ts-month-name .ts-all)
+				:sort-groups (lambda (a b)
+					       (let ((seq '("January"
+							    "February"
+							    "March"
+							    "April"
+							    "May"
+							    "June"
+							    "July"
+							    "August"
+							    "September"
+							    "October"
+							    "November"
+							    "December")))
+						 (reorg--sort-by-list a b seq)))
+				:sort-results ((.ts-all . ts<)))))))))
+
 (provide 'reorg-jeff)

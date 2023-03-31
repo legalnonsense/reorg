@@ -1939,8 +1939,11 @@ function created by the `reorg-create-data-type' macro."
      (make-string num char))
     (_ elem)))
 
+(defvar reorg--cache nil "")
+
 (defun reorg--create-headline-string (data
 				      format-string
+
 				      &optional
 				      level
 				      overrides
@@ -1957,6 +1960,7 @@ to the resulting list. Everything in :format-string must evaluate to a
 string or to nil."
   ;; This function treats branches and leaves of the outline differently.
   ;; TODO stop treating them differently, i.e., allow leaves to have leaves.
+  (when data (push data reorg--cache))
   (unless (equal "" (alist-get 'branch-name data))
     (cl-flet ((create-stars (num &optional data)
 			    (make-string (if (functionp num)

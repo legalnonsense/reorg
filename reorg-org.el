@@ -353,45 +353,45 @@ if there is not one."
   "Edit the headline at point"
   (interactive "P")
   (reorg-org--with-source-and-sync 
-    (org-edit-headline (read-string "New headline: "
-				    (org-get-heading t t t t)))))
+   (org-edit-headline (read-string "New headline: "
+				   (org-get-heading t t t t)))))
 
 (defun reorg-org--org-todo (&optional arg)
   "Edit todo state at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-    (reorg--select-main-window)
-    (funcall-interactively #'org-todo arg)))
+   (reorg--select-main-window)
+   (funcall-interactively #'org-todo arg)))
 
 (defun reorg-org--org-set-tags-command (&optional arg)
   "set tags at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-set-tags-command arg)))
+   (funcall-interactively #'org-set-tags-command arg)))
 
 (defun reorg-org--org-deadline (&optional arg)
   "set deadline at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-deadline arg)))
+   (funcall-interactively #'org-deadline arg)))
 
 (defun reorg-org--org-schedule (&optional arg)
   "set scheduled at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-schedule arg)))
+   (funcall-interactively #'org-schedule arg)))
 
 (defun reorg-org--org-set-property (&optional arg)
   "set property at point"
   (interactive )
   (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-set-property nil nil)))
+   (funcall-interactively #'org-set-property nil nil)))
 
 (defun reorg-org--org-priority (&optional arg)
   "set priority at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-priority arg)))
+   (funcall-interactively #'org-priority arg)))
 
 (defun reorg-org--reload-heading (&optional arg)
   "reload heading at point"
@@ -735,11 +735,40 @@ are convenience functions for writing templates."
 	    (_ " ")))
 
 (reorg-create-data-type
+ :name ts-all
+ :class org
+ :parse (let ((bound
+	       (save-excursion
+		 (progn (goto-char (point-at-eol))
+			(or (and (re-search-forward
+				  org-heading-regexp
+				  nil
+				  t)
+				 (match-beginning 1))
+			    (point-max))))))
+	  (save-excursion 
+	    (cl-loop while (re-search-forward org-ts-regexp-both
+					      bound
+					      t)
+		     when (not (member (ts-format "%Y %m %d"
+						  (ts-parse-org
+						   (match-string-no-properties 0)))
+				       (mapcar (lambda (x)
+						 (ts-format "%Y %m %d" x))
+					       results)))
+		     collect (ts-parse-org
+			      (match-string-no-properties 0))
+		     into results
+		     finally return results))))
+
+			      
+
+
+(reorg-create-data-type
  :name ts-ts
  :class org
  :parse (when .ts-any
-	  (ts-parse-org .ts-any)))
-
+	  (ts-parse-org .ts-any))) 
 ;; (reorg-create-data-type
 ;;  :name all-active-timestamps
 ;;  :class org
