@@ -8,13 +8,13 @@
     (reorg-open-sidebar
      (setq reorg-client-template
 	   `( :sources ((org . ,reorg-test-org-file-list))
-	      :format-results (.stars "   " (s-pad-right 5 " " .priority)
-				      (s-pad-right 15 " " .todo)
-				      " "
-				      (if .ts
-					  (s-pad-right 50 "." .headline)
-					.headline)
-				      .ts-pretty)
+	      :format-results ( (s-pad-right 5 " " .priority)
+				(s-pad-right 15 " " .todo)
+				" "
+				(if .ts
+				    (s-pad-right 50 "." .headline)
+				  .headline)
+				.ts-pretty)
 	      :children
 	      (( :group "Cases"
 		 :children
@@ -43,7 +43,9 @@
 								     '("TASK"
 								       "DELEGATED"
 								       "WAITING")))
-				 :sort-results ((.priority . string<)))
+				 :sort-results ((.priority . string<)
+						(.todo . string<)
+						(.headline . reorg-string<)))
 			       ( :group (when (and .ts
 						   (not (member .todo '("TASK"
 									"DONE"
@@ -54,6 +56,11 @@
 			       ( :group (when (equal "_NOTES_" .headline) "")
 				 :format-results (.stars "  NOTES"))))))
 	       ( :group "Delegations"
+		 :format-results (.stars " "
+					 (s-pad-right 10 " " .todo)
+					 (s-pad-right 20 " " .category-inherited)
+					 " "
+					 .headline)
 		 :children (( :group .delegated)))))))))
 
 (defun jrf/reorg-client* ()

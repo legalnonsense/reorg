@@ -391,7 +391,7 @@ if there is not one."
   "set priority at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-   (funcall-interactively #'org-priority arg)))
+    (funcall-interactively #'org-priority arg)))
 
 (defun reorg-org--reload-heading (&optional arg)
   "reload heading at point"
@@ -474,19 +474,6 @@ if there is not one."
 	 (when (reorg-org--timestamp-parser nil t)
 	   (org-no-properties (reorg-org--timestamp-parser nil t)))
 	 (org-entry-get (point) "SCHEDULED")))
-
-(defmacro reorg--create-string-comparison-funcs ()
-  "Create string comparison functions that ignore case:
-reorg-string<, reorg-string=, reorg-string>.  These functions
-are convenience functions for writing templates." 
-  `(progn 
-     ,@(cl-loop for each in '("<" ">" "=" )
-		collect `(defun ,(intern (concat "reorg-string" each)) (a b)
-			   ,(concat "like string" each " but ignore case"
-				    "and allow nils")
-			   (,(intern (concat "string" each))
-			    (if a (downcase a) "")
-			    (if b (downcase b) ""))))))
 
 (reorg-create-data-type
  :name timestamp-all
@@ -760,9 +747,6 @@ are convenience functions for writing templates."
 			      (match-string-no-properties 0))
 		     into results
 		     finally return results))))
-
-			      
-
 
 (reorg-create-data-type
  :name ts-ts
