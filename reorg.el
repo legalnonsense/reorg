@@ -1275,7 +1275,7 @@ parser for that data type."
   ;; the purpose of the pre-parser is so that
   ;; the parser only fetches the data needed to generate
   ;; the outline.  This speeds parsing considerably
-  ;; when dealing with something like parsing an
+  ;; when dealing with something like an
   ;; org-mode file.  
   (cl-loop for class in
 	   (seq-uniq
@@ -2048,7 +2048,9 @@ sources.  This is used for updating the reorg tree, e.g., as part
 of an org-capture hook to make sure the captured entry belongs to
 one of the sources."
   (cl-loop for each in (reorg--get-all-x-from-template template :sources)
-	   collect (cons (car each) (cdr each))))
+	   append (cl-loop for x in (cdr each)
+			   collect (cons (car each)
+					 x))))
 
 ;;; user interface/help 
 
