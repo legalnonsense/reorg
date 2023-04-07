@@ -1,18 +1,20 @@
 * Reorg: Re​organize your life
 #+HTML: <img src="reorg.webp" align="right" width=300>
 
-Dynamically, recursively, and intelligently reorganize and display any type data
+Dynamically, recursively, and intelligently reorganize and display any type data in custom outlines
 
 Customize how data displayed and shortcuts to interact with it
 
 Create three dimensional outlines by displaying the same headings in multiple locations
+
+Automatically update outlines when the underlying data is changes
 
 Mix different kinds of data (e.g., org-mode, email, files, etc.) in the same outline
 
 Create modules to expand capabilities to display and interact with /any/ kind of data
 
 ** Example: Org-mode
-Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-sidebar][org-sidebar]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it uses none of those things). 
+Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-sidebar][org-sidebar]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it does not rely on any of these packages). 
 
 For example, take the following orgmode file which contains a few notes, TODO items, and dates. 
 #+begin_src org
@@ -594,8 +596,6 @@ When you define a keyboard shortcut in a class, it will apply any entry in the o
 ** Status of the project
 This is a hobby. I am a lawyer and not a programmer. I rushed to publish this because my work is about to ramp up and my free time disappear. I do not know if it will continue once I get this past the point that it is ready for me to use on a daily basis. Further development depends on reception. If you think this is useful please let me know. 
 ** Planned features  
-*** Write a JSON module
-Seems like a json module would allow Reorg to work with just about anything that exports data, and to interact with anything that imports data. Another option is to work with CSV files. 
 *** Changing views on the fly
 **** Hoisting headings / Inverting the outline / multiple views 
 **** Infinite outlines (not sure what I meant by this but sounds interesting)

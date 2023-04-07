@@ -2048,7 +2048,7 @@ sources.  This is used for updating the reorg tree, e.g., as part
 of an org-capture hook to make sure the captured entry belongs to
 one of the sources."
   (cl-loop for each in (reorg--get-all-x-from-template template :sources)
-	   collect (cons (car each) (cadr each))))
+	   collect (cons (car each) (cdr each))))
 
 ;;; user interface/help 
 
