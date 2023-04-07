@@ -180,7 +180,7 @@ point where the leaf should be inserted (ie, insert before)"
 		      'reorg-field-type
 		      (car x))))))
        zzz data)
-      (setq cursor-type 'box)
+      ;; (setq cursor-type 'box)
       (cl-loop for group in data
 	       do (goto-char (point-min))
 	       and do (cl-loop
