@@ -281,6 +281,18 @@ RANGE is non-nil, only look for timestamp ranges."
 	    (point-at-bol)
 	  (point-max)))))))
 
+(defun reorg-org--map-entries (files func)
+  "regular expression is faster than `org-map-entries'
+even if it doesn't make archives available"
+  (cl-loop for file in files
+	   append (with-current-buffer (find-file-noselect file)
+		    (org-with-wide-buffer
+		     (goto-char (point-min))
+		     (cl-loop while (re-search-forward org-heading-regexp nil t)
+			      do (goto-char (match-beginning 0))
+			      collect (funcall func)
+			      do (goto-char (point-at-eol)))))))
+
 ;;; macros 
 
 (defmacro reorg-org--with-restore-state (&rest body)
@@ -432,17 +444,7 @@ if there is not one."
  )
 
 
-(defun reorg-org--map-entries (files func)
-  "regular expression is faster than `org-map-entries'
-even if it doesn't make archives available"
-  (cl-loop for file in files
-	   append (with-current-buffer (find-file-noselect file)
-		    (org-with-wide-buffer
-		     (goto-char (point-min))
-		     (cl-loop while (re-search-forward org-heading-regexp nil t)
-			      do (goto-char (match-beginning 0))
-			      collect (funcall func)
-			      do (goto-char (point-at-eol)))))))
+
 
 ;;; org data 
 
@@ -458,7 +460,8 @@ even if it doesn't make archives available"
 
 (reorg-create-data-type
  :name property
- :parse (reorg-org--get-property-drawer))
+ :parse (reorg-org--get-property-drawer)
+ :class org)
 
 (reorg-create-data-type
  :name tag-list
