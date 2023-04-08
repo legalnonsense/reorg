@@ -55,7 +55,11 @@
 				 :sort-results ((.ts . string<)))
 			       ( :group (when (equal "_NOTES_" .headline) "")
 				 :format-results (.stars "  NOTES"))))))
-	       ( :group "Delegations"
+	       ( :group (when (and (member .todo '("TASK"
+						   "DELEGATED"
+						   "WAITING"))
+				   .delegated)
+			  "Delegations")
 		 :format-results (.stars " "
 					 (s-pad-right 10 " " .todo)
 					 (s-pad-right 20 " " .category-inherited)

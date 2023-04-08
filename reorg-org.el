@@ -165,7 +165,7 @@ contains a timestamp."
 	 (cons 'text (match-string-no-properties 2)))))))
 
 (defun reorg-org--all-link-parser ()
-  "the first link in the current heading and return an alist."
+  "get all links in the current heading and return an alist."
   (save-excursion 
     (let ((limit (or (save-excursion (when (re-search-forward
 					    org-heading-regexp
@@ -181,7 +181,7 @@ contains a timestamp."
 			(cons 'text (match-string-no-properties 2)))))))
 
 (defun reorg-org--ts-hhmm-p (ts)
-  ""
+  "does TS have a time specification?"
   (string-match (rx (or (seq (** 1 2 digit)
 			     ":"
 			     (= 2 digit))
@@ -203,6 +203,8 @@ contains a timestamp."
 
 (defun reorg-org--get-property-drawer ()
   "Get the property drawer of the heading at point as a plist."
+  ;; I must have plagairized this from somehwere but I don't knwo where.
+  ;; ISN'T THERE A BUILT IN WAY TO DO THIS? 
   (save-excursion
     (org-back-to-heading)
     (let (seen-base props)
@@ -224,9 +226,9 @@ contains a timestamp."
 			      (equal "" key)
 			      (equal "PROPERTIES" key)
 			      (equal "END" key))
-		    (setq props (append (list
-					 (reorg--add-remove-colon (intern (downcase key)))
-					 value)
+		    (setq props (append (list (cons
+					       (intern (downcase key))
+					       value))
 					props)))))))))
       props)))
 
@@ -234,6 +236,7 @@ contains a timestamp."
   "Find the fist timestamp in the current heading and return it. 
 if INACTIVE is non-nil, get the first inactive timestamp.  If 
 RANGE is non-nil, only look for timestamp ranges."
+  ;; also don't understand why there isn't a built in way to do this
   (save-excursion
     (cl-loop while (re-search-forward (pcase `(,inactive ,range)
 					(`(nil t)
@@ -267,7 +270,8 @@ RANGE is non-nil, only look for timestamp ranges."
   ;; 				 (or (save-excursion (outline-next-heading))
   ;; 				     (point-max))
   ;; 				 'first-section nil nil nil nil)))
-  ;; Second attempt: 
+  ;; 
+  ;; Second attempt; not sure if any better 
   (save-excursion
     (when (reorg-org--goto-end-of-meta-data)
       (string-trim 
@@ -298,7 +302,7 @@ RANGE is non-nil, only look for timestamp ranges."
 	;;       buffer open after the edit.  Getting the buffer
 	;;       and searching for the ID should ensure the buffer
 	;;       stays hidden.  This avoids using `org-id'
-	;;       for anything other than ID generation. 
+	;;       for anything other than ID generation.
 	(save-match-data
 	  (if (re-search-forward id)
 	      (progn 
@@ -353,39 +357,39 @@ if there is not one."
   "Edit the headline at point"
   (interactive "P")
   (reorg-org--with-source-and-sync 
-   (org-edit-headline (read-string "New headline: "
-				   (org-get-heading t t t t)))))
+    (org-edit-headline (read-string "New headline: "
+				    (org-get-heading t t t t)))))
 
 (defun reorg-org--org-todo (&optional arg)
   "Edit todo state at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-   (reorg--select-main-window)
-   (funcall-interactively #'org-todo arg)))
+    (reorg--select-main-window)
+    (funcall-interactively #'org-todo arg)))
 
 (defun reorg-org--org-set-tags-command (&optional arg)
   "set tags at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-   (funcall-interactively #'org-set-tags-command arg)))
+    (funcall-interactively #'org-set-tags-command arg)))
 
 (defun reorg-org--org-deadline (&optional arg)
   "set deadline at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-   (funcall-interactively #'org-deadline arg)))
+    (funcall-interactively #'org-deadline arg)))
 
 (defun reorg-org--org-schedule (&optional arg)
   "set scheduled at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-   (funcall-interactively #'org-schedule arg)))
+    (funcall-interactively #'org-schedule arg)))
 
 (defun reorg-org--org-set-property (&optional arg)
   "set property at point"
   (interactive )
   (reorg-org--with-source-and-sync
-   (funcall-interactively #'org-set-property nil nil)))
+    (funcall-interactively #'org-set-property nil nil)))
 
 (defun reorg-org--org-priority (&optional arg)
   "set priority at point"
@@ -412,15 +416,33 @@ if there is not one."
 	  ("r" . reorg-org--org-set-property)
 	  ("i" . reorg-org--org-priority)
 	  ("g" . reorg-org--reload-heading))
- ;; :getter (with-current-buffer (find-file SOURCE)
+ :getter
+ ;; Example 1
+ ;; (with-current-buffer (find-file SOURCE)
  ;; 	   (widen)
  ;; 	   (org-map-entries #'PARSER)))
- :getter
- (progn
-   (when (functionp SOURCE)
-     (setq SOURCE (funcall SOURCE)))
-   (setq org-ql-cache (make-hash-table :weakness 'key))
-   (org-ql-select SOURCE nil :action #'PARSER)))
+
+ ;; Example 2
+ ;; (progn
+ ;;   (setq org-ql-cache (make-hash-table :weakness 'key))
+ ;;   (org-ql-select SOURCE nil :action #'PARSER))
+
+ ;; Example 3
+ (reorg-org--map-entries SOURCE #'PARSER)
+ )
+
+
+(defun reorg-org--map-entries (files func)
+  "regular expression is faster than `org-map-entries'
+even if it doesn't make archives available"
+  (cl-loop for file in files
+	   append (with-current-buffer (find-file-noselect file)
+		    (org-with-wide-buffer
+		     (goto-char (point-min))
+		     (cl-loop while (re-search-forward org-heading-regexp nil t)
+			      do (goto-char (match-beginning 0))
+			      collect (funcall func)
+			      do (goto-char (point-at-eol)))))))
 
 ;;; org data 
 
@@ -433,6 +455,10 @@ if there is not one."
  :name delegated
  :class org
  :parse (org-entry-get (point) "DELEGATED"))
+
+(reorg-create-data-type
+ :name property
+ :parse (reorg-org--get-property-drawer))
 
 (reorg-create-data-type
  :name tag-list

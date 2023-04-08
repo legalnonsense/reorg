@@ -15,6 +15,13 @@ Create modules to expand capabilities to display and interact with /any/ kind of
 
 ** Example: Org-mode
 Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-sidebar][org-sidebar]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it does not rely on any of these packages). 
+*** Using your own org-agenda-files
+
+Run =M-x= =reorg-demo-agenda-files=
+
+
+
+
 
 For example, take the following orgmode file which contains a few notes, TODO items, and dates. 
 #+begin_src org
@@ -42,7 +49,7 @@ One of the key features is that entries can appear in multiple places in the out
 
 *** Clones
 
-Clones are a key feature of Reorg. Clones are entries that appear in multiple places in an outline. /See/, /e.g.,/ Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. /See also/ a prototype package I wrote some time ago called [[https://github.com/legalnonsense/org-clones][org-clones]]. In my mind, an outline with clones is a three-dimensional outline which means that it can be viewed from different perspective. More on that later. 
+Clones are a key feature of Reorg. Clones are entries that appear in multiple places in an outline. /See/, /e.g.,/ Leo Editor’s use of [[https://www.leoeditor.com/slides/clones-and-views/slide-001.html][clones]]. /See also/ a prototype package I wrote some time ago called [[https://github.com/legalnonsense/org-clones][org-clones]]. In my mind, an outline with clones is a three-dimensional outline which means that it can be viewed from different perspectives. More on that later. 
 
 In Reorg, a heading can appear in different locations and can have different appearances. Take the original example. Each of the headings in a red box are identical:
 #+ATTR_HTML: :width 800px
@@ -51,11 +58,7 @@ If you select any of these headings and render the underlying data, you will be 
 
 *** Multi-valued data sets
 
-Note that some of the headlines in the above example contained multiple @name references. If Reorg encounters data that is a list, it can be told to clone those entries once for each piece of data in the list. That means that a heading that includes @Olivia and @Brian will appear under both of their headings. This is explained further in the section on writing templates. 
-
-*** Deeply nested outline headings
-
-The above example does not demonstrate the grouping and sorting functionality of Reorg. Suffice it to say that it is very easy to create deeply nested outlines, to control how each set of headings are sorted, control how results are displayed, and the commands and shortcuts available to interact with the data. 
+Note that some of the headlines in the above example contained multiple @name references. If Reorg encounters data that is a list, it can be told to clone those entries once for each piece of data in the list. That means that a heading that includes @Olivia and @Brian will appear under both of their headings. (This is explained further in the section on writing templates.)
 
 *** Not just for orgmode
 
@@ -71,7 +74,7 @@ Okay. You asked for it.
 Note that these examples keep the types of data separate. It is just as easily possible to mix data so that files, org-mode entries, etc., all exist within the same headings. 
 
 These outlines are defined by Reorg’s template system, which is explained below. For now, let’s talk about the outlines themselves. 
-*** Outline basics 
+*** Outline buffer 
 **** Moving through the outline
   The keybindings, usable by any Reorg outline no matter the data type, are:
   | n or down | next heading             |
@@ -101,7 +104,7 @@ Reorg itself does not provide a way to interact with the data being displayed in
 **** Refreshing the display 
 If you run any of these commands and change the underlying org-mode file, Reorg will edit the source buffer, delete the heading (and its clones) in the reorg tree, re-parse the heading, and re-insert the data into the tree. It does this without reloading the entire tree, so the change is immediate. 
 
-Note that refreshing the a single element in the outline is tricky. I am still working out a few bugs. All of these bugs relate to the reorg buffer; the worst case scenario is that a heading is inserted in the wrong place. This is easily fixed by reloading the reorg buffer by pressing =R.=
+Note that refreshing the a single element in the outline is tricky. If you encounter a bug, please report it. You can always press =R= to reload the entire outline if needed. 
 **** Viewing the Reorg buffer
 A reorg buffer can be viewed in a side window so that it is like a sidebar. Otherwise, it can be viewed in a normal window as you would any buffer.
 
@@ -121,6 +124,8 @@ Templates use variables that are stored when Reorg parses the underlying data. T
 Extra data types can be added using the =reorg-create-data-type= macro which is explained below.
 
 As the =reorg-org= module stands now (i.e., hacky, in testing, etc.), if the first heading in the original example is parsed, it returns an alist:
+
+NOTE: Now, when reorg generates an outline, it scans the template and only parses the data that is needed for that specific outline. This allows uses to define additional data types without worrying about slowing down outlines that don’t use that data type. 
 #+begin_src emacs-lisp :results silent
   ((ts-any . "[2023-01-11 Wed 13:16]")
    (ts-ts . #s(ts 13 16 [....] 1673460960.0))
@@ -593,8 +598,6 @@ When a Reorg buffer is displayed in a side window, it can automatically render t
 
 **** Creating keyboard shortcuts
 When you define a keyboard shortcut in a class, it will apply any entry in the outline that belongs to that class. See reorg-org.el, reorg-files.el, and other modules to see how this works. 
-** Status of the project
-This is a hobby. I am a lawyer and not a programmer. I rushed to publish this because my work is about to ramp up and my free time disappear. I do not know if it will continue once I get this past the point that it is ready for me to use on a daily basis. Further development depends on reception. If you think this is useful please let me know. 
 ** Planned features  
 *** Changing views on the fly
 **** Hoisting headings / Inverting the outline / multiple views 
