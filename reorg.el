@@ -1174,6 +1174,9 @@ are no children.  Error if the point is at a branch."
 
 (defun reorg--delete-header-at-point ()
   "delete the header at point"
+  ;; TODO update this to detect the span of a heading
+  ;; using text properties instead of assuming a heading
+  ;; is only one line 
   (delete-region (point-at-bol)
 		 (line-beginning-position 2)))
 
@@ -1211,6 +1214,9 @@ in the form of (CLASS . SOURCE)."
   "Get all dotted symbols in FORM including any
 dotted symbols necesasry from CLASS.
 
+Also get any nested dots by returning only the first dot:
+.property.category will only return property. 
+
 Don't include the .class or .stars values.
 Return unique values.
 Don't return nils."
@@ -1221,9 +1227,17 @@ Don't return nils."
 			    x))
 	      (seq-uniq
 	       (cl-loop for (x . y) in (let-alist--deep-dot-search form)
-			collect (if (string-match "^[@!]" (symbol-name y))
-				    (intern (substring (symbol-name y) 1))
-				  y)))))
+			collect (--> y
+				     (symbol-name it)
+				     (if (string-match "^[@!]" it)
+					 (substring it 1)
+				       it)
+				     (if (string-match "\\." it)
+					 (car (s-split "\\." it))
+				       it)
+				     (intern it))))))
+
+
 
 (defun reorg--get-all-dotted-symbols-in-fun (fun)
   "return a list of all of the dotted symbols in a
@@ -1239,7 +1253,7 @@ function's code."
 	   collect (match-string-no-properties 0) into results
 	   finally return
 	   (seq-filter
-	    (lambda (x) x)
+	    (lambda (x) x) ;; wtf?
 	    (seq-map (lambda (x)
 		       (intern 
 			(cond ((or (s-starts-with-p ".!" x)
@@ -1255,7 +1269,7 @@ function's code."
 		       results))))))))))
 
 (defun reorg--pre-parser-sort (parsers)
-  "sort"
+  "sort. not sure what it does."
   (cl-loop for (class . rest) in (seq-uniq parsers)
 	   collect
 	   (cons class

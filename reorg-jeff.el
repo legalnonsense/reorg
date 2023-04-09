@@ -58,7 +58,7 @@
 	       ( :group (when (and (member .todo '("TASK"
 						   "DELEGATED"
 						   "WAITING"))
-				   .delegated)
+				   .property.delegated)
 			  "Delegations")
 		 :format-results (.stars " "
 					 (s-pad-right 10 " " .todo)

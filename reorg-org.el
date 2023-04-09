@@ -443,9 +443,6 @@ if there is not one."
  (reorg-org--map-entries SOURCE #'PARSER)
  )
 
-
-
-
 ;;; org data 
 
 (reorg-create-data-type
