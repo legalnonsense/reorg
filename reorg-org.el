@@ -523,6 +523,7 @@ if there is not one."
 
 (reorg-create-data-type
  :name delegated
+ :disable t
  :doc "Get the DELEGATED property."
  :class org
  :parse (org-entry-get (point) "DELEGATED"))
@@ -645,7 +646,8 @@ if there is not one."
 (reorg-create-data-type
  :name todo
  :class org
- :parse (org-entry-get (point) "TODO"))
+ :parse (when-let ((todo (org-entry-get (point) "TODO")))
+	  (propertize todo 'face 'org-todo)))
 
 ;; (reorg-create-data-type
 ;;  :name links

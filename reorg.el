@@ -1327,8 +1327,8 @@ parser for that data type."
 			  for dsym in (append (reorg--get-all-dotted-symbols template)
 					      ;; These are defaults that need
 					      ;; to be included in the parsed data
-					      ;; even if the user does not define them
-					      ;; this is hack to deal with that problem.
+					      ;; even if the user does not define them.
+					      ;; This is hack to deal with that problem.
 					      (list 'marker
 						    'class
 						    'buffer-file-name
