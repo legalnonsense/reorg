@@ -230,6 +230,7 @@ supplied, get that property from 'reorg-data'."
 				     &key
 				     class
 				     name
+				     doc
 				     parse
 				     disable
 				     display
@@ -246,6 +247,7 @@ supplied, get that property from 'reorg-data'."
     `(progn
        (cond ((not ,disable)
 	      (defun ,parsing-func (&optional data DATA)
+		,doc
 		(let-alist DATA 
 		  ,parse))
 	      (setf (alist-get ',class reorg--parser-list)
