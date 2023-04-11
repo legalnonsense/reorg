@@ -210,14 +210,16 @@ If ALL is non-nil and TYPE is active or inactive, then also return
 the opening and closing dates for any time ranges."
   (if (eq type 'all)
       (seq-filter #'identity
-		  (cl-loop for each in '((deadline)
-					 (scheduled)
-					 (closed)
-					 (active t)
-					 (inactive t))
-			   append (ensure-list
-				   (apply #'reorg-org--timestamp-parser
-					  each))))
+		  (cl-loop for each
+			   in '((deadline)
+				(scheduled)
+				(closed)
+				(active t)
+				(inactive t))
+			   append
+			   (ensure-list
+			    (apply #'reorg-org--timestamp-parser
+				   each))))
     (save-excursion
       (cl-loop
        while (re-search-forward
@@ -251,19 +253,36 @@ the opening and closing dates for any time ranges."
 			 'planning))))
 		(member type '(deadline scheduled closed)))
        if all
-       collect (org-no-properties (match-string
-				   (if (member type
-					       '(active-range
-						 inactive-range))
-				       0 1)))
+       collect (org-no-properties (--> (match-string
+					(if (member type
+						    '(scheduled
+						      deadline
+						      closed))
+					    1 0))
+				       (cond ((member type
+						      '(scheduled
+							deadline))				     
+					      (concat "<" it ">"))
+					     ((eq type 'closed)
+					      (concat "[" it "]"))
+					     (t it))))
+       
        into results
        and do (goto-char (match-end 0))
        else 
-       return (org-no-properties (match-string
-				  (if (member type
-					      '(active-range
-						inactive-range))
-				      0 1)))
+       return (org-no-properties (--> (match-string
+				       (if (member type
+						   '(scheduled
+						     deadline
+						     closed))
+					   1 0))
+				      (cond ((member type
+						     '(scheduled
+						       deadline))				     
+					     (concat "<" it ">"))
+					    ((eq type 'closed)
+					     (concat "[" it "]"))
+					    (t it))))
        finally return results))))
 
 
@@ -458,6 +477,10 @@ if there is not one."
 
 (defun reorg-org--edit-timestamp (&optional inactive)
   (completing-read "Select timestamp to edit: "
+		   (reorg-org--with-point-at-orig-entry
+		    nil
+		    nil
+		    (reorg-org--timestamp-parser 'all))
 		   ))
 
 
