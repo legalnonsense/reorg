@@ -670,6 +670,14 @@ if there is not one."
 ;; 	  (concat "/" data)))
 
 (reorg-create-data-type
+ :name active-ts
+ :class org
+ :parse (-non-nil (append (list (reorg-org--timestamp-parser 'deadline))
+			  (list (reorg-org--timestamp-parser 'scheduled))
+			  (reorg-org--timestamp-parser 'active t))))
+
+
+(reorg-create-data-type
  :name marker
  :class org
  :parse (point-marker))
@@ -741,7 +749,8 @@ if there is not one."
 	   collect (match-string-no-properties 1 headline))))
 
 (reorg-create-data-type
- :name timestamp-type 
+ :name timestamp-type
+ :disable t
  :class org
  :parse (cond 
 	 ((org-entry-get (point) "DEADLINE") "deadline")

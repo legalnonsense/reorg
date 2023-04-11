@@ -11,10 +11,15 @@
 	      :format-results ( (s-pad-right 5 " " .priority)
 				(s-pad-right 15 " " .todo)
 				" "
-				(if .ts
+				(if .active-ts 
 				    (s-pad-right 50 "." .headline)
 				  .headline)
-				.ts-pretty)
+				(when .active-ts
+				  (reorg-org--format-time-string
+				   .active-ts
+				   "%a, %b %d, %Y"
+				   "%a, %b %d, %Y at %-l:%M%p")))
+
 	      :children
 	      (( :group "Cases"
 		 :children
@@ -46,13 +51,13 @@
 				 :sort-results ((.priority . string<)
 						(.todo . string<)
 						(.headline . reorg-string<)))
-			       ( :group (when (and .ts
+			       ( :group (when (and .@active-ts 
 						   (not (member .todo '("TASK"
 									"DONE"
 									"DELEGATED"
 									"WAITING"))))
 					  "CALENDAR")
-				 :sort-results ((.ts . string<)))
+				 :sort-results ((.active-ts . string<)))
 			       ( :group (when (equal "_NOTES_" .headline) "")
 				 :format-results (.stars "  NOTES"))))))
 	       ( :group (when (and (member .todo '("TASK"
