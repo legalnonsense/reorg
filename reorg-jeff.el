@@ -19,7 +19,6 @@
 				   .active-ts
 				   "%a, %b %d, %Y"
 				   "%a, %b %d, %Y at %-l:%M%p")))
-
 	      :children
 	      (( :group "Cases"
 		 :children
@@ -28,10 +27,10 @@
 						  "DELEGATED"
 						  "EVENT"
 						  "OPP_DUE"
-						  "WAITING" ;
+						  "WAITING"
 						  "DEADLINE"))
-				  (and .ts
-				       (string> .ts ,now))
+				  (and .ts-single
+				       (string> .ts-single ,now))
 				  (string= .headline "_NOTES_"))
 			     (propertize .root
 					 'face
@@ -41,7 +40,9 @@
 						 :weight bold
 						 :underline t)))))
 		    :sort-groups reorg-string<
-		    :children (( :group (when (member .todo '("TASK" "DELEGATED" "WAITING"))
+		    :children (( :group (when (member .todo '("TASK"
+							      "DELEGATED"
+							      "WAITING"))
 					  "TASKS")
 				 :sort-groups (lambda (a b)
 						(reorg--sort-by-list a b

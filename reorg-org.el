@@ -538,6 +538,13 @@ if there is not one."
  :class org
  :parse (org-get-tags))
 
+(reorg-create-data-type
+ :name ts-single
+ :class org
+ :parse (or (reorg-org--timestamp-parser 'deadline)
+	    (reorg-org--timestamp-parser 'active)
+	    (reorg-org--timestamp-parser 'scheduled)))
+
 ;; (reorg-create-data-type
 ;;  :name ts-pretty
 ;;  :class org
