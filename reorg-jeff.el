@@ -11,12 +11,12 @@
 	      :format-results ( (s-pad-right 5 " " .priority)
 				(s-pad-right 15 " " .todo)
 				" "
-				(if .active-ts 
+				(if .ts-single
 				    (s-pad-right 50 "." .headline)
 				  .headline)
-				(when .active-ts
+				(when .ts-single
 				  (reorg-org--format-time-string
-				   .active-ts
+				   .ts-single
 				   "%a, %b %d, %Y"
 				   "%a, %b %d, %Y at %-l:%M%p")))
 	      :children
@@ -32,13 +32,7 @@
 				  (and .ts-single
 				       (string> .ts-single ,now))
 				  (string= .headline "_NOTES_"))
-			     (propertize .root
-					 'face
-					 `(( t ( :foreground ,(face-foreground 'default)
-						 :height 1.2
-						 :family "ETBembo"
-						 :weight bold
-						 :underline t)))))
+			     .category-inherited)
 		    :sort-groups reorg-string<
 		    :children (( :group (when (member .todo '("TASK"
 							      "DELEGATED"
@@ -52,13 +46,13 @@
 				 :sort-results ((.priority . string<)
 						(.todo . string<)
 						(.headline . reorg-string<)))
-			       ( :group (when (and .@active-ts 
+			       ( :group (when (and .@timestamp
 						   (not (member .todo '("TASK"
 									"DONE"
 									"DELEGATED"
 									"WAITING"))))
 					  "CALENDAR")
-				 :sort-results ((.active-ts . string<)))
+				 :sort-results ((.ts-single . string<)))
 			       ( :group (when (equal "_NOTES_" .headline) "")
 				 :format-results (.stars "  NOTES"))))))
 	       ( :group (when (and (member .todo '("TASK"
@@ -75,7 +69,36 @@
 			      :sort-results ((.category-inherited . reorg-string<)
 					     (.priority . reorg-string<)
 					     (.headline . reorg-string<))
-			      :sort-groups reorg-string<)))))))))
+			      :sort-groups reorg-string<)))
+	       ( :group (when (and (member .todo '("TASK"
+						   "DELEGATED"
+						   "WAITING"))
+				   (if .ts-single
+				       (string> .ts-single ,now)
+				     t))
+			  "Priorities")
+		 :sort-results ((.category-inherited . reorg-string<)
+				(.todo . (lambda (a b)
+					   (reorg--sort-by-list a
+								b
+								'("TASK"
+								  "DELEGATED"
+								  "WAITING")))))
+		 :format-results ((s-pad-right 10 " " .todo)
+				  (s-pad-right 15 " " .category-inherited)
+				  (if .ts-single
+				      (s-pad-right 50 "." .headline)
+				    .headline)
+				  (when .ts-single
+				    (reorg-org--format-time-string
+				     .ts-single
+				     "%a, %b %d, %Y"
+				     "%a, %b %d, %Y at %-l:%M%p")))
+		 :children (( :group (when (equal .priority "A") "High"))
+			    ( :group (when (equal .priority "B") "Medium"))
+			    ( :group (when (equal .priority "C") "Low"))))
+
+	       ))))))
 
 (defun jrf/reorg-calendar-journal-log ()
   ""

@@ -194,7 +194,7 @@ no HHMM specification.  TIME-FORMAT is used if there is an HHMM specification."
 					props)))))))))
       props)))
 
-(defun reorg-org--timestamp-parser (type &optional all)
+(defun reorg-org--timestamp-parser (type &optional all-or-inactive)
   "TYPE can be deadline, scheduled, closed, active,
 active-range, inactive, inactive-range.
 
@@ -211,11 +211,13 @@ the opening and closing dates for any time ranges."
   (if (eq type 'all)
       (seq-filter #'identity
 		  (cl-loop for each
-			   in '((deadline)
-				(scheduled)
-				(closed)
-				(active t)
-				(inactive t))
+			   in (list (list 'deadline)
+				    (list 'scheduled)
+				    (list 'closed)
+				    (list 'active t)
+				    (if all-or-inactive
+					(list 'inactive t)))
+			   when each
 			   append
 			   (ensure-list
 			    (apply #'reorg-org--timestamp-parser
@@ -252,7 +254,7 @@ the opening and closing dates for any time ranges."
 			 (car (org-element-at-point))
 			 'planning))))
 		(member type '(deadline scheduled closed)))
-       if all
+       if all-or-inactive
        collect (org-no-properties (--> (match-string
 					(if (member type
 						    '(scheduled
@@ -483,6 +485,13 @@ if there is not one."
 		    (reorg-org--timestamp-parser 'all))
 		   ))
 
+(defun reorg-org--store-link ()
+  "store link at point"
+  (interactive)
+  (reorg-org--with-point-at-orig-entry
+   nil
+   nil 
+   (call-interactively #'org-store-link)))
 
 ;;; org class 
 
@@ -497,6 +506,7 @@ if there is not one."
 	  ("s" . reorg-org--org-schedule)
 	  ("r" . reorg-org--org-set-property)
 	  ("i" . reorg-org--org-priority)
+	  ("C-c l" . reorg-org--org-store-link)
 	  ("g" . reorg-org--reload-heading))
  :getter
  ;; Example 1
@@ -510,8 +520,7 @@ if there is not one."
  ;;   (org-ql-select SOURCE nil :action #'PARSER))
 
  ;; Example 3
- (reorg-org--map-entries SOURCE #'PARSER)
- )
+ (reorg-org--map-entries SOURCE #'PARSER))
 
 ;;; org data 
 
@@ -521,12 +530,12 @@ if there is not one."
  :class org
  :parse (buffer-file-name))
 
-(reorg-create-data-type
- :name delegated
- :disable t
- :doc "Get the DELEGATED property."
- :class org
- :parse (org-entry-get (point) "DELEGATED"))
+;; (reorg-create-data-type
+;;  :name delegated
+;;  :disable t
+;;  :doc "Get the DELEGATED property."
+;;  :class org
+;;  :parse (org-entry-get (point) "DELEGATED"))
 
 (reorg-create-data-type
  :name property
@@ -541,6 +550,7 @@ if there is not one."
 
 (reorg-create-data-type
  :name ts-single
+ :doc "Get the most important timestamp."
  :class org
  :parse (or (reorg-org--timestamp-parser 'deadline)
 	    (reorg-org--timestamp-parser 'active)
@@ -588,22 +598,25 @@ if there is not one."
  :parse (reorg-org--timestamp-parser 'active))
 
 (reorg-create-data-type
- :name timestamp-range
+ :name timestamp-active-range
  :class org
  :parse (reorg-org--timestamp-parser 'active-range))
 
 (reorg-create-data-type
- :name timestamp-active-all 
+ :name timestamp-active-all
+ :doc "All active timestamps (but no planning)."
  :class org
  :parse (reorg-org--timestamp-parser 'active t))
 
 (reorg-create-data-type
  :name timestamp-inactive
+ :doc "First inactive timestamp."
  :class org
  :parse (reorg-org--timestamp-parser 'inactive))
 
 (reorg-create-data-type
  :name timestamp-inactive-all
+ :doc "All inactive timestamps."
  :class org
  :parse (reorg-org--timestamp-parser 'inactive t))
 
@@ -679,12 +692,9 @@ if there is not one."
 ;; 	  (concat "/" data)))
 
 (reorg-create-data-type
- :name active-ts
- :class org
- :parse (-non-nil (append (list (reorg-org--timestamp-parser 'deadline))
-			  (list (reorg-org--timestamp-parser 'scheduled))
-			  (reorg-org--timestamp-parser 'active t))))
-
+ :name timestamp-all-planning-and-active
+ :doc "Get DEADLINE, SCHEDULED, and active timestamps."
+ :parse (reorg-org--timestamp-parser 'all))
 
 (reorg-create-data-type
  :name marker
@@ -700,11 +710,6 @@ if there is not one."
  :name category-inherited
  :class org
  :parse (org-entry-get-with-inheritance "CATEGORY"))
-
-;; (reorg-create-data-type
-;;  :name category
-;;  :class org
-;;  :parse (org-get-category))
 
 (reorg-create-data-type
  :name filename
@@ -742,6 +747,7 @@ if there is not one."
 		   when (reorg-org--timestamp-parser 'inactive)
 		   return (reorg-org--timestamp-parser 'inactive))))
 
+;; this could just use .headline 
 (reorg-create-data-type
  :name at-names
  :class org
@@ -757,52 +763,20 @@ if there is not one."
 		  (match-end 1)))
 	   collect (match-string-no-properties 1 headline))))
 
-(reorg-create-data-type
- :name timestamp-type
- :disable t
- :class org
- :parse (cond 
-	 ((org-entry-get (point) "DEADLINE") "deadline")
-	 ((reorg-org--timestamp-parser) "active")
-	 ((org-no-properties (reorg-org--timestamp-parser nil t)) "range")
-	 ((org-entry-get (point) "SCHEDULED") "scheduled"))
- :display (pcase (alist-get 'ts-type data)
-	    ("deadline" "≫")
-	    ("active" "⊡")
-	    ("range" "➥")
-	    ("scheduled" "⬎")
-	    (_ " ")))
-
-(reorg-create-data-type
- :name ts-all
- :class org
- :parse (reorg-org--timestamp-parser 'all))
-
 ;; (reorg-create-data-type
-;;  :name ts-ts
+;;  :name timestamp-type
+;;  :disable t
 ;;  :class org
-;;  :parse (when .ts-any
-;; 	  (ts-parse-org .ts-any)))
-
-;; (reorg-create-data-type
-;;  :name all-active-timestamps
-;;  :class org
-;;  :parse (save-excursion
-;; 	  (cl-loop
-;; 	   while (re-search-forward org-ql-regexp-ts-active
-;; 				    (save-excursion (outline-next-heading))
-;; 				    t)
-;; 	   collect (match-string-no-properties 0))))
-
-;; (reorg-create-data-type
-;;  :name ts-any
-;;  :class org
-;;  :parse (or 
-;; 	 (org-entry-get (point) "DEADLINE")
-;; 	 (reorg-org--timestamp-parser) ;; active timestamp
-;; 	 (org-no-properties (reorg-org--timestamp-parser nil t)) ;; active range
-;; 	 (org-entry-get (point) "SCHEDULED")
-;; 	 (org-no-properties (reorg-org--timestamp-parser t nil))
-;; 	 (org-no-properties (reorg-org--timestamp-parser t t))))
+;;  :parse (cond 
+;; 	 ((reorg-org--timestamp-parser 'deadline) "deadline")
+;; 	 ((reorg-org--timestamp-parser 'active) "active")
+;; 	 ((reorg-org--timestamp-parser 'active-range) "range")
+;; 	 ((reorg-org--timestamp-parser 'scheduled) "scheduled"))
+;;  :display (pcase (alist-get 'ts-type data)
+;; 	    ("deadline" "≫")
+;; 	    ("active" "⊡")
+;; 	    ("range" "➥")
+;; 	    ("scheduled" "⬎")
+;; 	    (_ " ")))
 
 (provide 'reorg-org)
