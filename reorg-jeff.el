@@ -4,7 +4,7 @@
 
 (defun jrf/reorg-client ()
   (interactive)
-  (let ((now (ts-format "<%Y-%m-%d" (ts-dec 'day 1 (ts-now)))))
+  (let ((now (ts-format "%Y-%m-%d" (ts-dec 'day 1 (ts-now)))))
     (reorg-open-sidebar
      (setq reorg-client-template
 	   `( :sources ((org . ,reorg-test-org-file-list))
@@ -30,7 +30,10 @@
 						  "WAITING"
 						  "DEADLINE"))
 				  (and .ts-single
-				       (string> .ts-single ,now))
+				       (org-string>= (reorg-org--format-time-string
+						      .ts-single
+						      "%Y-%m-%d")
+						     ,now))
 				  (string= .headline "_NOTES_"))
 			     .category-inherited)
 		    :sort-groups reorg-string<
@@ -46,7 +49,7 @@
 				 :sort-results ((.priority . string<)
 						(.todo . string<)
 						(.headline . reorg-string<)))
-			       ( :group (when (and .@timestamp
+			       ( :group (when (and .ts-single
 						   (not (member .todo '("TASK"
 									"DONE"
 									"DELEGATED"
@@ -74,7 +77,10 @@
 						   "DELEGATED"
 						   "WAITING"))
 				   (if .ts-single
-				       (string> .ts-single ,now)
+				       (org-string>= (reorg-org--format-time-string
+						      .ts-single
+						      "%Y-%m-%d")
+						     ,now)
 				     t))
 			  "Priorities")
 		 :sort-results ((.category-inherited . reorg-string<)
