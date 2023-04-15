@@ -344,7 +344,7 @@ the opening and closing dates for any time ranges."
 (defun reorg-org--map-entries (files func)
   "regular expression is faster than `org-map-entries'
 even if it doesn't make archives available"
-  (cl-loop for file in files
+  (cl-loop for file in (ensure-list files)
 	   append (with-current-buffer (find-file-noselect file)
 		    (org-with-wide-buffer
 		     (goto-char (point-min))
@@ -530,19 +530,17 @@ if there is not one."
  :class org
  :parse (buffer-file-name))
 
-;; (reorg-create-data-type
-;;  :name delegated
-;;  :disable t
-;;  :doc "Get the DELEGATED property."
-;;  :class org
-;;  :parse (org-entry-get (point) "DELEGATED"))
+(reorg-create-data-type
+ :name delegated
+ :doc "Get the DELEGATED property."
+ :class org
+ :parse (org-entry-get (point) "DELEGATED"))
 
 (reorg-create-data-type
  :name property
- :doc "Get property drawer as an alist."
  :parse (reorg-org--get-property-drawer)
  :class org)
-
+reorg--parser-list
 (reorg-create-data-type
  :name tag-list
  :class org
@@ -693,6 +691,7 @@ if there is not one."
 
 (reorg-create-data-type
  :name timestamp-all-planning-and-active
+ :class org 
  :doc "Get DEADLINE, SCHEDULED, and active timestamps."
  :parse (reorg-org--timestamp-parser 'all))
 

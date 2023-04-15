@@ -1,10 +1,10 @@
 ;; -*- lexical-binding: t;-*-
 (setq reorg-test-org-file-list (org-agenda-files))
-(setq reorg-test-org-file-list "~/tmp/tmp.org")
+;; (setq reorg-test-org-file-list "~/tmp/tmp.org")y
 
 (defun jrf/reorg-client ()
   (interactive)
-  (let ((now (ts-format "%Y-%m-%d" (ts-dec 'day 1 (ts-now)))))
+  (let ((now (ts-format "%Y-%m-%d" (ts-now))))
     (reorg-open-sidebar
      (setq reorg-client-template
 	   `( :sources ((org . ,reorg-test-org-file-list))
@@ -35,7 +35,7 @@
 						      "%Y-%m-%d")
 						     ,now))
 				  (string= .headline "_NOTES_"))
-			     .category-inherited)
+			     .root)
 		    :sort-groups reorg-string<
 		    :children (( :group (when (member .todo '("TASK"
 							      "DELEGATED"
@@ -49,11 +49,16 @@
 				 :sort-results ((.priority . string<)
 						(.todo . string<)
 						(.headline . reorg-string<)))
-			       ( :group (when (and .ts-single
-						   (not (member .todo '("TASK"
-									"DONE"
-									"DELEGATED"
-									"WAITING"))))
+			       ( :group (when (and
+					       .ts-single
+					       (org-string>= (reorg-org--format-time-string
+							      .ts-single
+							      "%Y-%m-%d")
+							     ,now)
+					       (not (member .todo '("TASK"
+								    "DONE"
+								    "DELEGATED"
+								    "WAITING"))))
 					  "CALENDAR")
 				 :sort-results ((.ts-single . string<)))
 			       ( :group (when (equal "_NOTES_" .headline) "")
@@ -68,7 +73,7 @@
 				  (s-pad-right 20 " " .category-inherited)
 				  " "
 				  .headline)
-		 :children (( :group .property.delegated
+		 :children (( :group .delegated
 			      :sort-results ((.category-inherited . reorg-string<)
 					     (.priority . reorg-string<)
 					     (.headline . reorg-string<))

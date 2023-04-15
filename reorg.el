@@ -766,7 +766,7 @@ This creates two interactive functions:
 
 (defun reorg--leaves-visible-p ()
   "are the leaves of the heading visible?"
-  (when-let ((p (reorg--get-first-leaf)))
+  (when-let ((p (reorg--goto-last-leaf-depth-first)))
     (not (invisible-p p))))
 
 (defun reorg--move-to-next-entry-follow ()
@@ -2114,7 +2114,14 @@ one of the sources."
   "capf for reorg template"
   ;; This is horribly inefficient but it does not need to be fast. 
   (let (start end collection props)
-    (when (looking-back "\\.[.|[:word:]]+")
+    
+    (when (looking-back (rx "."
+			    (or "."
+				"@"
+				"!"
+				(one-or-more word)))
+			(save-excursion (backward-sexp)
+					(point)))
       (let* ((two-dots-p (s-starts-with-p ".." (match-string 0)))
 	     (start (match-beginning 0))
 	     (end (if two-dots-p
@@ -2234,11 +2241,6 @@ the buffer."
     (define-key map (kbd "RET") #'reorg--goto-source)
     (define-key map (kbd "u") #'reorg--goto-parent)
     (define-key map (kbd "<left>") #'reorg--goto-parent)
-    (define-key map (kbd "G") (lambda () (interactive)
-				(reorg--close-tree-buffer)
-				(kill-buffer reorg-buffer-name)
-				(save-excursion (reorg-open-main-window
-						 reorg--current-template))))
     (define-key map (kbd "c") #'reorg--goto-next-clone)
     (define-key map (kbd "R") #'reorg-reload)
     (define-key map (kbd "f") #'reorg--goto-next-sibling)
