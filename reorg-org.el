@@ -194,7 +194,7 @@ no HHMM specification.  TIME-FORMAT is used if there is an HHMM specification."
 					props)))))))))
       props)))
 
-(defun reorg-org--timestamp-parser (type &optional all-or-inactive)
+(defun reorg-org--timestamp-parser (type &optional all-or-inactive include-clocks subtree)
   "TYPE can be deadline, scheduled, closed, active,
 active-range, inactive, inactive-range.
 
@@ -216,7 +216,7 @@ the opening and closing dates for any time ranges."
 				    (list 'closed)
 				    (list 'active t)
 				    (if all-or-inactive
-					(list 'inactive t)))
+					(list 'inactive t include-clocks)))
 			   when each
 			   append
 			   (ensure-list
@@ -234,6 +234,33 @@ the opening and closing dates for any time ranges."
 		 org-closed-time-regexp)
 		('active-range
 		 org-tr-regexp)
+		('clock
+		 ;; (xr org-ts-regexp-inactive)
+		 (rx
+		  ;; (xr org-clock-line-re)
+		  
+		  (seq bol (zero-or-more (any "	 ")) "CLOCK:"
+		       (zero-or-more (any "	 ")))
+		  (group-n 1
+			   (seq "["
+				(group (= 4 digit)
+				       "-"
+				       (= 2 digit)
+				       "-"
+				       (= 2 digit)
+				       (opt " " (*\? nonl)))
+				"]"))
+		  (optional (or "-" "--"))
+		  (optional 
+		   (group-n 2
+			    (seq "["
+				 (group (= 4 digit)
+					"-"
+					(= 2 digit)
+					"-"
+					(= 2 digit)
+					(opt " " (*\? nonl)))
+				 "]")))))
 		('active
 		 org-ts-regexp)
 		('inactive
@@ -244,31 +271,55 @@ the opening and closing dates for any time ranges."
 		  "--?-?"
 		  org-ts-regexp-inactive))
 		(_ (error "Invalid type %s" type)))
-	      (org-entry-end-position)
+	      (if subtree
+		  (org-end-of-subtree t)
+		(org-entry-end-position))
 	      t)
-       when (or (and (not (member type
-				  '(deadline scheduled closed)))
-		     (save-match-data
-		       (not
-			(eq
-			 (car (org-element-at-point))
-			 'planning))))
+       when (or (and
+		 (eq type 'clock)
+		 (save-match-data 
+		   (org-at-clock-log-p)))
+		(and
+		 (not (eq type 'clock))
+		 (or include-clocks
+		     (not (save-match-data 
+			    (org-at-clock-log-p))))
+		 (not (member type
+			      '(deadline scheduled closed)))
+		 (save-match-data
+		   (not (eq (car (org-element-at-point))
+			    'planning))))
 		(member type '(deadline scheduled closed)))
        if all-or-inactive
-       collect (org-no-properties (--> (match-string
-					(if (member type
-						    '(scheduled
-						      deadline
-						      closed))
-					    1 0))
-				       (cond ((member type
-						      '(scheduled
-							deadline))				     
-					      (concat "<" it ">"))
-					     ((eq type 'closed)
-					      (concat "[" it "]"))
-					     (t it))))
-       
+       collect
+       (if (eq type 'clock)
+	   (let* ((r (match-string 0))
+		  (r (cadr
+		      (s-split
+		       (rx
+			(seq bol (zero-or-more (any "	 ")) "CLOCK:"
+			     (zero-or-more (any "	 "))))
+		       r)))
+		  (r (s-split "--" r t)))
+	     (if (= (length r) 1)
+		 (list :beg (org-no-properties (car r)))
+	       (list :beg (org-no-properties (car r))
+		     :end (org-no-properties (cadr r)))))
+	 (--> (match-string
+	       (cond ((member type
+			      '(scheduled
+				deadline
+				closed))
+		      1)
+		     (t 0)))
+	      (cond ((member type
+			     '(scheduled
+			       deadline))				     
+		     (concat "<" it ">"))
+		    ((eq type 'closed)
+		     (concat "[" it "]"))
+		    (t it))
+	      (org-no-properties it)))
        into results
        and do (goto-char (match-end 0))
        else 
@@ -288,494 +339,581 @@ the opening and closing dates for any time ranges."
        finally return results))))
 
 
-;; (defun reorg-org--timestamp-parser (&optional inactive range)
-;;   "Find the fist timestamp in the current heading and return it. 
-;; if INACTIVE is non-nil, get the first inactive timestamp.  If 
-;; RANGE is non-nil, only look for timestamp ranges.
+  ;; (defun reorg-org--timestamp-parser (&optional inactive range)
+  ;;   "Find the fist timestamp in the current heading and return it. 
+  ;; if INACTIVE is non-nil, get the first inactive timestamp.  If 
+  ;; RANGE is non-nil, only look for timestamp ranges.
 
-;; Do not return deadline, scheduled, or closed timestamps.
+  ;; Do not return deadline, scheduled, or closed timestamps.
 
-;; If ALL is non-nil, return a list of all timestamps found.  Not that
-;; if ALL is non-nil, RANGE is ignored."
-;;   ;; also don't understand why there isn't a built in way to do this
-;;   (save-excursion
-;;     (cl-loop while (re-search-forward
-;; 		    (pcase `(,inactive ,range)
-;; 		      (`(nil t)
-;; 		       org-tr-regexp)
-;; 		      (`(nil nil)
-;; 		       org-ts-regexp)
-;; 		      (`(t nil)
-;; 		       org-ts-regexp-inactive)
-;; 		      (`(t t)
-;; 		       (concat 
-;; 			org-ts-regexp-inactive
-;; 			"--?-?"
-;; 			org-ts-regexp-inactive)))
-;; 		    (org-entry-end-position)
-;; 		    t)
-;; 	     when (save-match-data (not (eq (car (org-element-at-point))
-;; 					    'planning)))
-;; 	     return (org-no-properties (match-string 0)))))
+  ;; If ALL is non-nil, return a list of all timestamps found.  Not that
+  ;; if ALL is non-nil, RANGE is ignored."
+  ;;   ;; also don't understand why there isn't a built in way to do this
+  ;;   (save-excursion
+  ;;     (cl-loop while (re-search-forward
+  ;; 		    (pcase `(,inactive ,range)
+  ;; 		      (`(nil t)
+  ;; 		       org-tr-regexp)
+  ;; 		      (`(nil nil)
+  ;; 		       org-ts-regexp)
+  ;; 		      (`(t nil)
+  ;; 		       org-ts-regexp-inactive)
+  ;; 		      (`(t t)
+  ;; 		       (concat 
+  ;; 			org-ts-regexp-inactive
+  ;; 			"--?-?"
+  ;; 			org-ts-regexp-inactive)))
+  ;; 		    (org-entry-end-position)
+  ;; 		    t)
+  ;; 	     when (save-match-data (not (eq (car (org-element-at-point))
+  ;; 					    'planning)))
+  ;; 	     return (org-no-properties (match-string 0)))))
 
-(defun reorg-org--get-body ()
-  "get headings body text"  
-  ;; FIXME this adds way too much time to parsing the
-  ;; org file.
-  ;;
-  ;; First attempt:
-  ;; (org-no-properties
-  ;;  (org-element-interpret-data
-  ;;   (org-element--parse-elements (save-excursion (org-back-to-heading)
-  ;; 						 (org-end-of-meta-data t)
-  ;; 						 (point))
-  ;; 				 (or (save-excursion (outline-next-heading))
-  ;; 				     (point-max))
-  ;; 				 'first-section nil nil nil nil)))
-  ;; 
-  ;; Second attempt; not sure if any better 
-  (save-excursion
-    (when (reorg-org--goto-end-of-meta-data)
-      (string-trim 
-       (buffer-substring-no-properties
-	(point)
-	(org-entry-end-position))))))
+  (defun reorg-org--get-body ()
+    "get headings body text"  
+    ;; FIXME this adds way too much time to parsing the
+    ;; org file.
+    ;;
+    ;; First attempt:
+    ;; (org-no-properties
+    ;;  (org-element-interpret-data
+    ;;   (org-element--parse-elements (save-excursion (org-back-to-heading)
+    ;; 						 (org-end-of-meta-data t)
+    ;; 						 (point))
+    ;; 				 (or (save-excursion (outline-next-heading))
+    ;; 				     (point-max))
+    ;; 				 'first-section nil nil nil nil)))
+    ;; 
+    ;; Second attempt; not sure if any better 
+    (save-excursion
+      (when (reorg-org--goto-end-of-meta-data)
+	(string-trim 
+	 (buffer-substring-no-properties
+	  (point)
+	  (org-entry-end-position))))))
 
-(defun reorg-org--map-entries (files func)
-  "regular expression is faster than `org-map-entries'
+  (defun reorg-org--map-entries (files func)
+    "regular expression is faster than `org-map-entries'
 even if it doesn't make archives available"
-  (cl-loop for file in (ensure-list files)
-	   append (with-current-buffer (find-file-noselect file)
-		    (org-with-wide-buffer
-		     (goto-char (point-min))
-		     (cl-loop while (re-search-forward
-				     org-heading-regexp
-				     nil
-				     t)
-			      do (goto-char (match-beginning 0))
-			      collect (funcall func)
-			      do (goto-char (point-at-eol)))))))
+    (cl-loop for file in (ensure-list files)
+	     append (with-current-buffer (find-file-noselect file)
+		      (org-with-wide-buffer
+		       (goto-char (point-min))
+		       (cl-loop while (re-search-forward
+				       org-heading-regexp
+				       nil
+				       t)
+				do (goto-char (match-beginning 0))
+				collect (funcall func)
+				do (goto-char (point-at-eol)))))))
 
 ;;; macros 
 
-(defmacro reorg-org--with-restore-state (&rest body)
-  "do BODY while saving, excursion, restriction, etc."
-  (declare (debug (body)))
-  `(save-excursion
-     (save-restriction       
-       (widen)
-       (let ((inhibit-field-text-motion t))
-	 ,@body))))
+  (defmacro reorg-org--with-restore-state (&rest body)
+    "do BODY while saving, excursion, restriction, etc."
+    (declare (debug (body)))
+    `(save-excursion
+       (save-restriction       
+	 (widen)
+	 (let ((inhibit-field-text-motion t))
+	   ,@body))))
 
-(defmacro reorg-org--with-point-at-orig-entry (id buffer &rest body)
-  "Execute BODY with point at the heading with ID at point."
-  "Execute BODY in the source buffer."
-  (declare (indent defun))
-  `(when-let ((marker (reorg--get-prop 'marker))
-	      (buffer (marker-buffer marker))
-	      (id (reorg--get-prop 'id)))
-     (with-current-buffer buffer
-       (save-excursion
-	 (save-restriction
-	   (let ((old-point (point))
-		 (search-invisible t))
-	     (widen)
-	     (ov-clear)
-	     (goto-char marker)
-	     ,@body))))))
+  (defmacro reorg-org--with-point-at-orig-entry (id buffer &rest body)
+    "Execute BODY with point at the heading with ID at point."
+    "Execute BODY in the source buffer."
+    (declare (indent defun))
+    `(when-let ((marker (reorg--get-prop 'marker))
+		(buffer (marker-buffer marker))
+		(id (reorg--get-prop 'id)))
+       (with-current-buffer buffer
+	 (save-excursion
+	   (save-restriction
+	     (let ((old-point (point))
+		   (search-invisible t))
+	       (widen)
+	       (ov-clear)
+	       (goto-char marker)
+	       ,@body))))))
 
 ;;; render source func
 
-(defun reorg-org--render-source (&optional buffer id no-narrow)
-  "Move to buffer and find heading with ID.  If NARROW is non-nil,
+  (defun reorg-org--render-source (&optional buffer id no-narrow)
+    "Move to buffer and find heading with ID.  If NARROW is non-nil,
 then narrow to that heading and return t.  If no heading is found, don't move
 the point and return nil."
-  (let ((marker (reorg--get-prop 'marker)))
-    (reorg--select-main-window (marker-buffer marker))
-    (widen)
-    (org-show-all)
-    (goto-char marker)
-    (reorg-org--source--narrow-to-heading)
-    (reorg--select-tree-window)))
+    (let ((marker (reorg--get-prop 'marker)))
+      (reorg--select-main-window (marker-buffer marker))
+      (widen)
+      (org-show-all)
+      (goto-char marker)
+      (reorg-org--source--narrow-to-heading)
+      (reorg--select-tree-window)))
 
-(defun reorg-org--goto-end-of-meta-data ()
-  "Go to the end of the meta data and insert a blank line
+  (defun reorg-org--goto-end-of-meta-data ()
+    "Go to the end of the meta data and insert a blank line
 if there is not one."
-  (let ((next-heading (reorg-org--with-restore-state
-		       (outline-next-heading)
-		       (point)))
-	(end-of-meta-data (save-excursion
-			    (org-end-of-meta-data t)
-			    (re-search-backward (rx (not whitespace)))
-			    (match-end 0))))
-    (if (= (- next-heading end-of-meta-data) 1)
-	(progn (goto-char end-of-meta-data)
-	       (insert "\n"))
-      (goto-char (1+ end-of-meta-data)))))
+    (let ((next-heading (reorg-org--with-restore-state
+			 (outline-next-heading)
+			 (point)))
+	  (end-of-meta-data (save-excursion
+			      (org-end-of-meta-data t)
+			      (re-search-backward (rx (not whitespace)))
+			      (match-end 0))))
+      (if (= (- next-heading end-of-meta-data) 1)
+	  (progn (goto-char end-of-meta-data)
+		 (insert "\n"))
+	(goto-char (1+ end-of-meta-data)))))
 
-(defun reorg-org--at-inline-task-p ()
-  "at an inline task?"
-  (and (org-at-heading-p)
-       (not (org-with-limited-levels 
-	     (org-at-heading-p)))))
+  (defun reorg-org--at-inline-task-p ()
+    "at an inline task?"
+    (and (org-at-heading-p)
+	 (not (org-with-limited-levels 
+	       (org-at-heading-p)))))
 
-(defun reorg-org--source--narrow-to-heading ()
-  "Narrow to the current heading only, i.e., no subtree."
-  (org-back-to-heading)     
-  (unless (reorg-org--at-inline-task-p)
-    (org-narrow-to-element))
-  (reorg-org--goto-end-of-meta-data))
+  (defun reorg-org--source--narrow-to-heading ()
+    "Narrow to the current heading only, i.e., no subtree."
+    (org-back-to-heading)     
+    (unless (reorg-org--at-inline-task-p)
+      (org-narrow-to-element))
+    (reorg-org--goto-end-of-meta-data))
 
 ;;; edit commands 
 
-(defun reorg-org--org-edit-headline (&optional arg)
-  "Edit the headline at point"
-  (interactive "P")
-  (reorg-org--with-source-and-sync 
-    (org-edit-headline (read-string "New headline: "
-				    (org-get-heading t t t t)))))
+  (defun reorg-org--org-edit-headline (&optional arg)
+    "Edit the headline at point"
+    (interactive "P")
+    (reorg-org--with-source-and-sync 
+      (org-edit-headline (read-string "New headline: "
+				      (org-get-heading t t t t)))))
 
-(defun reorg-org--org-todo (&optional arg)
-  "Edit todo state at point"
-  (interactive "P")
-  (reorg-org--with-source-and-sync
-    (reorg--select-main-window)
-    (funcall-interactively #'org-todo arg)))
+  (defun reorg-org--org-todo (&optional arg)
+    "Edit todo state at point"
+    (interactive "P")
+    (reorg-org--with-source-and-sync
+      (reorg--select-main-window)
+      (funcall-interactively #'org-todo arg)))
 
-(defun reorg-org--org-set-tags-command (&optional arg)
-  "set tags at point"
-  (interactive "P")
-  (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-set-tags-command arg)))
+  (defun reorg-org--org-set-tags-command (&optional arg)
+    "set tags at point"
+    (interactive "P")
+    (reorg-org--with-source-and-sync
+      (funcall-interactively #'org-set-tags-command arg)))
 
-(defun reorg-org--org-deadline (&optional arg)
-  "set deadline at point"
-  (interactive "P")
-  (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-deadline arg)))
+  (defun reorg-org--org-deadline (&optional arg)
+    "set deadline at point"
+    (interactive "P")
+    (reorg-org--with-source-and-sync
+      (funcall-interactively #'org-deadline arg)))
 
-(defun reorg-org--org-schedule (&optional arg)
-  "set scheduled at point"
-  (interactive "P")
-  (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-schedule arg)))
+  (defun reorg-org--org-schedule (&optional arg)
+    "set scheduled at point"
+    (interactive "P")
+    (reorg-org--with-source-and-sync
+      (funcall-interactively #'org-schedule arg)))
 
-(defun reorg-org--org-set-property (&optional arg)
-  "set property at point"
-  (interactive )
-  (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-set-property nil nil)))
+  (defun reorg-org--org-set-property (&optional arg)
+    "set property at point"
+    (interactive )
+    (reorg-org--with-source-and-sync
+      (funcall-interactively #'org-set-property nil nil)))
 
-(defun reorg-org--org-priority (&optional arg)
-  "set priority at point"
-  (interactive "P")
-  (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-priority arg)))
+  (defun reorg-org--org-priority (&optional arg)
+    "set priority at point"
+    (interactive "P")
+    (reorg-org--with-source-and-sync
+      (funcall-interactively #'org-priority arg)))
 
-(defun reorg-org--reload-heading (&optional arg)
-  "reload heading at point"
-  (interactive)
-  (reorg-org--with-source-and-sync))
+  (defun reorg-org--reload-heading (&optional arg)
+    "reload heading at point"
+    (interactive)
+    (reorg-org--with-source-and-sync))
 
-(defun reorg-org--edit-timestamp (&optional inactive)
-  (completing-read "Select timestamp to edit: "
-		   (reorg-org--with-point-at-orig-entry
-		    nil
-		    nil
-		    (reorg-org--timestamp-parser 'all))
-		   ))
+  (defun reorg-org--edit-timestamp (&optional inactive)
+    (completing-read "Select timestamp to edit: "
+		     (reorg-org--with-point-at-orig-entry
+		      nil
+		      nil
+		      (reorg-org--timestamp-parser 'all))
+		     ))
 
-(defun reorg-org--store-link ()
-  "store link at point"
-  (interactive)
-  (reorg-org--with-point-at-orig-entry
-   nil
-   nil 
-   (call-interactively #'org-store-link)))
+  (defun reorg-org--store-link ()
+    "store link at point"
+    (interactive)
+    (reorg-org--with-point-at-orig-entry
+     nil
+     nil 
+     (call-interactively #'org-store-link)))
 
 ;;; org class 
 
-(reorg-create-class-type
- :name org
- :render-func reorg-org--render-source
- :keymap (;; ("SPC" . reorg-org--open-agenda-day)
-	  ("h" . reorg-org--org-edit-headline)
-	  ("t" . reorg-org--org-todo)
-	  ("a" . reorg-org--org-set-tags-command)
-	  ("d" . reorg-org--org-deadline)
-	  ("s" . reorg-org--org-schedule)
-	  ("r" . reorg-org--org-set-property)
-	  ("i" . reorg-org--org-priority)
-	  ("C-c l" . reorg-org--org-store-link)
-	  ("g" . reorg-org--reload-heading))
- :getter
- ;; Example 1
- ;; (with-current-buffer (find-file SOURCE)
- ;; 	   (widen)
- ;; 	   (org-map-entries #'PARSER)))
+  ;; (defun reorg-org--clock-in-out ()
+  ;;   "clock in or out"
+  ;;   (reorg-org--with-source-and-sync
+  ;;     (org-clock-in 
 
- ;; Example 2
- ;; (progn
- ;;   (setq org-ql-cache (make-hash-table :weakness 'key))
- ;;   (org-ql-select SOURCE nil :action #'PARSER))
+  (reorg-create-class-type
+   :name org
+   :render-func reorg-org--render-source
+   :keymap (;; ("SPC" . reorg-org--open-agenda-day)
+	    ("h" . reorg-org--org-edit-headline)
+	    ("t" . reorg-org--org-todo)
+	    ("a" . reorg-org--org-set-tags-command)
+	    ("d" . reorg-org--org-deadline)
+	    ;; ("c" . reorg-org--clock-in-out)
+	    ("s" . reorg-org--org-schedule)
+	    ("r" . reorg-org--org-set-property)
+	    ("i" . reorg-org--org-priority)
+	    ("C-c l" . reorg-org--org-store-link)
+	    ("g" . reorg-org--reload-heading))
+   :getter
+   ;; Example 1
+   ;; (with-current-buffer (find-file SOURCE)
+   ;; 	   (widen)
+   ;; 	   (org-map-entries #'PARSER)))
 
- ;; Example 3
- (reorg-org--map-entries SOURCE #'PARSER))
+   ;; Example 2
+   ;; (progn
+   ;;   (setq org-ql-cache (make-hash-table :weakness 'key))
+   ;;   (org-ql-select SOURCE nil :action #'PARSER))
+
+   ;; Example 3
+   (reorg-org--map-entries SOURCE #'PARSER))
 
 ;;; org data 
 
-(reorg-create-data-type
- :name buffer-file-name
- :doc "Path to buffer file."
- :class org
- :parse (buffer-file-name))
+  (reorg-create-data-type
+   :name buffer-file-name
+   :doc "Path to buffer file."
+   :class org
+   :parse (buffer-file-name))
 
-(reorg-create-data-type
- :name delegated
- :doc "Get the DELEGATED property."
- :class org
- :parse (org-entry-get (point) "DELEGATED"))
+  (reorg-create-data-type
+   :name delegated
+   :doc "Get the DELEGATED property."
+   :class org
+   :parse (org-entry-get (point) "DELEGATED"))
 
-(reorg-create-data-type
- :name property
- :parse (reorg-org--get-property-drawer)
- :class org)
-reorg--parser-list
-(reorg-create-data-type
- :name tag-list
- :class org
- :parse (org-get-tags))
+  (reorg-create-data-type
+   :name property
+   :parse (reorg-org--get-property-drawer)
+   :class org)
 
-(reorg-create-data-type
- :name ts-single
- :doc "Get the most important timestamp."
- :class org
- :parse (or (reorg-org--timestamp-parser 'deadline)
-	    (reorg-org--timestamp-parser 'active)
-	    (reorg-org--timestamp-parser 'scheduled)))
+  (reorg-create-data-type
+   :name tag-list
+   :class org
+   :parse (org-get-tags))
 
-;; (reorg-create-data-type
-;;  :name ts-pretty
-;;  :class org
-;;  :parse (when-let ((ts (or
-;; 			(org-entry-get (point) "DEADLINE")
-;; 			(reorg-org--timestamp-parser)
-;; 			(org-no-properties
-;; 			 (reorg-org--timestamp-parser nil t))
-;; 			(org-entry-get (point) "SCHEDULED"))))
-;; 	  (if (=
-;; 	       (string-to-number
-;; 		(format-time-string "%Y"))
-;; 	       (ts-year (ts-parse-org ts)))
-;; 	      (s-pad-right 22 " "
-;; 			   (reorg-org--format-time-string
-;; 			    ts
-;; 			    "%a, %b %d"
-;; 			    "%a, %b %d at %-l:%M%p"))
-;; 	    (s-pad-right 22 " "
-;; 			 (reorg-org--format-time-string
-;; 			  ts
-;; 			  "%a, %b %d, %Y"
-;; 			  "%a, %b %d, %Y at %-l:%M%p")))))
+  (reorg-create-data-type
+   :name ts-all
+   :doc "All the timestamps, planning, active, and inactive."
+   :parse (reorg-org--timestamp-parser 'all t)
+   :class org)
+
+  (reorg-create-data-type
+   :name ts-single
+   :doc "Get the most important timestamp."
+   :class org
+   :parse (or (reorg-org--timestamp-parser 'deadline)
+	      (reorg-org--timestamp-parser 'active)
+	      (reorg-org--timestamp-parser 'scheduled)))
+
+  ;; (reorg-create-data-type
+  ;;  :name ts-pretty
+  ;;  :class org
+  ;;  :parse (when-let ((ts (or
+  ;; 			(org-entry-get (point) "DEADLINE")
+  ;; 			(reorg-org--timestamp-parser)
+  ;; 			(org-no-properties
+  ;; 			 (reorg-org--timestamp-parser nil t))
+  ;; 			(org-entry-get (point) "SCHEDULED"))))
+  ;; 	  (if (=
+  ;; 	       (string-to-number
+  ;; 		(format-time-string "%Y"))
+  ;; 	       (ts-year (ts-parse-org ts)))
+  ;; 	      (s-pad-right 22 " "
+  ;; 			   (reorg-org--format-time-string
+  ;; 			    ts
+  ;; 			    "%a, %b %d"
+  ;; 			    "%a, %b %d at %-l:%M%p"))
+  ;; 	    (s-pad-right 22 " "
+  ;; 			 (reorg-org--format-time-string
+  ;; 			  ts
+  ;; 			  "%a, %b %d, %Y"
+  ;; 			  "%a, %b %d, %Y at %-l:%M%p")))))
 
 
-;; (reorg-create-data-type
-;;  :name deadline 
-;;  :class org
-;;  :parse (or
-;; 	 (org-entry-get (point) "DEADLINE")
-;; 	 (when (reorg-org--timestamp-parser)
-;; 	   (org-no-properties (reorg-org--timestamp-parser)))
-;; 	 (when (reorg-org--timestamp-parser nil t)
-;; 	   (org-no-properties (reorg-org--timestamp-parser nil t)))
-;; 	 (org-entry-get (point) "SCHEDULED")))
+  ;; (reorg-create-data-type
+  ;;  :name deadline 
+  ;;  :class org
+  ;;  :parse (or
+  ;; 	 (org-entry-get (point) "DEADLINE")
+  ;; 	 (when (reorg-org--timestamp-parser)
+  ;; 	   (org-no-properties (reorg-org--timestamp-parser)))
+  ;; 	 (when (reorg-org--timestamp-parser nil t)
+  ;; 	   (org-no-properties (reorg-org--timestamp-parser nil t)))
+  ;; 	 (org-entry-get (point) "SCHEDULED")))
 
-(reorg-create-data-type
- :name timestamp-active
- :class org
- :parse (reorg-org--timestamp-parser 'active))
+  (reorg-create-data-type
+   :name timestamp-active
+   :class org
+   :parse (reorg-org--timestamp-parser 'active))
 
-(reorg-create-data-type
- :name timestamp-active-range
- :class org
- :parse (reorg-org--timestamp-parser 'active-range))
+  (reorg-create-data-type
+   :name timestamp-active-range
+   :class org
+   :parse (reorg-org--timestamp-parser 'active-range))
 
-(reorg-create-data-type
- :name timestamp-active-all
- :doc "All active timestamps (but no planning)."
- :class org
- :parse (reorg-org--timestamp-parser 'active t))
+  (reorg-create-data-type
+   :name timestamp-active-all
+   :doc "All active timestamps (but no planning)."
+   :class org
+   :parse (reorg-org--timestamp-parser 'active t))
 
-(reorg-create-data-type
- :name timestamp-inactive
- :doc "First inactive timestamp."
- :class org
- :parse (reorg-org--timestamp-parser 'inactive))
+  (reorg-create-data-type
+   :name timestamp-inactive
+   :doc "First inactive timestamp."
+   :class org
+   :parse (reorg-org--timestamp-parser 'inactive))
 
-(reorg-create-data-type
- :name timestamp-inactive-all
- :doc "All inactive timestamps."
- :class org
- :parse (reorg-org--timestamp-parser 'inactive t))
+  (reorg-create-data-type
+   :name timestamp-inactive-all
+   :doc "All inactive timestamps."
+   :class org
+   :parse (reorg-org--timestamp-parser 'inactive t))
 
-(reorg-create-data-type
- :name priority
- :class org
- :parse (org-entry-get (point) "PRIORITY")
- :display (pcase (alist-get 'priority data)
-	    ("A" "↗")
-	    ("B" "→")
-	    ("C" "↘")
-	    (_ " ")))
+  (reorg-create-data-type
+   :name priority
+   :class org
+   :parse (org-entry-get (point) "PRIORITY")
+   :display (pcase (alist-get 'priority data)
+	      ("A" "↗")
+	      ("B" "→")
+	      ("C" "↘")
+	      (_ " ")))
 
-(reorg-create-data-type
- :name body
- :class org
- :parse (reorg-org--get-body))
+  (reorg-create-data-type
+   :name body
+   :class org
+   :parse (reorg-org--get-body))
 
-(reorg-create-data-type
- :name deadline
- :class org
- :parse (reorg-org--timestamp-parser 'deadline))
+  (reorg-create-data-type
+   :name deadline
+   :class org
+   :parse (reorg-org--timestamp-parser 'deadline))
 
-(reorg-create-data-type
- :name scheduled
- :class org 
- :parse (reorg-org--timestamp-parser 'scheduled))
+  (reorg-create-data-type
+   :name scheduled
+   :class org 
+   :parse (reorg-org--timestamp-parser 'scheduled))
 
-(reorg-create-data-type
- :name closed
- :class org 
- :parse (reorg-org--timestamp-parser 'closed))
+  (reorg-create-data-type
+   :name closed
+   :class org 
+   :parse (reorg-org--timestamp-parser 'closed))
 
-(reorg-create-data-type
- :name headline
- :class org
- :parse (org-no-properties
-	 (org-get-heading t t t t)))
+  (reorg-create-data-type
+   :name headline
+   :class org
+   :parse (org-no-properties
+	   (org-get-heading t t t t)))
 
-(reorg-create-data-type
- :name todo
- :class org
- :parse (when-let ((todo (org-entry-get (point) "TODO")))
-	  (propertize todo 'face 'org-todo)))
+  (reorg-create-data-type
+   :name todo
+   :class org
+   :parse (when-let ((todo (org-entry-get (point) "TODO")))
+	    (propertize todo 'face 'org-todo)))
 
-;; (reorg-create-data-type
-;;  :name links
-;;  :class org
-;;  :parse (reorg-org--all-link-parser))
+  ;; (reorg-create-data-type
+  ;;  :name links
+  ;;  :class org
+  ;;  :parse (reorg-org--all-link-parser))
 
-;; (reorg-create-data-type
-;;  :name link
-;;  :class org
-;;  :parse (reorg-org--link-parser))
+  ;; (reorg-create-data-type
+  ;;  :name link
+  ;;  :class org
+  ;;  :parse (reorg-org--link-parser))
 
-;; (reorg-create-data-type
-;;  :name link-file-name
-;;  :class org
-;;  :parse (when-let* ((data (reorg-org--link-parser))
-;; 		    (path (alist-get 'link data))
-;; 		    (name (f-filename path)))
-;; 	  (car (s-split "::" name))))
+  ;; (reorg-create-data-type
+  ;;  :name link-file-name
+  ;;  :class org
+  ;;  :parse (when-let* ((data (reorg-org--link-parser))
+  ;; 		    (path (alist-get 'link data))
+  ;; 		    (name (f-filename path)))
+  ;; 	  (car (s-split "::" name))))
 
-;; (reorg-create-data-type
-;;  :name link-file-path
-;;  :class org
-;;  :parse (when-let* ((data (reorg-org--link-parser))
-;; 		    (data (alist-get 'link data))
-;; 		    (data (cadr (s-split (rx (one-or-more alnum)
-;; 					     ":/")
-;; 					 data)))
-;; 		    (data (car (s-split "::" data))))
-;; 	  (concat "/" data)))
+  ;; (reorg-create-data-type
+  ;;  :name link-file-path
+  ;;  :class org
+  ;;  :parse (when-let* ((data (reorg-org--link-parser))
+  ;; 		    (data (alist-get 'link data))
+  ;; 		    (data (cadr (s-split (rx (one-or-more alnum)
+  ;; 					     ":/")
+  ;; 					 data)))
+  ;; 		    (data (car (s-split "::" data))))
+  ;; 	  (concat "/" data)))
 
-(reorg-create-data-type
- :name timestamp-all-planning-and-active
- :class org 
- :doc "Get DEADLINE, SCHEDULED, and active timestamps."
- :parse (reorg-org--timestamp-parser 'all))
+  (reorg-create-data-type
+   :name timestamp-all-planning-and-active
+   :class org 
+   :doc "Get DEADLINE, SCHEDULED, and active timestamps."
+   :parse (reorg-org--timestamp-parser 'all))
 
-(reorg-create-data-type
- :name marker
- :class org
- :parse (point-marker))
+  (reorg-create-data-type
+   :name marker
+   :class org
+   :parse (point-marker))
 
-(reorg-create-data-type
- :name id
- :class org
- :parse (org-id-get-create))
+  (reorg-create-data-type
+   :name id
+   :class org
+   :parse (org-id-get-create))
 
-(reorg-create-data-type
- :name category-inherited
- :class org
- :parse (org-entry-get-with-inheritance "CATEGORY"))
+  (reorg-create-data-type
+   :name category-inherited
+   :class org
+   :parse (org-entry-get-with-inheritance "CATEGORY"))
 
-(reorg-create-data-type
- :name filename
- :class org
- :parse (f-filename (buffer-file-name)))
+  (reorg-create-data-type
+   :name filename
+   :class org
+   :parse (f-filename (buffer-file-name)))
 
-(reorg-create-data-type
- :name buffer-name
- :class org
- :parse (buffer-name))
+  (reorg-create-data-type
+   :name buffer-name
+   :class org
+   :parse (buffer-name))
 
-(reorg-create-data-type
- :name order
- :class org
- :parse (point))
+  (reorg-create-data-type
+   :name order
+   :class org
+   :parse (point))
 
-(reorg-create-data-type
- :name org-level
- :class org
- :parse (org-current-level))
+  (reorg-create-data-type
+   :name org-level
+   :class org
+   :parse (org-current-level))
 
-(reorg-create-data-type
- :name root
- :class org
- :parse (save-excursion (while (org-up-heading-safe))
-			(org-no-properties
-			 (org-get-heading t t t t))))
-(reorg-create-data-type
- :name root-ts-inactive
- :doc (concat "Go to each parent heading and return the first"
-	      " inactive timestamp found.")
- :class org
- :parse (save-excursion
-	  (cl-loop while (org-up-heading-safe)
-		   when (reorg-org--timestamp-parser 'inactive)
-		   return (reorg-org--timestamp-parser 'inactive))))
+  (reorg-create-data-type
+   :name root
+   :class org
+   :parse (save-excursion (while (org-up-heading-safe))
+			  (org-no-properties
+			   (org-get-heading t t t t))))
+  (reorg-create-data-type
+   :name root-ts-inactive
+   :doc (concat "Go to each parent heading and return the first"
+		" inactive timestamp found.")
+   :class org
+   :parse (save-excursion
+	    (cl-loop while (org-up-heading-safe)
+		     when (reorg-org--timestamp-parser 'inactive)
+		     return (reorg-org--timestamp-parser 'inactive))))
 
-;; this could just use .headline 
-(reorg-create-data-type
- :name at-names
- :class org
- :parse (let ((headline (org-get-heading t t t t)))
-	  (cl-loop
-	   with start = 0
-	   while
-	   (setq start
-		 (and
-		  (string-match "@\\([[:word:]]+\\)"
-				headline
-				start)
-		  (match-end 1)))
-	   collect (match-string-no-properties 1 headline))))
+  ;; this could just use .headline 
+  (reorg-create-data-type
+   :name at-names
+   :class org
+   :parse (let ((headline (org-get-heading t t t t)))
+	    (cl-loop
+	     with start = 0
+	     while
+	     (setq start
+		   (and
+		    (string-match "@\\([[:word:]]+\\)"
+				  headline
+				  start)
+		    (match-end 1)))
+	     collect (match-string-no-properties 1 headline))))
 
-;; (reorg-create-data-type
-;;  :name timestamp-type
-;;  :disable t
-;;  :class org
-;;  :parse (cond 
-;; 	 ((reorg-org--timestamp-parser 'deadline) "deadline")
-;; 	 ((reorg-org--timestamp-parser 'active) "active")
-;; 	 ((reorg-org--timestamp-parser 'active-range) "range")
-;; 	 ((reorg-org--timestamp-parser 'scheduled) "scheduled"))
-;;  :display (pcase (alist-get 'ts-type data)
-;; 	    ("deadline" "≫")
-;; 	    ("active" "⊡")
-;; 	    ("range" "➥")
-;; 	    ("scheduled" "⬎")
-;; 	    (_ " ")))
+  ;; (reorg-create-data-type
+  ;;  :name timestamp-type
+  ;;  :disable t
+  ;;  :class org
+  ;;  :parse (cond 
+  ;; 	 ((reorg-org--timestamp-parser 'deadline) "deadline")
+  ;; 	 ((reorg-org--timestamp-parser 'active) "active")
+  ;; 	 ((reorg-org--timestamp-parser 'active-range) "range")
+  ;; 	 ((reorg-org--timestamp-parser 'scheduled) "scheduled"))
+  ;;  :display (pcase (alist-get 'ts-type data)
+  ;; 	    ("deadline" "≫")
+  ;; 	    ("active" "⊡")
+  ;; 	    ("range" "➥")
+  ;; 	    ("scheduled" "⬎")
+  ;; 	    (_ " ")))
 
-(provide 'reorg-org)
+
+  (defconst reorg-org--clock-re
+    (rx (seq bol
+	     (zero-or-more (any "	 "))
+	     "CLOCK: ")
+	(seq (group-n 16
+		      "["
+		      (group-n 1 (= 4 digit)) ;; start year
+		      "-"
+		      (group-n 2 (= 2 digit)) ;; start month
+		      "-"
+		      (group-n 3 (= 2 digit)) ;; start day
+		      (one-or-more space)
+		      (group-n 4 (= 3 alpha)) ;; start DOW
+		      (one-or-more space)
+		      (group-n 5 (= 2 digit)) ;; start hour
+		      ":"
+		      (group-n 6 (= 2 digit)) ;; start minute
+		      "]")) ;; 16 -> entire starting time
+	"--"
+	(seq (group-n 17 "["
+		      (group-n 7 (= 4 digit)) ;; end year
+		      "-"
+		      (group-n 8 (= 2 digit)) ;; end month
+		      "-"
+		      (group-n 9 (= 2 digit)) ;; end day
+		      (one-or-more space)
+		      (group-n 10 (= 3 alpha)) ;; end DOW
+		      (one-or-more space)
+		      (group-n 11 (= 2 digit)) ;; end hour
+		      ":"
+		      (group-n 12 (= 2 digit)) ;; end minute
+		      "]"))
+	(seq (one-or-more space)
+	     "=>"
+	     (one-or-more space))
+	(seq (group-n 15 ;; total time (hh:mm format)
+		      (group-n 13 (one-or-more digit)) ;; total hours
+		      ":"
+		      (group-n 14 (one-or-more digit))))) ;; total minutes
+    "Clock line RE.  The groups are explained in the comments.")
+
+  (defun reorg-org--parse-clock-lines ()
+    "parse clock lines for heading at point return:
+(NUM-MINUTES
+   ((:start START-TS
+     :end END-TS
+     :total-hours HOURS
+     :total-minutes MINUTES)))"
+    (save-excursion 
+      (cl-loop while (re-search-forward reorg-org--clock-re nil (org-entry-end-position))
+	       with total-time = 0
+	       collect (list :start (match-string-no-properties 16)
+			     :end (match-string-no-properties 17)
+			     :total-hours (match-string-no-properties 13)
+			     :total-minutes (match-string-no-properties 14))
+	       into results 
+	       and do (cl-incf total-time (+ (* 60
+						(string-to-number
+						 (match-string-no-properties 13)))
+					     (string-to-number
+					      (match-string-no-properties 14))))
+	       finally return (append (list (format "%d:%02d"
+						    (/ total-time 60)
+						    (% total-time 60)))
+				      results))))
+
+  (reorg-create-data-type
+   :name clock-data
+   :class org
+   :doc "list of clock data in form ((START END TOTAL))"
+   :parse (save-excursion (when (re-search-forward org-clock-drawer-re
+
+						   
+
+						   (provide 'reorg-org)

@@ -4,7 +4,7 @@
 
 (defun jrf/reorg-client ()
   (interactive)
-  (let ((now (ts-format "%Y-%m-%d" (ts-now))))
+  (let ((now (format-time-string "%Y-%m-%d")))
     (reorg-open-sidebar
      (setq reorg-client-template
 	   `( :sources ((org . ,reorg-test-org-file-list))
@@ -107,9 +107,20 @@
 				     "%a, %b %d, %Y at %-l:%M%p")))
 		 :children (( :group (when (equal .priority "A") "High"))
 			    ( :group (when (equal .priority "B") "Medium"))
-			    ( :group (when (equal .priority "C") "Low"))))
+			    ( :group (when (equal .priority "C") "Low"))))))))))
 
-	       ))))))
+(defun xxx ()
+  (interactive)
+  (let ((now (format-time-string "%Y-%m-%d")))
+    (reorg-open-sidebar `( :sources ((org . ,reorg-test-org-file-list))
+			   :group (when (and .@ts-all
+					     (string= (reorg-org--format-time-string
+						       .ts-all "%Y-%m-%d")
+						      ,now))
+				    "Daily summary")
+			   :format-results (.stars " " .ts-all " " .headline)))))
+
+						
 
 (defun jrf/reorg-calendar-journal-log ()
   ""
