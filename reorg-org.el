@@ -1080,9 +1080,12 @@ if there is not one."
 						       'active
 						       timestamps)))
 		      (`(nil nil)
-		       (push  (substring (car x) 1 -1) (alist-get
-							'inactive
-							timestamps)))
+		       (if (clock-line-p)
+			   (push (cons 'clock-start (substring (car x) 1 -1))
+				 (alist-get 'clock timestamps))
+			 (push  (substring (car x) 1 -1) (alist-get
+							  'inactive
+							  timestamps))))
 		      (`(t t)
 		       (push (list (cons 'active-start (substring
 							(car x) 1 -1))
@@ -1181,23 +1184,30 @@ if there is not one."
 				      (and (not clock)
 					   (clock-line-p)))
 			   
-			   collect (process-time time) into results
+			   do (process-time time)
 			   
-			   finally return results)))
+			   )))
 	(pcase type
 	  (`deadline (get-deadline))
 	  (`scheduled (get-scheduled))
 	  (`closed (get-closed))
-	  (`planning (list (get-deadline)
-			   (get-scheduled)
-			   (get-closed)))
+	  (`planning (get-deadline)
+		     (get-scheduled)
+		     (get-closed))
 	  (`active (get-times t))
 	  (`inactive (get-times nil))
 	  (`clock (setq planning t)
 		  (get-times nil))
-	  (`all (append (get-times 'all)
-			(reorg-org--ts-parser 'planning))))
+	  (`all (setq clock t)
+		(get-times 'all)
+		(get-deadline) 
+		(get-scheduled)
+		(get-closed)))
 	timestamps))))
+
+
+
+
 
 
 (provide 'reorg-org)
