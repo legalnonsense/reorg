@@ -1076,33 +1076,33 @@ if there is not one."
 		  (let ((x (s-split "--" time-string)))
 		    (pcase (list (activep (car x)) (rangep x))
 		      (`(t nil)
-		       (push (substring (car x) 1 -1) (alist-get
-						       'active
-						       timestamps)))
+		       (push (substring (car x) 1 -1)
+			     (alist-get
+			      'active
+			      timestamps)))
 		      (`(nil nil)
 		       (if (clock-line-p)
-			   (push (cons 'clock-start (substring (car x) 1 -1))
+			   (push (cons (substring (car x) 1 -1) nil)
 				 (alist-get 'clock timestamps))
 			 (push  (substring (car x) 1 -1) (alist-get
 							  'inactive
 							  timestamps))))
 		      (`(t t)
-		       (push (list (cons 'active-start (substring
-							(car x) 1 -1))
-				   (cons 'active-end (substring
-						      (cadr x) 1 -1)))
+		       (push (cons
+			      (substring
+			       (car x) 1 -1)
+			      (substring
+			       (cadr x) 1 -1))
 			     (alist-get 'active-range timestamps)))
 		      (`(nil t)
 		       (if (clock-line-p)
 			   (push 
-			    (list 
-			     (cons 'clock-start (substring (car x) 1 -1))
-			     (cons 'clock-end (substring (cadr x) 1 -1)))
+			    (cons (substring (car x) 1 -1)
+				  (substring (cadr x) 1 -1))
 			    (alist-get 'clock timestamps))
 			 (push 
-			  (list 
-			   (cons 'inactive-start (substring (car x) 1 -1))
-			   (cons 'inactive-end (substring (cadr x) 1 -1)))
+			  (cons (substring (car x) 1 -1)
+				(substring (cadr x) 1 -1))
 			  (alist-get 'inactive-range timestamps)))))))
 		 (get-deadline nil
 			       (push 
@@ -1135,14 +1135,14 @@ if there is not one."
 				       ">")
 				      (`nil
 				       "\\]")
-				      ('all
+				      (`all
 				       "[]>]"))
 				  (pcase active
 				    (`t
 				     "<")
 				    (`nil
 				     "\\[")
-				    ('all
+				    (`all
 				     "[[<]"))))
 		 (get-times
 		  (active)
@@ -1183,10 +1183,9 @@ if there is not one."
 					   (rangep time))
 				      (and (not clock)
 					   (clock-line-p)))
-			   
-			   do (process-time time)
-			   
-			   )))
+			   ;; everything is by side effect
+			   ;; on `timestamps'
+			   do (process-time time))))
 	(pcase type
 	  (`deadline (get-deadline))
 	  (`scheduled (get-scheduled))
@@ -1196,13 +1195,15 @@ if there is not one."
 		     (get-closed))
 	  (`active (get-times t))
 	  (`inactive (get-times nil))
-	  (`clock (setq planning t)
+	  (`clock (setq ranges t)
+		  (setq clock t)
 		  (get-times nil))
-	  (`all (setq clock t)
-		(get-times 'all)
-		(get-deadline) 
-		(get-scheduled)
-		(get-closed)))
+	  (`all 
+	   (get-times 'all)
+	   (when planning 
+	     (get-deadline) 
+	     (get-scheduled)
+	     (get-closed))))
 	timestamps))))
 
 
