@@ -1083,10 +1083,7 @@ if there is not one."
 				    (> (length (s-split "--" time)) 1)
 				  (> (length time) 1)))
 		 (clock-line-p nil (save-match-data (org-at-clock-log-p)))
-		 (planning-line-p nil (save-match-data
-					(eq
-					 (car (org-element-at-point))
-					 'planning)))
+		 (planning-line-p nil (save-match-data (org-at-planning-p)))
 		 (process-time
 		  (time-string &optional type)
 		  (let ((x (s-split "--" time-string)))
@@ -1145,22 +1142,6 @@ if there is not one."
 					  "CLOSED"))
 				(substring cl 1 -1))
 			      (alist-get 'closed timestamps)))
-		 ;; (make-brackets (active &optional end)
-		 ;; 		(if end
-		 ;; 		    (pcase active
-		 ;; 		      (`t
-		 ;; 		       ">")
-		 ;; 		      (`nil
-		 ;; 		       "\\]")
-		 ;; 		      (`all
-		 ;; 		       "[]>]"))
-		 ;; 		  (pcase active
-		 ;; 		    (`t
-		 ;; 		     "<")
-		 ;; 		    (`nil
-		 ;; 		     "\\[")
-		 ;; 		    (`all
-		 ;; 		     "[[<]"))))
 		 (get-times
 		  (type active)
 		  (goto-char start)
@@ -1203,6 +1184,10 @@ if there is not one."
 						       inactive-ranges))
 					(or (not (rangep time))
 					    (clock-line-p)))
+				   (and (member type '(active active-ranges))
+					(not (activep time)))
+				   (and (member type '(inactive inactive-ranges))
+					(activep time))
 				   (and (eq type 'clock)
 					(not (clock-line-p))))
 
@@ -1210,7 +1195,7 @@ if there is not one."
 			   ;; on `timestamps'
 			   do (process-time time type))))
 	(pcase type
-	  (`all ;; (get-times 'clock nil)
+	  (`all
 	   (get-scheduled)
 	   (get-deadline)
 	   (get-closed)
