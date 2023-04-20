@@ -1052,7 +1052,7 @@ if there is not one."
 						  (% total-time 60)))
 				    results))))
 
-(defun reorg-org--ts-parser (subtree &rest types)
+(defun reorg-org--ts-parser (type &optional subtree root)
   "TYPES can be:
   active
   active-range
@@ -1066,13 +1066,19 @@ if there is not one."
   scheduled
   closed
   all"
-
-  (let (timestamps ranges planning)
+  (let (timestamps
+	(limit (if subtree
+		   (save-excursion 
+		     (org-end-of-subtree))
+		 (org-entry-end-position)))
+	(start (if root
+		   (progn 
+		     (while (org-up-heading-safe))
+		     (point))
+		 (org-entry-beginning-position))))
+    
     (save-excursion 
-      (cl-flet* ((get-bound nil (if subtree
-				    (org-end-of-subtree)
-				  (org-entry-end-position)))
-		 (activep (time-string) (equal "<" (substring time-string 0 1)))
+      (cl-flet* ((activep (time-string) (equal "<" (substring time-string 0 1)))
 		 (rangep (time) (if (stringp time)
 				    (> (length (s-split "--" time)) 1)
 				  (> (length time) 1)))
@@ -1139,53 +1145,50 @@ if there is not one."
 					  "CLOSED"))
 				(substring cl 1 -1))
 			      (alist-get 'closed timestamps)))
-		 (make-brackets (active &optional end)
-				(if end
-				    (pcase active
-				      (`t
-				       ">")
-				      (`nil
-				       "\\]")
-				      (`all
-				       "[]>]"))
-				  (pcase active
-				    (`t
-				     "<")
-				    (`nil
-				     "\\[")
-				    (`all
-				     "[[<]"))))
+		 ;; (make-brackets (active &optional end)
+		 ;; 		(if end
+		 ;; 		    (pcase active
+		 ;; 		      (`t
+		 ;; 		       ">")
+		 ;; 		      (`nil
+		 ;; 		       "\\]")
+		 ;; 		      (`all
+		 ;; 		       "[]>]"))
+		 ;; 		  (pcase active
+		 ;; 		    (`t
+		 ;; 		     "<")
+		 ;; 		    (`nil
+		 ;; 		     "\\[")
+		 ;; 		    (`all
+		 ;; 		     "[[<]"))))
 		 (get-times
 		  (type active)
-		  (org-back-to-heading)
+		  (goto-char start)
 		  (cl-loop with time = nil
 			   
 			   while (re-search-forward
 				  (rx (group-n 1
-					       (regexp
-						(make-brackets active))
+					       (or "<" "[")
 					       (= 4 digit)
 					       "-"
 					       (= 2 digit)
 					       "-"
 					       (= 2 digit)
 					       (opt " " (*\? nonl))
-					       (regexp
-						(make-brackets active t)))
+					       (or ">" "]"))
 
 				      (optional (or "-" "--"))
 				      (optional
-				       (group-n 2 (regexp
-						   (make-brackets active))
+				       (group-n 2
+						(or "<" "[")
 						(= 4 digit)
 						"-"
 						(= 2 digit)
 						"-"
 						(= 2 digit)
 						(opt " " (*\? nonl))
-						(regexp
-						 (make-brackets active t)))))
-				  (get-bound)
+						(or ">" "]"))))
+				  limit
 				  t)
 
 			   do (setq time (match-string-no-properties 0))
@@ -1206,28 +1209,31 @@ if there is not one."
 			   ;; everything is by side effect
 			   ;; on `timestamps'
 			   do (process-time time type))))
-	(cl-loop for type in types 
-		 do (pcase type
-		      (`all ;; (get-times 'clock nil)
-		       (get-scheduled)
-		       (get-deadline)
-		       (get-closed)
-		       (get-times 'active-ranges t)
-		       (get-times 'inactive nil)
-		       (get-times 'active t)
-		       (get-times 'inactive-ranges nil)
-		       (get-times 'clock nil))
-		      (`deadline (get-deadline))
-		      (`scheduled (get-scheduled))
-		      (`closed (get-closed))
-		      (`planning (get-deadline)
-				 (get-scheduled)
-				 (get-closed))
-		      (`active (get-times 'active t))		     
-		      (`inactive (get-times 'inactive nil))
-		      (`active-ranges (get-times 'active-ranges t))
-		      (`inactive-ranges (get-times 'inactive-ranges nil))
-		      (`clock (get-times 'clock nil))))
+	(pcase type
+	  (`all ;; (get-times 'clock nil)
+	   (get-scheduled)
+	   (get-deadline)
+	   (get-closed)
+	   (get-times 'active-ranges t)
+	   (get-times 'inactive nil)
+	   (get-times 'active t)
+	   (get-times 'inactive-ranges nil)
+	   (get-times 'clock nil))
+	  (`deadline (get-deadline))
+	  (`scheduled (get-scheduled))
+	  (`closed (get-closed))
+	  (`planning (get-deadline)
+		     (get-scheduled)
+		     (get-closed))
+	  (`active-all (get-times 'active t)
+		       (get-times active-ranges t))
+	  (`inactive-all (get-times 'inactive nil)
+			 (get-times 'inactive-ranges nil))
+	  (`active (get-times 'active t))		     
+	  (`inactive (get-times 'inactive nil))
+	  (`active-ranges (get-times 'active-ranges t))
+	  (`inactive-ranges (get-times 'inactive-ranges nil))
+	  (`clock (get-times 'clock nil)))
 	(cl-loop for (type . times) in timestamps
 		 collect (cons type (reverse times)))))))
 
