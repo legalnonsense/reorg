@@ -1052,12 +1052,22 @@ if there is not one."
 						  (% total-time 60)))
 				    results))))
 
-(defun reorg-org--ts-parser (type &optional
-				  ranges
-				  planning
-				  clock
-				  subtree)
-  (let (timestamps)
+(defun reorg-org--ts-parser (subtree &rest types)
+  "TYPES can be:
+  active
+  active-range
+  active-all
+  inactive
+  inactive-range
+  inactive-all
+  clock
+  planning
+  deadline
+  scheduled
+  closed
+  all"
+
+  (let (timestamps ranges planning)
     (save-excursion 
       (cl-flet* ((get-bound nil (if subtree
 				    (org-end-of-subtree)
@@ -1072,7 +1082,7 @@ if there is not one."
 					 (car (org-element-at-point))
 					 'planning)))
 		 (process-time
-		  (time-string)
+		  (time-string &optional type)
 		  (let ((x (s-split "--" time-string)))
 		    (pcase (list (activep (car x)) (rangep x))
 		      (`(t nil)
@@ -1095,7 +1105,8 @@ if there is not one."
 			       (cadr x) 1 -1))
 			     (alist-get 'active-range timestamps)))
 		      (`(nil t)
-		       (if (clock-line-p)
+		       (if (and (clock-line-p)
+				(eq type 'clock))
 			   (push 
 			    (cons (substring (car x) 1 -1)
 				  (substring (cadr x) 1 -1))
@@ -1145,7 +1156,7 @@ if there is not one."
 				    (`all
 				     "[[<]"))))
 		 (get-times
-		  (active)
+		  (tp active)
 		  (cl-loop with time = nil
 			   
 			   while (re-search-forward
@@ -1178,32 +1189,48 @@ if there is not one."
 
 			   do (setq time (match-string-no-properties 0))
 			   
-			   unless (or (planning-line-p)
-				      (and (not ranges)
+			   unless (or (and (not (member tp '(deadline
+							     scheduled
+							     closed
+							     planning)))
+					   (planning-line-p))
+				      (and (not (member tp '(active-ranges
+							     inactive-ranges
+							     clock)))
 					   (rangep time))
-				      (and (not clock)
-					   (clock-line-p)))
+				      (and (member tp '(active-ranges
+							inactive-ranges))
+					   (or (not (rangep time))
+					       (clock-line-p)))
+				      (and (eq tp 'clock)
+					   (not (clock-line-p))))
+
 			   ;; everything is by side effect
 			   ;; on `timestamps'
-			   do (process-time time))))
-	(pcase type
-	  (`deadline (get-deadline))
-	  (`scheduled (get-scheduled))
-	  (`closed (get-closed))
-	  (`planning (get-deadline)
-		     (get-scheduled)
-		     (get-closed))
-	  (`active (get-times t))
-	  (`inactive (get-times nil))
-	  (`clock (setq ranges t)
-		  (setq clock t)
-		  (get-times nil))
-	  (`all 
-	   (get-times 'all)
-	   (when planning 
-	     (get-deadline) 
-	     (get-scheduled)
-	     (get-closed))))
+			   do (process-time time tp))))
+	(cl-loop for type in types 
+		 do (pcase type
+		      (`all ;; (get-times 'clock nil)
+		       (get-scheduled)
+		       (get-deadline)
+		       (get-closed)
+		       (get-times 'active-ranges t)
+		       (get-times 'inactive nil)
+		       (get-times 'active t)
+		       (get-times 'inactive-ranges nil))
+		      (`active-all (get-times 'active t)
+				   (get-times 'active-ranges t))
+		      (`deadline (get-deadline))
+		      (`scheduled (get-scheduled))
+		      (`closed (get-closed))
+		      (`planning (get-deadline)
+				 (get-scheduled)
+				 (get-closed))
+		      (`active (get-times 'active t))		     
+		      (`inactive (get-times 'inactive nil))
+		      (`active-ranges (get-times 'active-ranges t))
+		      (`inactive-ranges (get-times 'inactive-ranges nil))
+		      (`clock (get-times 'clock nil))))
 	timestamps))))
 
 
