@@ -1156,7 +1156,8 @@ if there is not one."
 				    (`all
 				     "[[<]"))))
 		 (get-times
-		  (tp active)
+		  (type active)
+		  (org-back-to-heading)
 		  (cl-loop with time = nil
 			   
 			   while (re-search-forward
@@ -1189,25 +1190,22 @@ if there is not one."
 
 			   do (setq time (match-string-no-properties 0))
 			   
-			   unless (or (and (not (member tp '(deadline
-							     scheduled
-							     closed
-							     planning)))
-					   (planning-line-p))
-				      (and (not (member tp '(active-ranges
-							     inactive-ranges
-							     clock)))
-					   (rangep time))
-				      (and (member tp '(active-ranges
-							inactive-ranges))
-					   (or (not (rangep time))
-					       (clock-line-p)))
-				      (and (eq tp 'clock)
-					   (not (clock-line-p))))
+			   unless (or
+				   (planning-line-p)
+				   (and (not (member type '(active-ranges
+							    inactive-ranges
+							    clock)))
+					(rangep time))
+				   (and (member type '(active-ranges
+						       inactive-ranges))
+					(or (not (rangep time))
+					    (clock-line-p)))
+				   (and (eq type 'clock)
+					(not (clock-line-p))))
 
 			   ;; everything is by side effect
 			   ;; on `timestamps'
-			   do (process-time time tp))))
+			   do (process-time time type))))
 	(cl-loop for type in types 
 		 do (pcase type
 		      (`all ;; (get-times 'clock nil)
@@ -1217,9 +1215,8 @@ if there is not one."
 		       (get-times 'active-ranges t)
 		       (get-times 'inactive nil)
 		       (get-times 'active t)
-		       (get-times 'inactive-ranges nil))
-		      (`active-all (get-times 'active t)
-				   (get-times 'active-ranges t))
+		       (get-times 'inactive-ranges nil)
+		       (get-times 'clock nil))
 		      (`deadline (get-deadline))
 		      (`scheduled (get-scheduled))
 		      (`closed (get-closed))
@@ -1231,7 +1228,8 @@ if there is not one."
 		      (`active-ranges (get-times 'active-ranges t))
 		      (`inactive-ranges (get-times 'inactive-ranges nil))
 		      (`clock (get-times 'clock nil))))
-	timestamps))))
+	(cl-loop for (type . times) in timestamps
+		 collect (cons type (reverse times)))))))
 
 
 
