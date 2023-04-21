@@ -1052,7 +1052,7 @@ if there is not one."
 						  (% total-time 60)))
 				    results))))
 
-(defun reorg-org--ts-parser (type &optional subtree root)
+(defun reorg-org--ts-parser (type &optional upper-limit lower-limit)
   "TYPES can be:
   active
   active-range
@@ -1066,16 +1066,18 @@ if there is not one."
   scheduled
   closed
   all"
-  (let (timestamps
-	(limit (if subtree
-		   (save-excursion 
-		     (org-end-of-subtree))
-		 (org-entry-end-position)))
-	(start (if root
-		   (progn 
-		     (while (org-up-heading-safe))
-		     (point))
-		 (org-entry-beginning-position))))
+  (let (timestamps)
+    (setq upper-limit (pcase upper-limit
+			((pred functionp) (funcall upper-limit))
+			(`root (save-excursion (while (org-up-heading-safe))
+					       (point)))
+			(`nil (org-entry-beginning-position))
+			(`file (point-min)))
+	  lower-limit (pcase lower-limit
+			((pred functionp (funcall lower-limit)))
+			(`subtree  (save-excursion (org-end-of-subtree)))
+			(`nil (org-entry-end-position))
+			(`file (point-max))))
     
     (save-excursion 
       (cl-flet* ((activep (time-string) (equal "<" (substring time-string 0 1)))
