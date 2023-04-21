@@ -1087,7 +1087,7 @@ if there is not one."
 		 (clock-line-p nil (save-match-data (org-at-clock-log-p)))
 		 (planning-line-p nil (save-match-data (org-at-planning-p)))
 		 (process-time
-		  (time-string &optional type)
+		  (time-string)
 		  (let ((x (s-split "--" time-string)))
 		    (pcase (list (activep (car x)) (rangep x))
 		      (`(t nil)
@@ -1145,8 +1145,8 @@ if there is not one."
 				(substring cl 1 -1))
 			      (alist-get 'closed timestamps)))
 		 (get-times
-		  (type active)
-		  (goto-char start)
+		  nil
+		  (goto-char upper-limit)
 		  (cl-loop with time = nil
 			   
 			   while (re-search-forward
@@ -1171,7 +1171,7 @@ if there is not one."
 						(= 2 digit)
 						(opt " " (*\? nonl))
 						(or ">" "]"))))
-				  limit
+				  lower-limit
 				  t)
 
 			   do (setq time (match-string-no-properties 0))
@@ -1195,34 +1195,23 @@ if there is not one."
 
 			   ;; everything is by side effect
 			   ;; on `timestamps'
-			   do (process-time time type))))
+			   do (process-time time))))
 	(pcase type
-	  (`all
-	   (get-scheduled)
-	   (get-deadline)
-	   (get-closed)
-	   (get-times 'active-ranges t)
-	   (get-times 'inactive nil)
-	   (get-times 'active t)
-	   (get-times 'inactive-ranges nil)
-	   (get-times 'clock nil))
 	  (`deadline (get-deadline))
 	  (`scheduled (get-scheduled))
 	  (`closed (get-closed))
 	  (`planning (get-deadline)
 		     (get-scheduled)
 		     (get-closed))
-	  (`active-all (get-times 'active t)
-		       (get-times active-ranges t))
-	  (`inactive-all (get-times 'inactive nil)
-			 (get-times 'inactive-ranges nil))
-	  (`active (get-times 'active t))		     
-	  (`inactive (get-times 'inactive nil))
-	  (`active-ranges (get-times 'active-ranges t))
-	  (`inactive-ranges (get-times 'inactive-ranges nil))
-	  (`clock (get-times 'clock nil)))
-	(cl-loop for (type . times) in timestamps
-		 collect (cons type (reverse times)))))))
+	  (`active-all (get-times))
+	  (`inactive-all (get-times))
+	  (`active (get-times))
+	  (`inactive (get-times))
+	  (`active-ranges (get-times))
+	  (`inactive-ranges (get-times))
+	  (`clock (get-times))))
+      (cl-loop for (type . times) in timestamps
+	       collect (cons type (reverse times)))))))
 
 
 
