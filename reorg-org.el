@@ -1111,7 +1111,7 @@ if there is not one."
 			     (alist-get 'active-range timestamps)))
 		      (`(nil t)
 		       (if (and (clock-line-p)
-				(eq type 'clock))
+				(member type '(clock all)))
 			   (push 
 			    (cons (substring (car x) 1 -1)
 				  (substring (cadr x) 1 -1))
@@ -1180,7 +1180,8 @@ if there is not one."
 				   (planning-line-p)
 				   (and (not (member type '(active-ranges
 							    inactive-ranges
-							    clock)))
+							    clock
+							    all)))
 					(rangep time))
 				   (and (member type '(active-ranges
 						       inactive-ranges))
@@ -1203,15 +1204,14 @@ if there is not one."
 	  (`planning (get-deadline)
 		     (get-scheduled)
 		     (get-closed))
-	  (`active-all (get-times))
-	  (`inactive-all (get-times))
-	  (`active (get-times))
-	  (`inactive (get-times))
-	  (`active-ranges (get-times))
-	  (`inactive-ranges (get-times))
-	  (`clock (get-times))))
-      (cl-loop for (type . times) in timestamps
-	       collect (cons type (reverse times)))))))
+	  (`all (get-deadline)
+		(get-scheduled)
+		(get-closed)
+		(get-times))
+	  (_ (get-times)))
+
+	(cl-loop for (type . times) in timestamps
+		 collect (cons type (reverse times)))))))
 
 
 
