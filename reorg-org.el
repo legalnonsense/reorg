@@ -943,6 +943,13 @@ if there is not one."
  :parse (save-excursion (while (org-up-heading-safe))
 			(org-no-properties
 			 (org-get-heading t t t t))))
+
+(reorg-create-data-type
+ :name ts
+ :class org
+ :parse (reorg-org--ts-parser 'all))
+
+
 (reorg-create-data-type
  :name root-ts-inactive
  :doc (concat "Go to each parent heading and return the first"
@@ -1211,10 +1218,20 @@ if there is not one."
 	  (_ (get-times)))
 
 	(cl-loop for (type . times) in timestamps
+		 if (and (= (length times) 1)
+			 (not (consp times)))
+		 collect (cons type (car times))
+		 else
 		 collect (cons type (reverse times)))))))
 
 
 
+(defun reorg-org--get-days-between (time1 time2)
+  (cl-loop with start = (ts-parse-org time1)
+	   with end = (ts-parse-org time2)
+	   while (ts< start end)
+	   do (setq start (ts-inc 'day 1 start))
+	   and collect (ts-format "%Y-%m-%d" start)))
 
 
 
