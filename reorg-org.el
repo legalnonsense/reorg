@@ -960,6 +960,13 @@ if there is not one."
 	    (_ " ")))
 
 (reorg-create-data-type
+ :name ts-single
+ :class org
+ :parse (or .ts-deadline
+	    .ts-active-single
+	    .ts-scheduled))
+
+(reorg-create-data-type
  :name ts-scheduled
  :class org
  :parse (car (alist-get 'scheduled .ts-all)))

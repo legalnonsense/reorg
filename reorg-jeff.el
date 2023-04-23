@@ -109,18 +109,6 @@
 			    ( :group (when (equal .priority "B") "Medium"))
 			    ( :group (when (equal .priority "C") "Low"))))))))))
 
-(defun xxx ()
-  (interactive)
-  (let ((now (format-time-string "%Y-%m-%d")))
-    (reorg-open-sidebar `( :sources ((org . ,reorg-test-org-file-list))
-			   :group (when (and .@ts-all
-					     (string= (reorg-org--format-time-string
-						       .ts-all "%Y-%m-%d")
-						      ,now))
-				    "Daily summary")
-			   :format-results (.stars " " .ts-all " " .headline)))))
-
-						
 
 (defun jrf/reorg-calendar-journal-log ()
   ""
