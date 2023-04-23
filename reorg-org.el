@@ -512,7 +512,6 @@ the opening and closing dates for any time ranges."
 					    (t it))))
        finally return results))))
 
-
 (defun reorg-org--get-body ()
   "get headings body text"  
   ;; FIXME this adds way too much time to parsing the
@@ -747,19 +746,19 @@ if there is not one."
  :class org
  :parse (org-get-tags))
 
-(reorg-create-data-type
- :name ts-all
- :doc "All the timestamps, planning, active, and inactive."
- :parse (reorg-org--timestamp-parser 'all t)
- :class org)
+;; (reorg-create-data-type
+;;  :name ts-all
+;;  :doc "All the timestamps, planning, active, and inactive."
+;;  :parse (reorg-org--timestamp-parser 'all t)
+;;  :class org)
 
-(reorg-create-data-type
- :name ts-single
- :doc "Get the most important timestamp."
- :class org
- :parse (or (reorg-org--ts-parser 'deadline)
-	    (reorg-org--ts-parser 'active)
-	    (reorg-org--ts-parser 'scheduled)))
+;; (reorg-create-data-type
+;;  :name ts-single
+;;  :doc "Get the most important timestamp."
+;;  :class org
+;;  :parse (or (reorg-org--ts-parser 'deadline)
+;; 	    (reorg-org--ts-parser 'active)
+;; 	    (reorg-org--ts-parser 'scheduled)))
 
 ;; (reorg-create-data-type
 ;;  :name ts-pretty
@@ -797,33 +796,33 @@ if there is not one."
 ;; 	   (org-no-properties (reorg-org--timestamp-parser nil t)))
 ;; 	 (org-entry-get (point) "SCHEDULED")))
 
-(reorg-create-data-type
- :name timestamp-active
- :class org
- :parse (reorg-org--timestamp-parser 'active))
+;; (reorg-create-data-type
+;;  :name timestamp-active
+;;  :class org
+;;  :parse (reorg-org--timestamp-parser 'active))
 
-(reorg-create-data-type
- :name timestamp-active-range
- :class org
- :parse (reorg-org--timestamp-parser 'active-range))
+;; (reorg-create-data-type
+;;  :name timestamp-active-range
+;;  :class org
+;;  :parse (reorg-org--timestamp-parser 'active-range))
 
-(reorg-create-data-type
- :name timestamp-active-all
- :doc "All active timestamps (but no planning)."
- :class org
- :parse (reorg-org--timestamp-parser 'active t))
+;; (reorg-create-data-type
+;;  :name timestamp-active-all
+;;  :doc "All active timestamps (but no planning)."
+;;  :class org
+;;  :parse (reorg-org--timestamp-parser 'active t))
 
-(reorg-create-data-type
- :name timestamp-inactive
- :doc "First inactive timestamp."
- :class org
- :parse (reorg-org--timestamp-parser 'inactive))
+;; (reorg-create-data-type
+;;  :name timestamp-inactive
+;;  :doc "First inactive timestamp."
+;;  :class org
+;;  :parse (reorg-org--timestamp-parser 'inactive))
 
-(reorg-create-data-type
- :name timestamp-inactive-all
- :doc "All inactive timestamps."
- :class org
- :parse (reorg-org--timestamp-parser 'inactive t))
+;; (reorg-create-data-type
+;;  :name timestamp-inactive-all
+;;  :doc "All inactive timestamps."
+;;  :class org
+;;  :parse (reorg-org--timestamp-parser 'inactive t))
 
 (reorg-create-data-type
  :name priority
@@ -840,20 +839,20 @@ if there is not one."
  :class org
  :parse (reorg-org--get-body))
 
-(reorg-create-data-type
- :name deadline
- :class org
- :parse (reorg-org--timestamp-parser 'deadline))
+;; (reorg-create-data-type
+;;  :name deadline
+;;  :class org
+;;  :parse (reorg-org--timestamp-parser 'deadline))
 
-(reorg-create-data-type
- :name scheduled
- :class org 
- :parse (reorg-org--timestamp-parser 'scheduled))
+;; (reorg-create-data-type
+;;  :name scheduled
+;;  :class org 
+;;  :parse (reorg-org--timestamp-parser 'scheduled))
 
-(reorg-create-data-type
- :name closed
- :class org 
- :parse (reorg-org--timestamp-parser 'closed))
+;; (reorg-create-data-type
+;;  :name closed
+;;  :class org 
+;;  :parse (reorg-org--timestamp-parser 'closed))
 
 (reorg-create-data-type
  :name headline
@@ -896,11 +895,11 @@ if there is not one."
 ;; 		    (data (car (s-split "::" data))))
 ;; 	  (concat "/" data)))
 
-(reorg-create-data-type
- :name timestamp-all-planning-and-active
- :class org 
- :doc "Get DEADLINE, SCHEDULED, and active timestamps."
- :parse (reorg-org--timestamp-parser 'all))
+;; (reorg-create-data-type
+;;  :name timestamp-all-planning-and-active
+;;  :class org 
+;;  :doc "Get DEADLINE, SCHEDULED, and active timestamps."
+;;  :parse (reorg-org--timestamp-parser 'all))
 
 (reorg-create-data-type
  :name marker
@@ -944,21 +943,36 @@ if there is not one."
 			(org-no-properties
 			 (org-get-heading t t t t))))
 
+;; timestamps 
+
 (reorg-create-data-type
- :name ts
+ :name ts-scheduled
+ :class org
+ :parse (alist-get 'scheduled .ts-all))
+
+(reorg-create-data-type
+ :name ts-all
  :class org
  :parse (reorg-org--ts-parser 'all))
 
+;; TODO change the `reorg-create-data-type' to reverse the queue
 
-(reorg-create-data-type
- :name root-ts-inactive
- :doc (concat "Go to each parent heading and return the first"
-	      " inactive timestamp found.")
- :class org
- :parse (save-excursion
-	  (cl-loop while (org-up-heading-safe)
-		   when (reorg-org--timestamp-parser 'inactive)
-		   return (reorg-org--timestamp-parser 'inactive))))
+
+
+
+
+
+
+
+;; (reorg-create-data-type
+;;  :name root-ts-inactive
+;;  :doc (concat "Go to each parent heading and return the first"
+;; 	      " inactive timestamp found.")
+;;  :class org
+;;  :parse (save-excursion
+;; 	  (cl-loop while (org-up-heading-safe)
+;; 		   when (reorg-org--timestamp-parser 'inactive)
+;; 		   return (reorg-org--timestamp-parser 'inactive))))
 
 ;; this could just use .headline 
 (reorg-create-data-type
@@ -1226,12 +1240,16 @@ if there is not one."
 
 
 
-(defun reorg-org--get-days-between (time1 time2)
-  (cl-loop with start = (ts-parse-org time1)
+(defun reorg-org--get-days-between (time1 time2 &optional format)
+  "Get list of dates between (inclusive) org timestamp strings TIME1
+and TIME2 and output a list of them as a string using FORMAT
+(as accepted by `format-time-string') or using %Y-%m-%d
+ if FORMAT is nil."
+  (cl-loop with start = (ts-dec 'day 1 (ts-parse-org time1))
 	   with end = (ts-parse-org time2)
 	   while (ts< start end)
 	   do (setq start (ts-inc 'day 1 start))
-	   and collect (ts-format "%Y-%m-%d" start)))
+	   and collect (ts-format (or format "%Y-%m-%d") start)))
 
 
 
