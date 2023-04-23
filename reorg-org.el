@@ -946,35 +946,75 @@ if there is not one."
 ;; timestamps 
 
 (reorg-create-data-type
+ :name timestamp-type
+ :class org
+ :parse (cond 
+	 (.ts-deadline "deadline")
+	 (.ts-active-first "active")
+	 (.ts-scheduled "scheduled"))
+ :display (pcase (alist-get 'ts-type data)
+	    ("deadline" "≫")
+	    ("active" "⊡")
+	    ("range" "➥")
+	    ("scheduled" "⬎")
+	    (_ " ")))
+
+(reorg-create-data-type
  :name ts-scheduled
  :class org
- :parse (alist-get 'scheduled .ts-all))
+ :parse (car (alist-get 'scheduled .ts-all)))
+
+(reorg-create-data-type
+ :name ts-deadline
+ :class org
+ :parse (car (alist-get 'deadline .ts-all)))
+
+(reorg-create-data-type
+ :name ts-closed
+ :class org
+ :parse (car (alist-get 'closed .ts-all)))
+
+(reorg-create-data-type
+ :name ts-active-first
+ :class org
+ :parse (car (alist-get 'active .ts-all)))
+
+(reorg-create-data-type
+ :name ts-active-all
+ :class org
+ :parse (append (alist-get 'active .ts-all)
+		(alist-get 'active-range .ts-all)))
+
+(reorg-create-data-type
+ :name ts-inactive-all
+ :class org
+ :parse (append (alist-get 'inactive .ts-all)
+		(alist-get 'inactive-range .ts-all)))
+
+(reorg-create-data-type
+ :name ts-active-ranges
+ :class org
+ :parse (alist-get 'active-range .ts-all))
+
+(reorg-create-data-type
+ :name ts-inactive-ranges
+ :class org
+ :parse (alist-get 'inactive-range .ts-all))
+
+(reorg-create-data-type
+ :name ts-clocks
+ :class org
+ :parse (alist-get 'clock .ts-all))
+
+
+
+;; TODO change the `reorg-create-data-type' to reverse the queue
 
 (reorg-create-data-type
  :name ts-all
  :class org
  :parse (reorg-org--ts-parser 'all))
 
-;; TODO change the `reorg-create-data-type' to reverse the queue
-
-
-
-
-
-
-
-
-;; (reorg-create-data-type
-;;  :name root-ts-inactive
-;;  :doc (concat "Go to each parent heading and return the first"
-;; 	      " inactive timestamp found.")
-;;  :class org
-;;  :parse (save-excursion
-;; 	  (cl-loop while (org-up-heading-safe)
-;; 		   when (reorg-org--timestamp-parser 'inactive)
-;; 		   return (reorg-org--timestamp-parser 'inactive))))
-
-;; this could just use .headline 
 (reorg-create-data-type
  :name at-names
  :class org
@@ -989,22 +1029,6 @@ if there is not one."
 				start)
 		  (match-end 1)))
 	   collect (match-string-no-properties 1 headline))))
-
-;; (reorg-create-data-type
-;;  :name timestamp-type
-;;  :disable t
-;;  :class org
-;;  :parse (cond 
-;; 	 ((reorg-org--timestamp-parser 'deadline) "deadline")
-;; 	 ((reorg-org--timestamp-parser 'active) "active")
-;; 	 ((reorg-org--timestamp-parser 'active-range) "range")
-;; 	 ((reorg-org--timestamp-parser 'scheduled) "scheduled"))
-;;  :display (pcase (alist-get 'ts-type data)
-;; 	    ("deadline" "≫")
-;; 	    ("active" "⊡")
-;; 	    ("range" "➥")
-;; 	    ("scheduled" "⬎")
-;; 	    (_ " ")))
 
 
 (defconst reorg-org--clock-re
