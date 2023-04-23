@@ -110,6 +110,18 @@
 			    ( :group (when (equal .priority "C") "Low"))))))))))
 
 
+(defun jrf/reorg-calendar-journal-billing-log ()
+  ""
+  (interactive)
+  (reorg-open-sidebar
+   `( :sources ((org . ,reorg-test-org-file-list))
+      :group (when 
+
+		 "This month"
+      
+
+      
+
 (defun jrf/reorg-calendar-journal-log ()
   ""
   (interactive)

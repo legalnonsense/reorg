@@ -960,6 +960,21 @@ if there is not one."
 	    (_ " ")))
 
 (reorg-create-data-type
+ :name ts-all-flat
+ :class org
+ :parse (seq-uniq
+	 (cl-loop for (type . times) in .ts-all
+		  append (cl-loop for time in times
+				  if (consp time)
+				  append
+				  (ensure-list
+				   (reorg-org--get-days-between (car time)
+								(cdr time)))
+				  else
+				  append
+				  (ensure-list time)))))
+
+(reorg-create-data-type
  :name ts-single
  :class org
  :parse (or .ts-deadline
@@ -1012,8 +1027,6 @@ if there is not one."
  :name ts-clocks
  :class org
  :parse (alist-get 'clock .ts-all))
-
-
 
 ;; TODO change the `reorg-create-data-type' to reverse the queue
 
