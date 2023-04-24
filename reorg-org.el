@@ -160,7 +160,7 @@ no HHMM specification.  TIME-FORMAT is used if there is an HHMM specification."
   (format-time-string
    (if (reorg-org--ts-hhmm-p ts)
        (or time-format no-time-format)
-     no-time-format)
+     (or no-time-format ""))
    (org-read-date nil t ts)))
 
 (defun reorg-org--get-property-drawer ()

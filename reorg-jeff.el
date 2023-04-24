@@ -117,9 +117,25 @@
    `( :sources ((org . ,reorg-test-org-file-list))
       :group (when (and .@ts-all-flat
 			(stringp .ts-all-flat)
-			(s-starts-with-p "2023-04-" .ts-all-flat))
+			(s-starts-with-p ,(format-time-string "%Y-%m")
+					 .ts-all-flat))
 	       "This month")
-      :format-results (.stars " " .headline))))
+      :children (( :group (reorg-org--format-time-string .ts-all-flat "%B")
+		   :children (( :group (reorg-org--format-time-string .ts-all-flat "%d %A")
+				:sort-groups reorg-string<))))
+      
+      :sort-results ((.ts-all-flat . (lambda (a b)
+				       (reorg-string< 
+					(reorg-org--format-time-string a "%H:%M")
+					(reorg-org--format-time-string b "%H:%M")))))
+      :format-results ((s-pad-right 20 " " .category-inherited)
+		       " "
+		       (s-pad-right 10 " " .todo)
+		       " "
+		       (s-pad-right 50 " "
+				    (s-truncate 40 .headline "..."))
+		       (reorg-org--format-time-string .ts-all-flat "%H:%M")
+		       ))))
 
 (defun jrf/reorg-calendar-journal-log ()
   ""
