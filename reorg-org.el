@@ -962,17 +962,20 @@ if there is not one."
 (reorg-create-data-type
  :name ts-all-flat
  :class org
- :parse (seq-uniq
-	 (cl-loop for (type . times) in .ts-all
-		  append (cl-loop for time in times
-				  if (consp time)
-				  append
-				  (ensure-list
-				   (reorg-org--get-days-between (car time)
-								(cdr time)))
-				  else
-				  append
-				  (ensure-list time)))))
+ :parse (-non-nil (seq-uniq
+		   (cl-loop for (type . times) in .ts-all
+			    append (cl-loop for time in times
+					    if (and (consp time)
+						    (car time)
+						    (cdr time))
+					    append
+					    (ensure-list
+					     (reorg-org--get-days-between (car time)
+									  (cdr time)))
+					    else if (listp time)
+					    append (ensure-list (car time))
+					    else
+					    append (ensure-list time))))))
 
 (reorg-create-data-type
  :name ts-single

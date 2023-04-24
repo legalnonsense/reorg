@@ -115,12 +115,11 @@
   (interactive)
   (reorg-open-sidebar
    `( :sources ((org . ,reorg-test-org-file-list))
-      :group (when 
-
-		 "This month"
-      
-
-      
+      :group (when (and .@ts-all-flat
+			(stringp .ts-all-flat)
+			(s-starts-with-p "2023-04-" .ts-all-flat))
+	       "This month")
+      :format-results (.stars " " .headline))))
 
 (defun jrf/reorg-calendar-journal-log ()
   ""

@@ -1457,6 +1457,7 @@ to the results."
     (setq reorg--current-template template)
     (setq reorg--temp-parser-list (->> (reorg--pre-parser template)
 				       (reorg--pre-parser-sort))))
+
   (setq level (or level 1))
   ;; inheritence 
   (let ((group-id (md5 (pp-to-string template)))
