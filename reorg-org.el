@@ -983,7 +983,7 @@ if there is not one."
  :name ts-single
  :class org
  :parse (or .ts-deadline
-	    .ts-active-single
+	    .ts-active-first
 	    .ts-scheduled))
 
 (reorg-create-data-type
@@ -1041,6 +1041,19 @@ if there is not one."
  :parse (reorg-org--ts-parser 'all))
 
 (reorg-create-data-type
+ :name clocked-time
+ :class org
+ :parse (let ((mins (org-clock-sum-current-item)))
+	  (when (/= mins 0)
+	    (concat (or (when (>= mins 60)
+			  (number-to-string (/ 60 mins)))
+			"0")
+		    ":"
+		    (s-pad-left 2 "0" 
+				(number-to-string
+				 (% mins 60)))))))
+
+(reorg-create-data-type
  :name at-names
  :class org
  :parse (let ((headline (org-get-heading t t t t)))
@@ -1096,6 +1109,7 @@ if there is not one."
 		    ":"
 		    (group-n 14 (one-or-more digit))))) ;; total minutes
   "Clock line RE.  The groups are explained in the comments.")
+
 
 (defun reorg-org--parse-clock-lines ()
   "parse clock lines for heading at point return:

@@ -20,7 +20,32 @@
 				   "%a, %b %d, %Y"
 				   "%a, %b %d, %Y at %-l:%M%p")))
 	      :children
-	      (( :group "Cases"
+	      (( :group (when (and (member .todo '("TASK"
+						   "DELEGATED"
+						   "EVENT"
+						   "OPP_DUE"
+						   "WAITING"
+						   "DEADLINE"))
+				   (cl-member ,now .ts-all-flat
+					      :test (lambda (a b)
+						      (s-starts-with-p a
+								       b))))
+			  "Today")
+		 :format-results
+		 ((s-pad-right 20 "."
+			       (downcase 
+				(reorg-org--format-time-string
+				 (car (cl-member ,now
+						 (quote .ts-all-flat)
+						 :test (lambda (a b)
+							 (s-starts-with-p a
+									  b))))
+				 "" "%-l:%M%p")))
+		  .headline))
+	       
+	       
+	       
+	       ( :group "Cases"
 		 :children
 		 (( :group (when (or 
 				  (member .todo '("TASK"
@@ -107,8 +132,49 @@
 				     "%a, %b %d, %Y at %-l:%M%p")))
 		 :children (( :group (when (equal .priority "A") "High"))
 			    ( :group (when (equal .priority "B") "Medium"))
-			    ( :group (when (equal .priority "C") "Low"))))))))))
+			    ( :group (when (equal .priority "C") "Low"))))
+	       ( :group (when (and .@ts-all-flat
+				   (stringp .ts-all-flat)
+				   (s-starts-with-p ,(format-time-string "%Y-%m-%d")
+						    .ts-all-flat))
+			  "Daily log")      
+		 :sort-results ((.ts-all-flat . (lambda (a b)
+						  (reorg-string< 
+						   (reorg-org--format-time-string a "%H:%M")
+						   (reorg-org--format-time-string b "%H:%M")))))
+		 :format-results ((s-pad-right 20 " " .category-inherited)
+				  " "
+				  (s-pad-right 10 " " .todo)
+				  " "
+				  (s-pad-right 50 " "
+					       (s-truncate 40 .headline "..."))
+				  .clocked-time
+				  ;; (reorg-org--format-time-string .ts-all-flat "%H:%M")
+				  ))))))))
 
+
+(defun jrf/reorg-today ()
+  ""
+  (interactive)
+  (reorg-open-sidebar
+   `( :sources ((org . ,reorg-test-org-file-list))
+      :group (when (and .@ts-all-flat
+			(stringp .ts-all-flat)
+			(s-starts-with-p ,(format-time-string "%Y-%m-%d")
+					 .ts-all-flat))
+	       "Today")      
+      :sort-results ((.ts-all-flat . (lambda (a b)
+				       (reorg-string< 
+					(reorg-org--format-time-string a "%H:%M")
+					(reorg-org--format-time-string b "%H:%M")))))
+      :format-results ((s-pad-right 20 " " .category-inherited)
+		       " "
+		       (s-pad-right 10 " " .todo)
+		       " "
+		       (s-pad-right 50 " "
+				    (s-truncate 40 .headline "..."))
+		       (reorg-org--format-time-string .ts-all-flat "%H:%M")
+		       ))))
 
 (defun jrf/reorg-calendar-journal-billing-log ()
   ""
