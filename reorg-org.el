@@ -144,15 +144,16 @@ buffer in which the bookmark was found."
 
 (defun reorg-org--ts-hhmm-p (ts)
   "does TS have a time specification?"
-  (string-match (rx (or (seq (** 1 2 digit)
-			     ":"
-			     (= 2 digit))
-			(seq (** 1 2 digit)
-			     (or "am"
-				 "pm"
-				 "AM"
-				 "PM"))))
-		ts))
+  (when ts
+    (string-match (rx (or (seq (** 1 2 digit)
+			       ":"
+			       (= 2 digit))
+			  (seq (** 1 2 digit)
+			       (or "am"
+				   "pm"
+				   "AM"
+				   "PM"))))
+		  ts)))
 
 (defun reorg-org--format-time-string (ts no-time-format &optional time-format)
   "Format a timestamp string.  NO-TIME-FORMAT is the format to use if there is
@@ -1013,6 +1014,13 @@ if there is not one."
 		(alist-get 'active-range .ts-all)))
 
 (reorg-create-data-type
+ :name ts-active-all-flat
+ :class org
+ :parse (append (alist-get 'active .ts-all)
+		(cl-loop for each in (alist-get 'active-range .ts-all)
+			 collect (reorg-org--get-days-between each))))
+
+(reorg-create-data-type
  :name ts-inactive-all
  :class org
  :parse (append (alist-get 'inactive .ts-all)
@@ -1303,16 +1311,25 @@ if there is not one."
 
 
 
-(defun reorg-org--get-days-between (time1 time2 &optional format)
+(defun reorg-org--get-days-between (time1 &optional time2 format)
   "Get list of dates between (inclusive) org timestamp strings TIME1
 and TIME2 and output a list of them as a string using FORMAT
 (as accepted by `format-time-string') or using %Y-%m-%d
  if FORMAT is nil."
-  (cl-loop with start = (ts-dec 'day 1 (ts-parse-org time1))
-	   with end = (ts-parse-org time2)
-	   while (ts< start end)
-	   do (setq start (ts-inc 'day 1 start))
-	   and collect (ts-format (or format "%Y-%m-%d") start)))
+  (when time1
+    (cl-loop with start = (ts-dec 'day 1 (ts-parse-org
+					  (pcase time1
+					    ((pred consp) (car time1))
+					    ((pred stringp) time1)
+					    (_ (error "error")))))
+	     with end = (ts-parse-org
+			 (pcase time1
+			   ((pred consp) (cdr time1))
+			   ((pred stringp) time2)
+			   (_ (error "error"))))
+	     while (ts< start end)
+	     do (setq start (ts-inc 'day 1 start))
+	     and collect (ts-format (or format "%Y-%m-%d") start))))
 
 
 
