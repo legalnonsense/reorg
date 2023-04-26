@@ -4,7 +4,8 @@
 
 (defun jrf/reorg-client ()
   (interactive)
-  (let ((now (format-time-string "%Y-%m-%d")))
+  (let ((now (format-time-string "%Y-%m-%d"))
+	(week-ago (ts-format "%Y-%m-%d" (ts-dec 'day 7 (ts-now)))))
     (reorg-open-sidebar
      (setq reorg-client-template
 	   `( :sources ((org . ,reorg-test-org-file-list))
@@ -74,16 +75,18 @@
 				 :sort-results ((.priority . string<)
 						(.todo . string<)
 						(.headline . reorg-string<)))
-			       ( :group (when (and
-					       .ts-single
-					       (org-string>= (reorg-org--format-time-string
-							      .ts-single
-							      "%Y-%m-%d")
-							     ,now)
-					       (not (member .todo '("TASK"
-								    "DONE"
-								    "DELEGATED"
-								    "WAITING"))))
+			       ( :group (when (and (or .ts-deadline
+						       .ts-active-first
+						       .ts-scheduled)
+
+						   ;; (org-string>= (reorg-org--format-time-string
+						   ;; 		      .ts-single
+						   ;; 		      "%Y-%m-%d")
+						   ;; 		     ,now)
+						   (not (member .todo '("TASK"
+									"DONE"
+									"DELEGATED"
+									"WAITING"))))
 					  "CALENDAR")
 				 :sort-results ((.ts-single . string<)))
 			       ( :group (when (equal "_NOTES_" .headline) "")
@@ -132,25 +135,25 @@
 				     "%a, %b %d, %Y at %-l:%M%p")))
 		 :children (( :group (when (equal .priority "A") "High"))
 			    ( :group (when (equal .priority "B") "Medium"))
-			    ( :group (when (equal .priority "C") "Low"))))
-	       ( :group (when (and .@ts-all-flat
-				   (stringp .ts-all-flat)
-				   (s-starts-with-p ,(format-time-string "%Y-%m-%d")
-						    .ts-all-flat))
-			  "Daily log")      
-		 :sort-results ((.ts-all-flat . (lambda (a b)
-						  (reorg-string< 
-						   (reorg-org--format-time-string a "%H:%M")
-						   (reorg-org--format-time-string b "%H:%M")))))
-		 :format-results ((s-pad-right 20 " " .category-inherited)
-				  " "
-				  (s-pad-right 10 " " .todo)
-				  " "
-				  (s-pad-right 50 " "
-					       (s-truncate 40 .headline "..."))
-				  .clocked-time
-				  ;; (reorg-org--format-time-string .ts-all-flat "%H:%M")
-				  ))))))))
+			    ( :group (when (equal .priority "C") "Low"))))))))))
+;; ( :group (when (and .@ts-all-flat
+;; 		    (stringp .ts-all-flat)
+;; 		    (s-starts-with-p ,(format-time-string "%Y-%m-%d")
+;; 				     .ts-all-flat))
+;; 	   "Daily log")      
+;;   :sort-results ((.ts-all-flat . (lambda (a b)
+;; 				   (reorg-string< 
+;; 				    (reorg-org--format-time-string a "%H:%M")
+;; 				    (reorg-org--format-time-string b "%H:%M")))))
+;;   :format-results ((s-pad-right 20 " " .category-inherited)
+;; 		   " "
+;; 		   (s-pad-right 10 " " .todo)
+;; 		   " "
+;; 		   (s-pad-right 50 " "
+;; 				(s-truncate 40 .headline "..."))
+;; 		   .clocked-time
+;; 		   ;; (reorg-org--format-time-string .ts-all-flat "%H:%M")
+;; 		   ))))))))
 
 
 (defun jrf/reorg-today ()
