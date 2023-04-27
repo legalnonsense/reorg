@@ -1394,10 +1394,6 @@ dotted notation."
    (lambda (acc elt)
      (let* ((key (if (functionp form)
 		     (funcall form elt)
-		   ;; To avoid a backquoted lambda,
-		   ;; this could be done using
-		   ;; `reorg--turn-dot-to-val'
-		   ;; but that requires using `eval'
 		   (funcall `(lambda (e)
 			       (let-alist e ,form))
 			    elt)))
@@ -1452,7 +1448,6 @@ to the results."
   ;; this is the core sorting function.
   ;; it's quite a ride. 
   (unless recursed
-
     (reorg--check-template-keys template)  
     (setq reorg--current-template template)
     (setq reorg--temp-parser-list (->> (reorg--pre-parser template)

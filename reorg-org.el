@@ -158,11 +158,12 @@ buffer in which the bookmark was found."
 (defun reorg-org--format-time-string (ts no-time-format &optional time-format)
   "Format a timestamp string.  NO-TIME-FORMAT is the format to use if there is
 no HHMM specification.  TIME-FORMAT is used if there is an HHMM specification."
-  (format-time-string
-   (if (reorg-org--ts-hhmm-p ts)
-       (or time-format no-time-format)
-     (or no-time-format ""))
-   (org-read-date nil t ts)))
+  (when ts 
+    (format-time-string
+     (if (reorg-org--ts-hhmm-p ts)
+	 (or time-format no-time-format)
+       (or no-time-format ""))
+     (org-read-date nil t ts))))
 
 (defun reorg-org--get-property-drawer ()
   "Get the property drawer of the heading at point as an alist."
@@ -944,7 +945,7 @@ if there is not one."
 			(org-no-properties
 			 (org-get-heading t t t t))))
 
-;; timestamps 
+;;;; timestamps 
 
 (reorg-create-data-type
  :name timestamp-type
@@ -959,6 +960,16 @@ if there is not one."
 	    ("range" "➥")
 	    ("scheduled" "⬎")
 	    (_ " ")))
+
+(reorg-create-data-type
+ :name ts-agenda-today 
+ :class org
+ :parse (when .ts-active-all-flat
+	  (car (cl-member (format-time-string "%Y-%m-%d")
+			  .ts-active-all-flat
+			  :test (lambda (a b)
+				  (s-starts-with-p a
+						   b))))))
 
 (reorg-create-data-type
  :name ts-all-flat
@@ -1018,7 +1029,7 @@ if there is not one."
  :class org
  :parse (append (alist-get 'active .ts-all)
 		(cl-loop for each in (alist-get 'active-range .ts-all)
-			 collect (reorg-org--get-days-between each))))
+			 append (reorg-org--get-days-between each))))
 
 (reorg-create-data-type
  :name ts-inactive-all

@@ -27,22 +27,17 @@
 						   "OPP_DUE"
 						   "WAITING"
 						   "DEADLINE"))
-				   (cl-member ,now .ts-active-all-flat
-					      :test (lambda (a b)
-						      (s-starts-with-p a
-								       b))))
+				   .ts-agenda-today)
 			  "Today")
 		 :format-results
 		 ((s-pad-right 20 "."
-			       (downcase 
-				(reorg-org--format-time-string
-				 (car (cl-member ,now
-						 (quote .ts-active-all-flat)
-						 :test (lambda (a b)
-							 (s-starts-with-p a
-									  b))))
+			       (downcase
+				(reorg-org--format-time-string 
+				 .ts-agenda-today
 				 "" "%-l:%M%p")))
 		  .headline))
+	       ;; :sort-results
+	       ;; ((.ts-agenda-today . string<)))
 	       
 	       ( :group "Cases"
 		 :children
