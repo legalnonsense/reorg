@@ -2257,6 +2257,11 @@ the buffer."
     map)
   "keymap")
 
+(defvar reorg-post-finalize-hook nil
+  "post rendering")
+(defvar reorg-pre-finalize-hook nil
+  "pre-rendering")
+
 (define-derived-mode reorg-mode
   fundamental-mode
   "Reorg"
@@ -2283,7 +2288,9 @@ the buffer."
   (when (fboundp 'org-visual-indent-mode)
     (org-visual-indent-mode 1))
   (global-set-key (kbd reorg-toggle-shortcut) #'reorg--toggle-tree-buffer)
-  (reorg--goto-char 1))
+  (reorg--goto-char 1)
+  (run-hooks 'reorg-post-finalize-hook)
+  )
 
 (provide 'reorg)
 
