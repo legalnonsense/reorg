@@ -624,6 +624,18 @@ if there is not one."
 
 ;;; edit commands 
 
+(defun reorg-org--clock-in (&optional arg)
+  "Edit the headline at point"
+  (interactive "P")
+  (reorg-org--with-source-and-sync
+    (funcall-interactively #'org-clock-in)))
+
+(defun reorg-org--clock-out (&optional arg)
+  "Edit the headline at point"
+  (interactive "P")
+  (reorg-org--with-source-and-sync
+    (funcall-interactively #'org-clock-out arg)))
+
 (defun reorg-org--org-edit-headline (&optional arg)
   "Edit the headline at point"
   (interactive "P")
@@ -704,7 +716,8 @@ if there is not one."
 	  ("t" . reorg-org--org-todo)
 	  ("a" . reorg-org--org-set-tags-command)
 	  ("d" . reorg-org--org-deadline)
-	  ;; ("c" . reorg-org--clock-in-out)
+	  ("o" . reorg-org--clock-in)
+	  ("O" . reorg-org--clock-out)
 	  ("s" . reorg-org--org-schedule)
 	  ("r" . reorg-org--org-set-property)
 	  ("i" . reorg-org--org-priority)
@@ -1065,7 +1078,7 @@ if there is not one."
  :parse (let ((mins (org-clock-sum-current-item)))
 	  (when (/= mins 0)
 	    (concat (or (when (>= mins 60)
-			  (number-to-string (/ 60 mins)))
+			  (number-to-string (/ mins 60)))
 			"0")
 		    ":"
 		    (s-pad-left 2 "0" 

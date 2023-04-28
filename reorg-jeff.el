@@ -2,7 +2,7 @@
 (setq reorg-test-org-file-list (org-agenda-files))
 ;; (setq reorg-test-org-file-list "~/tmp/tmp.org")y
 
-(defun jrf/reorg-client ()
+(defun jrf/reorg-main ()
   (interactive)
   (let ((now (format-time-string "%Y-%m-%d"))
 	(week-ago (ts-format "%Y-%m-%d" (ts-dec 'day 7 (ts-now)))))
@@ -15,11 +15,15 @@
 				(if .ts-single
 				    (s-pad-right 50 "." .headline)
 				  .headline)
-				(when .ts-single
-				  (reorg-org--format-time-string
-				   .ts-single
-				   "%a, %b %d, %Y"
-				   "%a, %b %d, %Y at %-l:%M%p")))
+				(s-pad-right 35
+					     " "
+					     (if .ts-single
+						 (reorg-org--format-time-string
+						  .ts-single
+						  "%a, %b %d, %Y"
+						  "%a, %b %d, %Y at %-l:%M%p")
+					       ""))
+				.clocked-time)
 	      :children
 	      (( :group (when (and (member .todo '("TASK"
 						   "DELEGATED"
@@ -131,50 +135,8 @@
 		 :children (( :group (when (equal .priority "A") "High"))
 			    ( :group (when (equal .priority "B") "Medium"))
 			    ( :group (when (equal .priority "C") "Low"))))))))))
-;; ( :group (when (and .@ts-all-flat
-;; 		    (stringp .ts-all-flat)
-;; 		    (s-starts-with-p ,(format-time-string "%Y-%m-%d")
-;; 				     .ts-all-flat))
-;; 	   "Daily log")      
-;;   :sort-results ((.ts-all-flat . (lambda (a b)
-;; 				   (reorg-string< 
-;; 				    (reorg-org--format-time-string a "%H:%M")
-;; 				    (reorg-org--format-time-string b "%H:%M")))))
-;;   :format-results ((s-pad-right 20 " " .category-inherited)
-;; 		   " "
-;; 		   (s-pad-right 10 " " .todo)
-;; 		   " "
-;; 		   (s-pad-right 50 " "
-;; 				(s-truncate 40 .headline "..."))
-;; 		   .clocked-time
-;; 		   ;; (reorg-org--format-time-string .ts-all-flat "%H:%M")
-;; 		   ))))))))
 
-
-(defun jrf/reorg-today ()
-  ""
-  (interactive)
-  (reorg-open-sidebar
-   `( :sources ((org . ,reorg-test-org-file-list))
-      :group (when (and .@ts-all-flat
-			(stringp .ts-all-flat)
-			(s-starts-with-p ,(format-time-string "%Y-%m-%d")
-					 .ts-all-flat))
-	       "Today")      
-      :sort-results ((.ts-all-flat . (lambda (a b)
-				       (reorg-string< 
-					(reorg-org--format-time-string a "%H:%M")
-					(reorg-org--format-time-string b "%H:%M")))))
-      :format-results ((s-pad-right 20 " " .category-inherited)
-		       " "
-		       (s-pad-right 10 " " .todo)
-		       " "
-		       (s-pad-right 50 " "
-				    (s-truncate 40 .headline "..."))
-		       (reorg-org--format-time-string .ts-all-flat "%H:%M")
-		       ))))
-
-(defun jrf/reorg-calendar-journal-billing-log ()
+(defun jrf/reorg-billing-log ()
   ""
   (interactive)
   (reorg-open-sidebar
@@ -186,8 +148,7 @@
 	       "This month")
       :children (( :group (reorg-org--format-time-string .ts-all-flat "%B")
 		   :children (( :group (reorg-org--format-time-string .ts-all-flat "%d %A")
-				:sort-groups reorg-string<))))
-      
+				:sort-groups reorg-string>))))      
       :sort-results ((.ts-all-flat . (lambda (a b)
 				       (reorg-string< 
 					(reorg-org--format-time-string a "%H:%M")
@@ -198,47 +159,8 @@
 		       " "
 		       (s-pad-right 50 " "
 				    (s-truncate 40 .headline "..."))
-		       (reorg-org--format-time-string .ts-all-flat "%H:%M")
-		       ))))
+		       .clocked-time))))
 
-(defun jrf/reorg-calendar-journal-log ()
-  ""
-  (interactive)
-  (reorg-open-sidebar 
-   `( :sources ((org . ,reorg-test-org-file-list))
-      :group "Calendar"
-      :format-results (.stars
-		       " "
-		       (s-pad-left 2 " "
-				   (number-to-string
-				    (ts-day .ts-all)))
-		       " "
-		       (s-pad-right 12 " "
-				    (ts-day-name .ts-all))
-		       (s-pad-right
-			20
-			" "
-			.category-inherited)
-		       .headline)
-      :children (( :groups
-		   (when .@ts-all
-		     (ts-format "%Y" .ts-all))
-		   :sort-groups reorg-string>
-		   :children (( :group (ts-month-name .ts-all)
-				:sort-groups (lambda (a b)
-					       (let ((seq '("January"
-							    "February"
-							    "March"
-							    "April"
-							    "May"
-							    "June"
-							    "July"
-							    "August"
-							    "September"
-							    "October"
-							    "November"
-							    "December")))
-						 (reorg--sort-by-list a b seq)))
-				:sort-results ((.ts-all . ts<)))))))))
+
 
 (provide 'reorg-jeff)
