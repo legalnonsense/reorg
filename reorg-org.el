@@ -1040,9 +1040,11 @@ if there is not one."
 (reorg-create-data-type
  :name ts-active-all-flat
  :class org
- :parse (append (alist-get 'active .ts-all)
-		(cl-loop for each in (alist-get 'active-range .ts-all)
-			 append (reorg-org--get-days-between each))))
+ :parse (-non-nil (append (alist-get 'active .ts-all)
+			  (alist-get 'deadline .ts-all)
+			  (alist-get 'scheduled .ts-all)
+			  (cl-loop for each in (alist-get 'active-range .ts-all)
+				   append (reorg-org--get-days-between each)))))
 
 (reorg-create-data-type
  :name ts-inactive-all

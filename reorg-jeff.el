@@ -25,41 +25,48 @@
 					       ""))
 				.clocked-time)
 	      :children
-	      (( :group (when (and (member .todo '("TASK"
+	      (
+	       ( :group (when (and (member .todo '("TASK"
 						   "DELEGATED"
 						   "EVENT"
+						   "DONE"
 						   "OPP_DUE"
 						   "WAITING"
 						   "DEADLINE"))
 				   .ts-agenda-today)
 			  "Today")
 		 :format-results
-		 ((s-pad-right 20 "."
-			       (downcase
-				(reorg-org--format-time-string 
-				 .ts-agenda-today
-				 "" "%-l:%M%p")))
-		  .headline))
-	       ;; :sort-results
-	       ;; ((.ts-agenda-today . string<)))
+		 ((if (reorg-org--ts-hhmm-p .ts-agenda-today)
+		      (s-pad-right 20 "."
+				   (downcase
+				    (reorg-org--format-time-string 
+				     .ts-agenda-today
+				     "" "%-l:%M%p")))
+		    (make-string 20 ? ))
+		  (s-pad-right 10 " " .todo)
+		  (s-pad-right 15 " " .category-inherited)
+		  (s-pad-right 50 " " .headline)
+		  (s-pad-left 30 " " .clocked-time))
+		 :sort-results
+		 ((.ts-agenda-today . string<)))
 	       
 	       ( :group "Cases"
 		 :children
-		 (( :group (when (or (and
-				      (member .todo '("TASK"
-						      "DELEGATED"
-						      "EVENT"
-						      "OPP_DUE"
-						      "WAITING"
-						      "DEADLINE"))
-				      .ts-single)
+		 (( :group (when (or 
+				  (member .todo '("TASK"
+						  "DELEGATED"
+						  "EVENT"
+						  "OPP_DUE"
+						  "WAITING"
+						  "DEADLINE"))
+				  ;; .ts-single)
 
-				     ;; (and .ts-single
-				     ;;      (org-string>= (reorg-org--format-time-string
-				     ;; 		      .ts-single
-				     ;; 		      "%Y-%m-%d")
-				     ;; 		     ,now))
-				     (string= .headline "_NOTES_"))
+				  ;; (and .ts-single
+				  ;;      (org-string>= (reorg-org--format-time-string
+				  ;; 		      .ts-single
+				  ;; 		      "%Y-%m-%d")
+				  ;; 		     ,now))
+				  (string= .headline "_NOTES_"))
 			     .root)
 		    :sort-groups reorg-string<
 		    :children (( :group (when (member .todo '("TASK"
