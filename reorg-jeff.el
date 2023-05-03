@@ -4,6 +4,7 @@
 
 (defun jrf/reorg-main ()
   (interactive)
+  (reorg-org-capture-enable)
   (let ((now (format-time-string "%Y-%m-%d"))
 	(week-ago (ts-format "%Y-%m-%d" (ts-dec 'day 7 (ts-now)))))
     (reorg-open-sidebar
