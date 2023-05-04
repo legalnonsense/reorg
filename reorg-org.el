@@ -625,48 +625,50 @@ if there is not one."
 
 ;;; edit commands 
 
+;;;; clocking commands 
 
-(defvar reorg-org--clocking-overlay (let ((overlay (make-overlay 1 1 (get-buffer-create reorg-buffer-name))))
-				      (overlay-put overlay 'face '(:background "green"))
-				      (delete-overlay overlay)
-				      overlay)
-  "clocking overlay")
+;; (defvar reorg-org--clocking-overlay-list 
+;;   "clocking overlay list")
 
-(defun reorg-org--update-clocking-overlay (&optional marker)
-  "update the clocking overlay"
-  (let (data) 
-    (with-current-buffer (marker-buffer (or marker org-clock-marker))
-      (org-with-wide-buffer
-       (goto-char org-clock-marker)
-       (org-back-to-heading)
-       (setq data (reorg--parser nil 'org reorg--temp-parser-list))))
-    (reorg--insert-new-heading data)    
-    (move-overlay
-     reorg-org--clocking-overlay
-     (point-at-bol)
-     (point-at-eol)
-     (get-buffer-create
-      reorg-buffer-name))))
+;; (defun reorg-org--update-clocking-overlay (&optional marker)
+;;   "update the clocking overlay"
+;;   (let (data)
+;;     (cl-loop for overlay in reorg-org--clocking-overlay-list
+;; 	     do (delete-overlay overlay))
+;;     (with-current-buffer (marker-buffer (or marker org-clock-marker))
+;;       (org-with-wide-buffer
+;;        (goto-char org-clock-marker)
+;;        (org-back-to-heading)
+;;        (setq data (reorg--parser nil 'org reorg--temp-parser-list))))
+;;     (reorg--insert-new-heading data)
+;;     (when (org-clocking-p)
+;;       (reorg--map-id (alist-get 'id data)
+;; 		     (push
+;; 		      (let ((overlay (make-overlay (point-at-bol)
+;; 						   (point-at-eol)
+;; 						   (get-buffer-create
+;; 						    reorg-buffer-name))))
+;; 			(overlay-put overlay 'face '(:background "green"))
+;; 			overlay)
+;; 		      reorg-org--clocking-overlay-list)))))
 
-
-
-(defun reorg-org--clock-in (&optional arg)
-  "Edit the headline at point"
-  (interactive "P")  
-  (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-clock-in))
-  (reorg-org--update-clocking-overlay))
+;; (defun reorg-org--clock-in (&optional arg)
+;;   "Edit the headline at point"
+;;   (interactive "P")  
+;;   (reorg-org--with-source-and-sync
+;;     (funcall-interactively #'org-clock-in))
+;;   (reorg-org--update-clocking-overlay))
 
 
 ;;; FIX THIS NEXT!!
-(defun reorg-org--clock-out (&optional arg)
-  "Edit the headline at point"
-  (interactive "P")
-  (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-clock-out arg))
-  (if (marker-buffer org-clock-marker)
-      (reorg-org--update-clocking-overlay)
-    (reorg-org--update-clocking-overlay (reorg--get-prop 'marker))))
+;; (defun reorg-org--clock-out (&optional arg)
+;;   "Edit the headline at point"
+;;   (interactive "P")
+;;   (let ((marker (marker-buffer org-clock-marker)))
+;;     (reorg-org--with-source-and-sync
+;;       (funcall-interactively #'org-clock-out arg))
+;;     (reorg-org--update-clocking-overlay)))
+
 
 (defun reorg-org--org-edit-headline (&optional arg)
   "Edit the headline at point"
