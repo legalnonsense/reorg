@@ -761,6 +761,8 @@ if there is not one."
  :class org
  :parse (org-get-tags))
 
+
+
 ;; (reorg-create-data-type
 ;;  :name ts-all
 ;;  :doc "All the timestamps, planning, active, and inactive."

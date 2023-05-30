@@ -53,21 +53,22 @@
 	       
 	       ( :group "Cases"
 		 :children
-		 (( :group (when (or 
-				  (member .todo '("TASK"
-						  "DELEGATED"
-						  "EVENT"
-						  "OPP_DUE"
-						  "WAITING"
-						  "DEADLINE"))
-				  ;; .ts-single)
+		 (( :group (when (and (or 
+				       (member .todo '("TASK"
+						       "DELEGATED"
+						       "EVENT"
+						       "OPP_DUE"
+						       "WAITING"
+						       "DEADLINE"))
+				       ;; .ts-single)
 
-				  ;; (and .ts-single
-				  ;;      (org-string>= (reorg-org--format-time-string
-				  ;; 		      .ts-single
-				  ;; 		      "%Y-%m-%d")
-				  ;; 		     ,now))
-				  (string= .headline "_NOTES_"))
+				       ;; (and .ts-single
+				       ;;      (org-string>= (reorg-org--format-time-string
+				       ;; 		      .ts-single
+				       ;; 		      "%Y-%m-%d")
+				       ;; 		     ,now))
+				       (string= .headline "_NOTES_"))
+				      (not (member "prospective" .tag-list)))
 			     .root)
 		    :sort-groups reorg-string<
 		    :children (( :group (when (member .todo '("TASK"
@@ -98,6 +99,54 @@
 				 :sort-results ((.ts-single . string<)))
 			       ( :group (when (equal "_NOTES_" .headline) "")
 				 :format-results (.stars "  NOTES"))))))
+	       
+	       ( :group "Prospective cases"
+		 :children (( :group (when (and (or 
+						 (member .todo '("TASK"
+								 "DELEGATED"
+								 "EVENT"
+								 "OPP_DUE"
+								 "WAITING"
+								 "DEADLINE"))
+						 ;; .ts-single)
+
+						 ;; (and .ts-single
+						 ;;      (org-string>= (reorg-org--format-time-string
+						 ;; 		      .ts-single
+						 ;; 		      "%Y-%m-%d")
+						 ;; 		     ,now))
+						 (string= .headline "_NOTES_"))
+						(member "prospective" .tag-list))
+				       .root)
+			      :sort-groups reorg-string<
+			      :children (( :group (when (member .todo '("TASK"
+									"DELEGATED"
+									"WAITING"))
+						    "TASKS")
+					   :sort-groups (lambda (a b)
+							  (reorg--sort-by-list a b
+									       '("TASK"
+										 "DELEGATED"
+										 "WAITING")))
+					   :sort-results ((.priority . string<)
+							  (.todo . string<)
+							  (.headline . reorg-string<)))
+					 ( :group (when (and (or .ts-deadline
+								 .ts-active-first
+								 .ts-scheduled)
+
+							     ;; (org-string>= (reorg-org--format-time-string
+							     ;; 		      .ts-single
+							     ;; 		      "%Y-%m-%d")
+							     ;; 		     ,now)
+							     (not (member .todo '("TASK"
+										  "DONE"
+										  "DELEGATED"
+										  "WAITING"))))
+						    "CALENDAR")
+					   :sort-results ((.ts-single . string<)))
+					 ( :group (when (equal "_NOTES_" .headline) "")
+					   :format-results (.stars "  NOTES"))))))
 	       ( :group (when (and (member .todo '("TASK"
 						   "DELEGATED"
 						   "WAITING"))
