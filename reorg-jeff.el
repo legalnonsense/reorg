@@ -52,7 +52,7 @@
 		 ((.ts-agenda-today . string<)))
 	       
 	       ( :group "Cases"
-		 :children
+		 :children 
 		 (( :group (when (or 
 				  (member .todo '("TASK"
 						  "DELEGATED"
@@ -115,7 +115,7 @@
 			      :sort-groups reorg-string<)))
 	       ( :group (when (and (member .todo '("TASK"
 						   "DELEGATED"
-						   "WAITING"))
+						   ))
 				   (if .ts-single
 				       (org-string>= (reorg-org--format-time-string
 						      .ts-single
