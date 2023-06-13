@@ -68,7 +68,8 @@
 				       ;; 		      "%Y-%m-%d")
 				       ;; 		     ,now))
 				       (string= .headline "_NOTES_"))
-				      (not (member "prospective" .tag-list)))
+				      (not (member "prospective" .tag-list))
+				      (not (member "closed" .tag-list)))
 			     .root)
 		    :sort-groups reorg-string<
 		    :children (( :group (when (member .todo '("TASK"
