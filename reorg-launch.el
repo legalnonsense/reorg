@@ -3,12 +3,12 @@
 
 (require 'reorg)
 (require 'reorg-bullets)
-(require 'reorg-org)
 (require 'reorg-elisp)
 (require 'reorg-files)
 (require 'reorg-leo)
 (require 'reorg-json)
 (require 'reorg-email)
-(require 'reorg-test)
+(require 'reorg-org)
+(require 'reorg-jeff)
 
 (provide 'reorg-launch)
