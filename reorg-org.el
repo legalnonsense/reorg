@@ -1149,9 +1149,14 @@ if there is not one."
 		(alist-get 'inactive-range .ts-all)))
 
 (reorg-create-data-type
- :name ts-active-ranges
+ :name ts-active-range
  :class org
  :parse (alist-get 'active-range .ts-all))
+
+(reorg-create-data-type
+ :name ts-active-range-first
+ :class org
+ :parse (caar (alist-get 'active-range .ts-all)))
 
 (reorg-create-data-type
  :name ts-inactive-ranges

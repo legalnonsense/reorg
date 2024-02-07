@@ -11,21 +11,32 @@
       :group .root
       :format-results ((s-pad-right 5 " " .priority)
 		       (s-pad-right 15 " " .todo)
-		       " "
-		       (if .ts-single
+		       (if (or .ts-single .ts-active-range-first)
 			   (s-pad-right 50 "." .headline)
 			 .headline)
 		       (s-pad-right 35
 				    " "
-				    (if .ts-single
-					(reorg-org--format-time-string
-					 .ts-single
-					 "%a, %b %d, %Y"
-					 "%a, %b %d, %Y at %-l:%M%p")
-				      "")))
+				    (cond (.ts-single
+					   (reorg-org--format-time-string
+					    .ts-single
+					    "%a, %b %d, %Y"
+					    "%a, %b %d, %Y at %-l:%M%p"))
+					  (.ts-active-range-first
+					    (reorg-org--format-time-string
+					     .ts-active-range-first
+					     "%a, %b %d, %Y"
+					     "%a, %b %d, %Y at %-l:%M%p"))
+					  (t ""))))
+					    
+
       :children (( :group (when (and (member .todo '("TASK" "DELEGATED" "WAITING"))
 				     (not .archivedp))
-			    "--TASKS--"))
+			    "--TASKS--")
+		   :sort-results ((.priority . reorg-string<)
+				  (.todo . (lambda (a b)
+						 (reorg--sort-by-list a b '("TASK"
+									    "DELEGATED"
+									    "WAITING"))))))
 		 ( :group (when (and (member .todo '("EVENT" "DEADLINE" "OPP_DUE"))
 				     (not .archivedp))
 			    "--CALENDAR--")
