@@ -60,7 +60,7 @@
 		   :sort-results (((or .ts-closed
 				       .ts-active-first
 				       (car .ts-inactive-all)
-				       "") . reorg-string>)))))))
+				       "") . reorg-string<)))))))
 
 (defun jrf/reorg-today-agenda ()
     (interactive)
