@@ -688,7 +688,46 @@ if there is not one."
   "set tags at point"
   (interactive "P")
   (reorg-org--with-source-and-sync
-    (funcall-interactively #'org-set-tags-command arg)))
+    (save-excursion
+	(org-back-to-heading)
+	(let* ((all-tags (org-get-tags))
+	       (table (setq org-last-tags-completion-table
+			    (org--tag-add-to-alist
+			     (and org-complete-tags-always-offer-all-agenda-tags
+				  (org-global-tags-completion-table
+				   (org-agenda-files)))
+			     (or org-current-tag-alist (org-get-buffer-tags)))))
+	       (current-tags
+		(cl-remove-if (lambda (tag) (get-text-property 0 'inherited tag))
+			      all-tags))
+	       (inherited-tags
+		(cl-remove-if-not (lambda (tag) (get-text-property 0 'inherited tag))
+				  all-tags))
+	       (tags
+		(replace-regexp-in-string
+		 ;; Ignore all forbidden characters in tags.
+		 "[^[:alnum:]_@#%]+" ":"
+		 (if (or (eq t org-use-fast-tag-selection)
+			 (and org-use-fast-tag-selection
+			      (delq nil (mapcar #'cdr table))))
+		     (org-fast-tag-selection
+		      current-tags
+		      inherited-tags
+		      table
+		      (and org-fast-tag-selection-include-todo org-todo-key-alist))
+		   (let ((org-add-colon-after-tag-completion (< 1 (length table)))
+                         (crm-separator "[ \t]*:[ \t]*"))
+		     (mapconcat #'identity
+                                (completing-read-multiple
+			         "Tags: "
+			         org-last-tags-completion-table
+			         nil nil (org-make-tag-string current-tags)
+			         'org-tags-history)
+                                ":"))))))
+	  (org-back-to-heading)
+	  (org-set-tags tags)))))
+    
+    ;; (funcall-interactively #'org-set-tags-command arg)))
 
 (defun reorg-org--org-deadline (&optional arg)
   "set deadline at point"
@@ -742,6 +781,12 @@ if there is not one."
 ;;   (reorg-org--with-source-and-sync
 ;;     (org-clock-in 
 
+(defun reorg-org--toggle-archive ()
+  "archive the current heading"
+  (interactive)
+  (reorg-org--with-source-and-sync
+    (org-toggle-archive-tag)))
+
 (reorg-create-class-type
  :name org
  :render-func reorg-org--render-source
@@ -752,8 +797,11 @@ if there is not one."
 	  ("d" . reorg-org--org-deadline)
 	  ("o" . reorg-org--clock-in)
 	  ("O" . reorg-org--clock-out)
+	  ("A" . reorg-org--archive-heading)   
 	  ("s" . reorg-org--org-schedule)
 	  ("r" . reorg-org--org-set-property)
+	  ("C-v" . org-narrow-to-subtree)
+	  ("M-v" . widen)
 	  ("i" . reorg-org--org-priority)
 	  ("C-c l" . reorg-org--org-store-link)
 	  ("g" . reorg-org--reload-heading))
@@ -795,8 +843,6 @@ if there is not one."
  :class org
  :parse (org-get-tags))
 
-
-
 ;; (reorg-create-data-type
 ;;  :name ts-all
 ;;  :doc "All the timestamps, planning, active, and inactive."
@@ -834,7 +880,6 @@ if there is not one."
 ;; 			  ts
 ;; 			  "%a, %b %d, %Y"
 ;; 			  "%a, %b %d, %Y at %-l:%M%p")))))
-
 
 ;; (reorg-create-data-type
 ;;  :name deadline 
@@ -963,6 +1008,11 @@ if there is not one."
  :parse (org-id-get-create))
 
 (reorg-create-data-type
+ :name donep
+ :class org
+ :parse (org-entry-is-done-p))
+
+(reorg-create-data-type
  :name category-inherited
  :class org
  :parse (org-entry-get-with-inheritance "CATEGORY"))
@@ -986,6 +1036,11 @@ if there is not one."
  :name org-level
  :class org
  :parse (org-current-level))
+
+(reorg-create-data-type
+ :name archivedp
+ :class org
+ :parse (org-in-archived-heading-p))
 
 (reorg-create-data-type
  :name root
@@ -1068,6 +1123,11 @@ if there is not one."
  :parse (car (alist-get 'active .ts-all)))
 
 (reorg-create-data-type
+ :name ts-inactive-first
+ :class org
+ :parse (car .ts-inactive-all))
+
+(reorg-create-data-type
  :name ts-active-all
  :class org
  :parse (append (alist-get 'active .ts-all)
@@ -1138,7 +1198,6 @@ if there is not one."
 		  (match-end 1)))
 	   collect (match-string-no-properties 1 headline))))
 
-
 (defconst reorg-org--clock-re
   (rx (seq bol
 	   (zero-or-more (any "	 "))
@@ -1179,7 +1238,6 @@ if there is not one."
 		    ":"
 		    (group-n 14 (one-or-more digit))))) ;; total minutes
   "Clock line RE.  The groups are explained in the comments.")
-
 
 (defun reorg-org--parse-clock-lines ()
   "parse clock lines for heading at point return:
@@ -1370,8 +1428,6 @@ if there is not one."
 		 collect (cons type (car times))
 		 else
 		 collect (cons type (reverse times)))))))
-
-
 
 (defun reorg-org--get-days-between (time1 &optional time2 format)
   "Get list of dates between (inclusive) org timestamp strings TIME1

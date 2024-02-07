@@ -1458,6 +1458,7 @@ to the results."
   (let ((group-id (md5 (pp-to-string template)))
 	(format-results (or (plist-get template :format-results)
 			    (plist-get template :format-result)
+			    (plist-get template :format)
 			    (plist-get inherited-props :format-results)))
 	(sort-results (or (append (plist-get inherited-props :sort-results)
 				  (plist-get template :sort-results))))
@@ -1480,6 +1481,7 @@ to the results."
 	(group (or (plist-get template :group)
 		   (plist-get template :groups)))
 	(sort-groups (or (plist-get template :sort-groups)
+			 (plist-get template :sort)
 			 (plist-get template :sort-groups)))
 	results metadata)
     (cl-labels ((get-header-metadata
