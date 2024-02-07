@@ -9,6 +9,7 @@
   (reorg-open-sidebar
    `( :sources ((org . ,reorg-test-org-file-list))
       :group .root
+      :sort-groups reorg-string<
       :format-results ((s-pad-right 5 " " .priority)
 		       (s-pad-right 15 " " .todo)
 		       (if (or .ts-single .ts-active-range-first)
