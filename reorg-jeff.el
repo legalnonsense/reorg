@@ -2,6 +2,12 @@
 (setq reorg-test-org-file-list (org-agenda-files))
 ;; (setq reorg-test-org-file-list "~/tmp/tmp.org")y
 
+(defun jrf/reorg-diary ()
+  (reorg-org-capture-enable)
+  (reorg-open-sidebar
+   `( :sources ((org . ,reorg-test-org-file-list))
+      :group (or .ts-single 
+))))
 
 (defun jrf/reorg-agenda-cases ()
   (interactive)
@@ -28,7 +34,6 @@
 					     "%a, %b %d, %Y"
 					     "%a, %b %d, %Y at %-l:%M%p"))
 					  (t ""))))
-					    
 
       :children (( :group (when (and (member .todo '("TASK" "DELEGATED" "WAITING"))
 				     (not .archivedp))

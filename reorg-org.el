@@ -774,6 +774,14 @@ if there is not one."
    nil 
    (call-interactively #'org-store-link)))
 
+(defun reorg-org--get-dates-between (from to)
+  "make a list of dates from date1 to date2 (inclusive)"
+  (let ((ts-from (ts-parse from))
+	(ts-to (ts-parse to)))
+    (cl-loop until (ts> ts-from ts-to)
+	     collect (ts-format "%Y-%m-%d" ts-from) into results
+	     and do (setq ts-from (ts-inc 'day 1 ts-from ))
+	     finally return results)))
 ;;; org class 
 
 ;; (defun reorg-org--clock-in-out ()
@@ -1076,9 +1084,20 @@ if there is not one."
 						   b))))))
 
 (reorg-create-data-type
+ :name ts-any-today 
+ :class org
+ :parse (when .ts-active-all-flat
+	  (car (cl-member (format-time-string "%Y-%m-%d")
+			  .ts-all-flat
+			  :test (lambda (a b)
+				  (s-starts-with-p a
+						   b))))))
+
+(reorg-create-data-type
  :name ts-all-flat
  :class org
  :parse
+ (sort 
  (-non-nil (seq-uniq
 	    (cl-loop for (type . times) in .ts-all
 		     append (cl-loop for time in times
@@ -1093,14 +1112,70 @@ if there is not one."
 				     else if (listp time)
 				     append (ensure-list (car time))
 				     else
-				     append (ensure-list time))))))
+				     append (ensure-list time)))))
+ #'string<))
 
 (reorg-create-data-type
- :name ts-single
+ :name ts-active-flat
+ :class org
+ :parse
+ (sort 
+  (-non-nil (seq-uniq
+	    (cl-loop for (type . times) in .ts-all
+		     when (member type '(active active-range))
+		     append (cl-loop for time in times
+				     if (and (consp time)
+					     (car time)
+					     (cdr time))
+				     append
+				     (ensure-list
+				      (reorg-org--get-days-between
+				       (car time)
+				       (cdr time)))
+				     else if (listp time)
+				     append (ensure-list (car time))
+				     else
+				     append (ensure-list time)))))
+  #'string<))
+
+(reorg-create-data-type
+ :name ts-inactive-flat
+ :class org
+ :parse
+ (sort 
+  (-non-nil (seq-uniq
+	    (cl-loop for (type . times) in .ts-all
+		     when (member type '(inactive inactive-range))
+		     append (cl-loop for time in times
+				     if (and (consp time)
+					     (car time)
+					     (cdr time))
+				     append
+				     (ensure-list
+				      (reorg-org--get-days-between
+				       (car time)
+				       (cdr time)))
+				     else if (listp time)
+				     append (ensure-list (car time))
+				     else
+				     append (ensure-list time)))))
+ #'string<))
+
+(reorg-create-data-type
+ :name ts-single-active
  :class org
  :parse (or .ts-deadline
 	    .ts-active-first
 	    .ts-scheduled))
+
+;; (reorg-create-data-type
+;;  :name ts-any-single 
+;;  :class org
+;;  :parse (or .ts-deadline
+;; 	    .ts-active-first
+;; 	    .ts-active-range-first
+;; 	    .ts-inactive-first 
+;; 	    .ts-scheduled))
 
 (reorg-create-data-type
  :name ts-scheduled
@@ -1125,7 +1200,9 @@ if there is not one."
 (reorg-create-data-type
  :name ts-inactive-first
  :class org
- :parse (car .ts-inactive-all))
+ :parse (or (car .ts-inactive-all)
+	    (and .ts-inactive-range
+		 (caar .ts-inactive-range))))
 
 (reorg-create-data-type
  :name ts-active-all
@@ -1145,8 +1222,7 @@ if there is not one."
 (reorg-create-data-type
  :name ts-inactive-all
  :class org
- :parse (append (alist-get 'inactive .ts-all)
-		(alist-get 'inactive-range .ts-all)))
+ :parse (alist-get 'inactive .ts-all))
 
 (reorg-create-data-type
  :name ts-active-range
@@ -1159,7 +1235,7 @@ if there is not one."
  :parse (caar (alist-get 'active-range .ts-all)))
 
 (reorg-create-data-type
- :name ts-inactive-ranges
+ :name ts-inactive-range
  :class org
  :parse (alist-get 'inactive-range .ts-all))
 
@@ -1271,18 +1347,21 @@ if there is not one."
 
 (defun reorg-org--ts-parser (type &optional upper-limit lower-limit)
   "TYPES can be:
-  active
-  active-range
-  active-all
-  inactive
-  inactive-range
-  inactive-all
-  clock
-  planning
+  active - first active timestamp 
+  active-range - first active range 
+  active-all - all active timestamps 
+  inactive - first inactive timestamp 
+  inactive-range - first inactive range 
+  inactive-all - all inactive timestamps 
+  clock - all clock time stamps 
+  planning - deadline, scheduled, closed
   deadline
   scheduled
   closed
-  all"
+  all - everything
+Returns an alist.
+
+UPPER-LIMIT and LOWER-LIMIT are the bounds of the region searched."
   (let (timestamps)
     (setq upper-limit (pcase upper-limit
 			((pred functionp) (funcall upper-limit))
