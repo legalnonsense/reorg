@@ -2,12 +2,74 @@
 (setq reorg-test-org-file-list (org-agenda-files))
 ;; (setq reorg-test-org-file-list "~/tmp/tmp.org")y
 
+(defun reorg--map-buffer (func)
+  "apply funcs at each entry of the current buffer"
+  (save-excursion 
+  (ov-clear)
+  (goto-char (point-min))
+  (cl-loop do (funcall func)
+	   while (reorg--goto-next-heading))))
+
+(defun reorg--hide-heading ()
+  "make the current heading invisible"
+  (ov (1- (point-at-bol))
+      (point-at-eol)
+      'invisible t
+      'reorg t))
+
+(defun reorg---hide-test ()
+  "hide anything starting with a \"[\""
+  (reorg--map-buffer (lambda () (when (and (reorg--get-prop 'headline)
+					   (s-starts-with-p "["
+							    (reorg--get-prop 'headline)))
+				  (reorg--hide-heading)))))
+
+(defun reorg--truncate-and-pad (string trunc pad &optional ellipsis padding)
+  (->> (s-truncate trunc string (or ellipsis " "))
+       (s-pad-right pad (or padding " "))))
+
 (defun jrf/reorg-diary ()
+  (interactive)
   (reorg-org-capture-enable)
   (reorg-open-sidebar
    `( :sources ((org . ,reorg-test-org-file-list))
-      :group (or .ts-single 
-))))
+      :format-results (
+		       (propertize
+			(reorg--truncate-and-pad 
+			 (car (s-split "," .root))
+			 12 13)
+			'face '((t ( :foreground "black"
+				     :background "light gray"
+				     :box t))))
+		       "     "
+		       (propertize 
+			(reorg--truncate-and-pad .headline 50 55 "...")
+			'face
+			'((t ( :foreground "black"
+				     :background "light gray"
+				     :box t))))
+		       .clocked-time)
+      :group (when .ts-all-flat
+	       (substring .@ts-all-flat 0 4))
+      :sort-groups string>
+      :children (( :group (reorg-org--format-time-string .ts-all-flat "%B")
+		   :bullets "-"
+		   :folded-bullets ">"
+		   :sort-groups (lambda (a b)
+		     (reorg--sort-by-list a b '("January"
+						"February"
+						"March"
+						"April"
+						"May"
+						"June"
+						"July"
+						"August"
+						"September"
+						"October"
+						"November"
+						"December")))
+		   :children (( :group (reorg-org--format-time-string .ts-all-flat "%e %A")
+				:sort-groups string<)))))))
 
 (defun jrf/reorg-agenda-cases ()
   (interactive)
@@ -34,7 +96,6 @@
 					     "%a, %b %d, %Y"
 					     "%a, %b %d, %Y at %-l:%M%p"))
 					  (t ""))))
-
       :children (( :group (when (and (member .todo '("TASK" "DELEGATED" "WAITING"))
 				     (not .archivedp))
 			    "--TASKS--")
@@ -61,7 +122,6 @@
 					 (s-truncate 47)
 					 (s-pad-right 50 " "))
 				    .clocked-time)
-
 		   :sort-results (((or .ts-closed
 				       .ts-active-first
 				       (car .ts-inactive-all)
@@ -128,7 +188,6 @@
 								 "OPP_DUE"
 								 "WAITING"
 								 "DONE"))))
-
 				   "--CARRIED OVER--")
 			  :format-results ( .priority
 					    " "
@@ -140,7 +199,6 @@
 					    (s-pad-right 50 " " .headline))
 			  :sort-results ((.root . reorg-string<)
 					 (.priority  . reorg-string<))))))))))
-
 
 (defun jrf/reorg-main ()
   (interactive)
@@ -188,8 +246,7 @@
 	    (s-pad-right 50 " " .headline)
 	    (s-pad-left 30 " " .clocked-time))
 	   :sort-results
-	   ((.ts-agenda-today . string<)))
-	 
+	   ((.ts-agenda-today . string<)))	 
 	 ( :group "Cases"
 	   :children
 	   (( :group (when (and (or 
@@ -225,7 +282,6 @@
 			 ( :group (when (and (or .ts-deadline
 						 .ts-active-first
 						 .ts-scheduled)
-
 					     ;; (org-string>= (reorg-org--format-time-string
 					     ;; 		      .ts-single
 					     ;; 		      "%Y-%m-%d")

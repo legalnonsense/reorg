@@ -1086,7 +1086,7 @@ if there is not one."
 (reorg-create-data-type
  :name ts-any-today 
  :class org
- :parse (when .ts-active-all-flat
+ :parse (when .ts-all-flat
 	  (car (cl-member (format-time-string "%Y-%m-%d")
 			  .ts-all-flat
 			  :test (lambda (a b)
@@ -1209,6 +1209,13 @@ if there is not one."
  :class org
  :parse (append (alist-get 'active .ts-all)
 		(alist-get 'active-range .ts-all)))
+
+(reorg-create-data-type
+ :name ts-inactive-all-flat
+ :class org
+ :parse (-non-nil (append (alist-get 'inactive .ts-all)
+			  (cl-loop for each in (alist-get 'inactive-range .ts-all)
+				   append (reorg-org--get-days-between each)))))
 
 (reorg-create-data-type
  :name ts-active-all-flat
