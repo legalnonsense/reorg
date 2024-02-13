@@ -179,8 +179,8 @@
 			    (s-pad-right 50 " " .headline))
 			  :sort-results
 			  ((.priority . reorg-string<)))
-			( :group (when (and .ts-single
-					    (string< .ts-single (format-time-string "%Y-%m-%d"))
+			( :group (when (and .ts-single-active
+					    (string< .ts-single-active (format-time-string "%Y-%m-%d"))
 					    .todo
 					    (not .archivedp)
 					    (not (member .todo '("EVENT"
