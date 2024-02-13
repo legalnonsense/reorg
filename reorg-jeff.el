@@ -76,7 +76,7 @@
   (reorg-org-capture-enable)
   (reorg-open-sidebar
    `( :sources ((org . ,reorg-test-org-file-list))
-      :group .root
+      :group (when (member "active" .tag-list) .root)
       :sort-groups reorg-string<
       :format-results ((s-pad-right 5 " " .priority)
 		       (s-pad-right 15 " " .todo)
@@ -178,7 +178,7 @@
 					   .root)))
 			    (s-pad-right 50 " " .headline))
 			  :sort-results
-			  ((.priority . reorg-string<)))
+			  ((.priority . reorg-string<)))			
 			( :group (when (and .ts-single-active
 					    (string< .ts-single-active (format-time-string "%Y-%m-%d"))
 					    .todo
