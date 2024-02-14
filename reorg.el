@@ -1981,8 +1981,8 @@ string or to nil."
 					     (funcall num data)
 					   num)
 					 ?*)))
-      ;; update the DATA that will be stored in
-      ;; `reorg-data'    
+      ;; update the DATA that will be stored in the
+      ;; `reorg-data' text property
       (push (cons 'reorg-level level) data)
       ;; the overrides are for hacking and testing
       (cl-loop for (prop . val) in overrides
@@ -1998,10 +1998,14 @@ string or to nil."
 	 ;; get the headline text 
 	 (setq headline-text
 	       (if (alist-get 'reorg-branch data)
-		   (concat (create-stars level)
-			   " "
-			   (alist-get 'branch-name data)
-			   "\n")
+		   (let ((props (text-properties-at 0 (alist-get 'branch-name data)))
+			 (str (concat (create-stars level)
+				      " "
+				      (alist-get 'branch-name data)
+				      "\n")))
+		     (add-text-properties 0 (length str) props str)
+		     str)
+
 		 (let* ((new (reorg--walk-tree
 			      format-string
 			      #'reorg--turn-dot-to-display-string
