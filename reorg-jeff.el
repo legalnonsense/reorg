@@ -127,11 +127,6 @@
 				       (car .ts-inactive-all)
 				       "") . reorg-string<)))))))
 
-
-(defun jrf/reorg-find-string-starting-with-substring (str list)
-  "Return the first string in LST that starts with the substring STR."
-  )
-
 (defun jrf/reorg-today-agenda (&optional date)
     (interactive)
     (reorg-org-capture-enable)
@@ -147,9 +142,16 @@
 					       "WAITING"
 					       "DEADLINE"))
 			       (not .archivedp))
-		      (propertize ,now
+		      (propertize (ts-format "%A, %b. %e, %Y" (ts-parse ,now))
 				  'face '((t (:height 1.5)))
 				  'keymap (let ((map (make-sparse-keymap)))
+					    (define-key map (kbd "B")
+					      (lambda ()
+						(interactive)
+						(funcall
+						 #'jrf/reorg-today-agenda
+						 (ts-format "%Y-%m-%d"
+						 (ts-dec 'day 1 (ts-parse ,now))))))
 					    (define-key map (kbd "F")
 					      (lambda ()
 						(interactive)
