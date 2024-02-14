@@ -274,7 +274,6 @@ supplied, get that property from 'reorg-data'."
 	      (fmakunbound ',display-func)
 	      (fmakunbound ',parsing-func))))))
 
-
 ;;; code 
 
 ;;;; convenience functions
@@ -661,7 +660,7 @@ This creates two interactive functions:
 			,form)))))
 
 (reorg--create-navigation-commands
- ;; If you want to debug, just pp macro expand and instrument
+ ;; If you want to debug, pp macro expand and instrument
  ;; the defun in a scratch buffer.  
  ((next-leaf-sibling . (reorg--get-next-prop 'reorg-field-type
 					     'leaf

@@ -80,14 +80,14 @@
       :sort-groups reorg-string<
       :format-results ((s-pad-right 5 " " .priority)
 		       (s-pad-right 15 " " .todo)
-		       (if (or .ts-single .ts-active-range-first)
+		       (if (or .ts-single-active .ts-active-range-first)
 			   (s-pad-right 50 "." .headline)
 			 .headline)
 		       (s-pad-right 35
 				    " "
-				    (cond (.ts-single
+				    (cond (.ts-single-active
 					   (reorg-org--format-time-string
-					    .ts-single
+					    .ts-single-active
 					    "%a, %b %d, %Y"
 					    "%a, %b %d, %Y at %-l:%M%p"))
 					  (.ts-active-range-first
@@ -107,7 +107,7 @@
 		 ( :group (when (and (member .todo '("EVENT" "DEADLINE" "OPP_DUE"))
 				     (not .archivedp))
 			    "--CALENDAR--")
-		   :sort-results ((.ts-single . reorg-string<)))
+		   :sort-results ((.ts-single-active . reorg-string<)))
 		 ( :group (when (and .archivedp
 				     .ts-all-flat)
 			    "--ARCHIVE--")
