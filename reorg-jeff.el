@@ -125,9 +125,9 @@
 		   :sort-results (((or .ts-closed
 				       .ts-active-first
 				       (car .ts-inactive-all)
-				       "") . reorg-string<)))))))
+				       "") . reorg-string>)))))))
 
-(defun jrf/reorg-today-agenda (&optional date)
+(defun jrf/reorg-agenda-today (&optional date)
     (interactive)
     (reorg-org-capture-enable)
     (let* ((now (or date (format-time-string "%Y-%m-%d")))
@@ -203,7 +203,8 @@
 					   .root)))
 			    (s-pad-right 50 " " .headline))
 			  :sort-results
-			  ((.priority . reorg-string<)))			
+			  ((.root . reorg-string<)
+			   (.priority . reorg-string<)))			
 			( :group (when (and .ts-single-active
 					    (string< .ts-single-active (format-time-string "%Y-%m-%d"))
 					    .todo
