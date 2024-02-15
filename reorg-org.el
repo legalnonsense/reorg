@@ -948,10 +948,10 @@ if there is not one."
  :class org
  :parse (reorg-org--get-body))
 
-;; (reorg-create-data-type
-;;  :name deadline
-;;  :class org
-;;  :parse (reorg-org--timestamp-parser 'deadline))
+(reorg-create-data-type
+ :name deadline
+ :class org
+ :parse (reorg-org--timestamp-parser 'deadline))
 
 ;; (reorg-create-data-type
 ;;  :name scheduled

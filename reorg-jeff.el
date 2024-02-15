@@ -114,6 +114,7 @@
 		   :format-results ((s-pad-right 20 " "
 						 (if-let ((ts (or .ts-closed
 								  .ts-active-first
+								  .deadline 
 								  .ts-inactive-first)))
 						     (reorg-org--format-time-string
 						      ts "%b %e, %Y")
@@ -123,7 +124,8 @@
 					 (s-pad-right 50 " "))
 				    .clocked-time)
 		   :sort-results (((or .ts-closed
-				       .ts-active-first
+				       .deadline
+				       .ts-active-first 
 				       (car .ts-inactive-all)
 				       "") . reorg-string>)))))))
 
