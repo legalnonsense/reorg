@@ -795,6 +795,11 @@ if there is not one."
   (reorg-org--with-source-and-sync
     (org-toggle-archive-tag)))
 
+(defun reorg-org--archive-heading ()
+  "archive"
+  (interactive)
+  (reorg-org--toggle-archive))
+
 (reorg-create-class-type
  :name org
  :render-func reorg-org--render-source
