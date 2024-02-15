@@ -147,7 +147,7 @@
 					       "WAITING"
 					       "DEADLINE"))
 			       (not .archivedp))
-		      (propertize ,now
+		      (propertize (ts-format "%A, %b. %e, %Y" (ts-parse ,now))
 				  'face '((t (:height 1.5)))
 				  'keymap (let ((map (make-sparse-keymap)))
 					    (define-key map (kbd "F")
