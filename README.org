@@ -19,7 +19,7 @@ Create modules to expand capabilities to display and interact with /any/ kind of
 ** Example: Org-mode
 Reorg was originally designed as a way to view and interact with org-mode files. Think of it as a combination of [[https://github.com/alphapapa/org-super-agenda][org-super-agenda]], [[https://github.com/alphapapa/org-sidebar][org-sidebar]], [[https://github.com/alphapapa/org-ql][org-ql]], and [[https://github.com/alphapapa/taxy.el][taxy.el]] (although it does not rely on any of these packages). 
 *** Using your own org-agenda-files
-
+First, =(require 'reorg-launch)= and =(require 'reorg-demo)=
 Run =M-x= =reorg-demo-agenda-files=
 
 
