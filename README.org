@@ -1,3 +1,6 @@
+THIS IS A WORK IN PROGRESS
+Unstable. Breaking changes.
+
 * Reorg: Re​organize your life
 #+HTML: <img src="reorg.webp" align="right" width=300>
 
@@ -101,11 +104,15 @@ Reorg itself does not provide a way to interact with the data being displayed in
 | r   | set properties             |
 | i   | set priority               |
 
+Note that the keybindings in =reorg-org.el= are constantly changing. These are only examples. 
+
 **** Refreshing the display 
 If you run any of these commands and change the underlying org-mode file, Reorg will edit the source buffer, delete the heading (and its clones) in the reorg tree, re-parse the heading, and re-insert the data into the tree. It does this without reloading the entire tree, so the change is immediate. 
 
 Note that refreshing the a single element in the outline is tricky. If you encounter a bug, please report it. You can always press =R= to reload the entire outline if needed. 
 **** Viewing the Reorg buffer
+
+
 A reorg buffer can be viewed in a side window so that it is like a sidebar. Otherwise, it can be viewed in a normal window as you would any buffer.
 
 If you view reorg as a sidebar (the default shortcut to toggle the sidebar is =C-; r=), it will automatically render the source for the header at point. For example, here it is interacting with the preceding outline:
