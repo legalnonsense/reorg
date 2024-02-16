@@ -125,7 +125,9 @@ Extra data types can be added using the =reorg-create-data-type= macro which is 
 
 As the =reorg-org= module stands now (i.e., hacky, in testing, etc.), if the first heading in the original example is parsed, it returns an alist:
 
-NOTE: Now, when reorg generates an outline, it scans the template and only parses the data that is needed for that specific outline. This allows uses to define additional data types without worrying about slowing down outlines that don’t use that data type. 
+Note: Now, when reorg generates an outline, it scans the template and only parses the data that is needed for that specific outline. This allows uses to define additional data types without worrying about slowing down outlines that don’t use that data type.
+
+Also note: these are for illustration and the actual types defined in =reorg-org.el= are constantly changing. 
 #+begin_src emacs-lisp :results silent
   ((ts-any . "[2023-01-11 Wed 13:16]")
    (ts-ts . #s(ts 13 16 [....] 1673460960.0))
@@ -168,10 +170,11 @@ NOTE: Now, when reorg generates an outline, it scans the template and only parse
    (delegatee)
    (class . org))
 #+end_src
-At all points within a template, the user can access any of these variables with dotted notation. In other words, =.priority= is the same as =(alist-get 'priority data)=. 
+At all points within an outline template, the user can access any of these variables with dotted notation. In other words, =.priority= is the same as =(alist-get 'priority DATA)=. (See below for an explanation about =DATA=).
 
 **** Help from company-reorg when writing a template
 
+If you use company, you can =M-x reorg-enable-completion= and you should get auto complete for the dotted prefix 
 
 *** Example
 Here is a basic template that will display each heading that has a "TODO" todo state for each file in your =org-agenda-files=. 
@@ -327,10 +330,12 @@ Result sorters are inherited through the subtree. If additional result sorters a
 ***** =:overrides= and =:post-overrides=
 ***** =:action-function=
 *** Capturing data into the outline and dynamic updates: org-capture as an example 
-**** Write an org-capture hook to parse the new entry 
-**** Drop the entry into the outline in the correct place(s)
+**** 
+Try to use =reorg-org-capture-enable=. It should update the single entry and then then find all of the places the edited entry should appear. No shit. It took me a long time to figure this out. It works for me. This means after you capture a note it will automatically propogate to the outline without reloading the entire outline. 
 
-** Developing new modules 
+** Developing new modules
+It’s probably best to look at the examples provided if you’re interested in this.
+
 A class is created using the =reorg-create-class= macro. Here are two examples of class definitions. First, the class definition for org files:
 
 #+begin_src emacs-lisp :results silent
@@ -346,20 +351,13 @@ Second, the class definition for files from the file system:
                                                SOURCE)
                                          t)
                     collect (PARSER each))
-   :keymap (("e" . (lambda ()
-                     (interactive)
-                     (let ((file (reorg--get-prop 'fullname)))
-                       (reorg--select-main-window)
-                       (find-file file))))
-            ("o" . (lambda () (interactive)
-                     (xdg-open (reorg--get-prop 'path))))))
 #+end_src
-A class definition has two required components: the name of the new class and a “getter.” It also has two optional components: a render (=:render-func=)function and a keymap (=:keymap=).
+A class definition has two required components: the name of the new class and a “getter.” It also has two optional components: a render function (keyword =:render-func=) and a keymap (keyword =:keymap=).
 
-The =:name= argument is simply the name of the class that will be used then declaring a source in a template and when creating parsers for the data. 
+The =:name= argument is the name of the class that will be used then declaring a source in a template and when creating parsers for the data. 
 *** Writing a getter
 The job of the “getter” is to fetch the data call tell Reorg where when and how the parser should be used on that data. There are two pre-defined variables that you must use when writing the getter: =SOURCE= and =PARSER=.
-**** Specifying a =SOURCE= 
+**** The =SOURCE= variable 
 
 The =SOURCE= variable refers to the input from the template that is supplied by the user. For example, in the above org-mode class, =SOURCE= is simply the path of an org-mode file.
 
@@ -390,26 +388,30 @@ Then the class getter would be defined this way:
                     collect (PARSER each))
 #+end_src
 As you can see, =SOURCE= simply refers to the anticipated input from the template.
-**** Without using the =PARSER=
-** Using Reorg without custom modules
+**** The =PARSER= function
+See below. 
+** Example: a json module
+This parses and displays json data. It renders the underlying json file by narrowing it to the relevant region. 
 #+begin_src emacs-lisp :results silent
-(reorg-create-class-type
- :name json
- :getter (with-current-buffer (find-file-noselect SOURCE)
-	   (let ((json-array-type 'list)
-		 (json-key-type 'symbol)
-		 (json-object-type 'alist)
-		 (json-null nil)
-		 (json-false nil)
-		 (file (buffer-file-name)))
-	     (save-excursion 
-	       (goto-char (point-min))
-	       (cl-loop for each in (json-read)
-			collect (append (list (cons 'file file)) each))))))
+  (reorg-create-class-type
+   :name json
+   :getter (with-current-buffer (find-file-noselect SOURCE)
+             ;; This is the quickest and dirtiest way
+             ;; I found to parse a json file which I have
+             ;; no reason to ever do. It will properly
+             ;; parse the test file at least. 
+             (let ((json-array-type 'list)
+                   (json-key-type 'symbol)
+                   (json-object-type 'alist)
+                   (json-null nil)
+                   (json-false nil)
+                   (file (buffer-file-name)))
+               (save-excursion 
+                 (goto-char (point-min))
+                 (cl-loop for each in (json-read)
+                          collect (append (list (cons 'file file)) each))))))
 #+end_src
-
-
-
+Then, to use that class: 
 #+begin_src emacs-lisp :results silent
 (reorg-open-sidebar '( :sources ((json . "~/.emacs.d/lisp/reorg/TEST/y77d-th95.json"))
 		       :group (if .year (substring .year 0 4) "Unknown year")
@@ -600,8 +602,9 @@ When a Reorg buffer is displayed in a side window, it can automatically render t
 When you define a keyboard shortcut in a class, it will apply any entry in the outline that belongs to that class. See reorg-org.el, reorg-files.el, and other modules to see how this works. 
 ** Planned features  
 *** Changing views on the fly
-**** Hoisting headings / Inverting the outline / multiple views 
-**** Infinite outlines (not sure what I meant by this but sounds interesting)
+For example hoisting headings / inverting the outline / multiple views
+
+
 
 
 
