@@ -12,9 +12,9 @@
 #+begin_src emacs-lisp :results silent
   (org-define-tagger :name "witness"
 		   :properties (name at-name)
-		   :init-val ((:name "Michael Manente" :at-name "Mike")
-			      (:name "Melanie Manente" :at-name "Melanie")
-			      (:name "Larry Manente" :at-name "Larry"))
+		   :init-val ((:name "Mil" :at-name "Mke")
+			      (:name "Mal" :at-name "Mee")
+			      (:name "L" :at-name "Lay"))
 		   :completion-properties (name at-name)
 		   :prefix "#"
 		   :modes (org-mode emacs-lisp-mode)
@@ -79,9 +79,17 @@
   (org-activate-dates
    (0 'org-date t))
   (org-activate-footnote-links)
-  ("<<<\\([^<>\n 	]\\|[^<>\n 	][^<>\n]*[^<>\n 	]\\)>>>"
+  ("<<<\\([^<>\n
+ 	]\\|[^<>\n
+ 	][^<>\n
+]*[^<>\n
+ 	]\\)>>>"
    (0 'org-target t))
-  ("<<\\([^<>\n 	]\\|[^<>\n 	][^<>\n]*[^<>\n 	]\\)>>"
+  ("<<\\([^<>\n
+ 	]\\|[^<>\n
+ 	][^<>\n
+]*[^<>\n
+ 	]\\)>>"
    (0 'org-target t))
   ("^&?%%(.*\\|<%%([^>\n]*?>"
    (0 'org-sexp-date t))

@@ -2,27 +2,6 @@
 (setq reorg-test-org-file-list (org-agenda-files))
 ;; (setq reorg-test-org-file-list "~/tmp/tmp.org")y
 
-(defun reorg--map-buffer (func)
-  "apply funcs at each entry of the current buffer"
-  (save-excursion 
-  (ov-clear)
-  (goto-char (point-min))
-  (cl-loop do (funcall func)
-	   while (reorg--goto-next-heading))))
-
-(defun reorg--hide-heading ()
-  "make the current heading invisible"
-  (ov (1- (point-at-bol))
-      (point-at-eol)
-      'invisible t
-      'reorg t))
-
-(defun reorg---hide-test ()
-  "hide anything starting with a \"[\""
-  (reorg--map-buffer (lambda () (when (and (reorg--get-prop 'headline)
-					   (s-starts-with-p "["
-							    (reorg--get-prop 'headline)))
-				  (reorg--hide-heading)))))
 
 (defun reorg--truncate-and-pad (string trunc pad &optional ellipsis padding)
   (->> (s-truncate trunc string (or ellipsis " "))
