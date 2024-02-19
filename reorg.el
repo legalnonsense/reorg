@@ -479,7 +479,6 @@ switch to that buffer in the window."
 
 ;;;; programatically interacting with tree buffer 
 
-
 (defun reorg--goto-next-prop (property &optional
 				       value
 				       limit
@@ -979,8 +978,6 @@ has any children."
 point where the leaf should be inserted (ie, insert before). Assume
 that the point is on the parent heading, and the location is within
 the following leaves."
-  ;; goto the first leaf if at a branch
-  ;; (push leaf-string xxx)
   (if (eq 'leaf (reorg--get-prop 'reorg-field-type))
       (error "You cannot run this function on a leaf.")
     (if-let ((result-sorters

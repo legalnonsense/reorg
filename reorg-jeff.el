@@ -206,7 +206,21 @@
 						 (ts-inc 'day 1 (ts-parse ,now))))))
 					    map)))
 	     :children (
-			( :group (when (cl-loop for each in .ts-active-flat
+			( :group (when (or (and .deadline
+						(string-prefix-p ,now .deadline))
+					   (and .scheduled
+						(string-prefix-p ,now .scheduled)))
+				   "--DEADLINES--")
+			  :format-results (
+					   .priority
+					   " "
+					   (s-pad-right
+					    20
+					    " "
+					    (car (s-split ","
+							  .root)))
+					   (s-pad-right 50 " " .headline)))
+			( :group (when (cl-loop for each in .ts-active-all-flat
 						when (and (string-prefix-p ,now each)
 							  (reorg-org--ts-hhmm-p each))
 						return each)
@@ -216,7 +230,7 @@
 			   (s-pad-right 23  "."
 					(downcase
 					 (reorg-org--format-time-string 
-					  (cl-loop for each in '.ts-active-flat
+					  (cl-loop for each in '.ts-active-all-flat
 						when (and (string-prefix-p ,now each)
 							  (reorg-org--ts-hhmm-p each))
 						return each)

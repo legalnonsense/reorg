@@ -951,7 +951,8 @@ if there is not one."
 (reorg-create-data-type
  :name deadline
  :class org
- :parse (reorg-org--timestamp-parser 'deadline))
+ :parse (when-let ((d (reorg-org--timestamp-parser 'deadline)))
+	  (substring d 1 -1)))
 
 ;; (reorg-create-data-type
 ;;  :name scheduled
