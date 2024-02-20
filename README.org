@@ -353,7 +353,6 @@ For example, here is a minimal file class definition with a couple shortcuts. No
                      (let ((file (reorg--get-prop 'fullname)))
                        (reorg--select-main-window)
                        (find-file file))))
-            ("d" . (lambda () (interactive) (dired (reorg--get-prop 'parent))))
             ("o" . (lambda () (interactive)
                      (xdg-open (reorg--get-prop 'path))))))
 
