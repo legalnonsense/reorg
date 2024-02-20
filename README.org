@@ -465,7 +465,8 @@ Currently, groups can only sorted by a single function. But results can be multi
 #+end_src
 Result sorters are inherited through the subtree. If additional result sorters appear within a subtree, they are added to the previously declared sorters such that the previous declarations have a higher precedence. 
 
-**** :bullet 
+**** :bullet and :folded-bullet
+This are strings that are used to replace the leading stars for each heading. For example, youc could use "->" and "--" to show if a heading is folded or not. 
 **** hidden options
 ***** =:overrides= and =:post-overrides=
 ***** =:action-function=
