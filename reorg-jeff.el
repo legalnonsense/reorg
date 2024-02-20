@@ -2,14 +2,10 @@
 (setq reorg-test-org-file-list (org-agenda-files))
 ;; (setq reorg-test-org-file-list "~/tmp/tmp.org")y
 
-(defun jrf/reorg-file-tree (&optional path)
-  (reorg-open-sidebar
-   `( :sources ((file . "~/legal/Dropbox/Spears & Filipovits Dropbox/Active Cases/Paez, Manuel/documents-evidence/2023-12-02 - partial GBI file/"))
-      :group 
 
-(defun reorg--truncate-and-pad (string trunc pad &optional ellipsis padding)
-  (->> (s-truncate trunc string (or ellipsis " "))
-       (s-pad-right pad (or padding " "))))
+
+
+
 
 (defun jrf/reorg-diary ()
   (interactive)

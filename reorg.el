@@ -278,6 +278,11 @@ supplied, get that property from 'reorg-data'."
 
 ;;;; convenience functions
 
+(defun reorg--truncate-and-pad (string trunc pad &optional ellipsis padding)
+  "Truncate STRING to TRUNC and then add right padding to PAD." 
+  (->> (s-truncate trunc string (or ellipsis " "))
+       (s-pad-right pad (or padding " "))))
+
 (defmacro reorg--create-string-comparison-funcs ()
   "Create string comparison functions that ignore case:
 reorg-string<, reorg-string=, reorg-string>.  These functions
