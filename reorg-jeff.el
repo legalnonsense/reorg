@@ -3,9 +3,9 @@
 ;; (setq reorg-test-org-file-list "~/tmp/tmp.org")y
 
 
-(defun reorg--truncate-and-pad (string trunc pad &optional ellipsis padding)
-  (->> (s-truncate trunc string (or ellipsis " "))
-       (s-pad-right pad (or padding " "))))
+
+
+
 
 (defun jrf/reorg-diary ()
   (interactive)
@@ -49,6 +49,7 @@
 						"December")))
 		   :children (( :group (reorg-org--format-time-string .ts-all-flat "%e %A")
 				:sort-groups string<)))))))
+
 
 ;; (defun jrf/reorg-agenda-cases* ()
 ;;   (interactive)
@@ -109,7 +110,7 @@
 ;; 						     (car .ts-inactive-all))))
 ;; 				      (substring tt 0 
 				    
-;; 				       "") . reorg-string>)))))))))
+;; 				       "") . reorg-string>)))))))
 
 (defun jrf/reorg-agenda-cases ()
   (interactive)

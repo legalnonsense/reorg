@@ -119,7 +119,6 @@ Reorg will automatically detect if it’s in a side window or not, and adjust it
 [[file:TEST/output-2023-01-11-19:51:30.gif]]
 ** How to write a template
 Templates are used to create custom outlines and have a simple syntax. Be forewarned that the user must be familiar with basic lisp (i.e., enough to navigate a config file) to competently write a template. 
-*** Nested recursive outlines 
 *** Accessing the parsed data: dotted symbols
 
 Templates use variables that are stored when Reorg parses the underlying data. These variables can be accessed using dotted symbols identical those used by the built-in [[https://elpa.gnu.org/packages/let-alist.html][let-alist]] macro. Templates can use any data that has been parsed by Reorg.
@@ -253,10 +252,148 @@ The preceding example has a problem: what if a heading has a timestamp, and a DO
                                  (equal .todo "DONE"))
                         "GROUP B")))
 #+end_src
-***** Multivalued properties
+***** Multivalued properties: the .@ operator 
 The =:group= keyword allows a second kind of dotted symbol: the =.@symbol=. If a reorg group contains a symbol prefixed with =.@= it is a signal to reorg that: (1) you anticipate the value of that data will be a list; and (2) you want to create clones of the data which are identical except for that one piece of data.
 
-I am not explaining this well. Example:
+I am not explaining this well, but it is shown in the main example screenshots. This means that if you have, for example, an orgmode entry with multiple dates in it, and you create a date tree, it will appear at each entry (note the use of .@ts-all-flat)
+
+#+begin_src emacs-lisp :results silent
+(defun jrf/reorg-diary ()
+  (interactive)
+  (reorg-org-capture-enable)
+  (reorg-open-sidebar
+   `( :sources ((org . ,(org-agenda-files))
+      :format-results (
+		       (propertize
+			(reorg--truncate-and-pad 
+			 (car (s-split "," .root))
+			 12 13)
+			'face '((t ( :foreground "black"
+				     :background "light gray"
+				     :box t))))
+		       "     "
+		       (propertize 
+			(reorg--truncate-and-pad .headline 50 55 "...")
+			'face
+			'((t ( :foreground "black"
+				     :background "light gray"
+				     :box t))))
+		       .clocked-time)
+      :group (when .ts-all-flat
+	       (substring .@ts-all-flat 0 4))
+      :sort-groups string>
+      :children (( :group (reorg-org--format-time-string .ts-all-flat "%B")
+		   :bullets "-"
+		   :folded-bullets ">"
+		   :sort-groups (lambda (a b)
+		     (reorg--sort-by-list a b '("January"
+						"February"
+						"March"
+						"April"
+						"May"
+						"June"
+						"July"
+						"August"
+						"September"
+						"October"
+						"November"
+						"December")))
+		   :children (( :group (reorg-org--format-time-string .ts-all-flat "%e %A")
+				:sort-groups string<)))))))
+#+end_src
+
+***** The .! operator
+
+I generally call this a "drill." If you prefix a symbol in a template (which should be an ordered list) with .!, then reorg will assume the list of names of branches in a tree, and create an outline placing each element at the appropriate spot. This means that reorg can easily display, for example, a file system heirarchy. 
+
+For example, here is a minimal file class definition with a couple shortcuts. Note that this definition requires the user to supply a shell command to generate a list of files:
+
+#+begin_src emacs-lisp :results silent
+  (reorg-create-class-type
+   :name files
+   :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
+                                               ;; (concat 
+                                               ;;  "find "
+                                               SOURCE
+                                               ;; " -type f"
+                                               )
+                                         t)
+                    collect (PARSER each))
+   :keymap (("e" . (lambda ()
+                     (interactive)
+                     (let ((file (reorg--get-prop 'fullname)))
+                       (reorg--select-main-window)
+                       (find-file file))))
+            ("o" . (lambda () (interactive)
+                     (xdg-open (reorg--get-prop 'path))))))
+
+  (reorg-create-data-type
+   :name filename
+   :class files
+   :parse (f-filename data))
+
+  (reorg-create-data-type
+   :name parent-dirs
+   :class files 
+   :parse (butlast (s-split "/" data t)))
+
+  (provide 'reorg-files)
+#+end_src
+
+Note that .parent-dirs will contain an ordered list showing each file's parent directories. Now, we will create a template that groups the files based on their parent directories. Note that we've decided for the user the input will be a directory and the command will be =find DIR -type f=. 
+
+#+begin_src emacs-lisp :results silent
+  (require 'reorg-files)
+  (defun reorg-files (&optional dir)
+    (interactive "D")
+    (reorg-open-sidebar
+     `( :sources ((files . ,(concat "find "
+                                    dir
+                                    " -type f")))
+        :format-results (.filename)
+        :group .!parent-dirs
+        :sort-results ((.filename . string<))
+        :sort-groups string<)))
+#+end_src
+
+Obviously you could do a great deal of customizing how files are displayed without much trouble. 
+***** Mixing different types of groupings
+
+You can mix groups generated by the .! operator with other traditional groups. For example, you can group something first and then drill the results. Here, we create two groups for files with an even number of characters and those with an odd number, then display the full file heirarchy:
+
+#+begin_src emacs-lisp :results silent
+(defun reorg-group-then-drill (&optional dir)
+    (interactive "D")
+    (reorg-open-sidebar
+     `( :sources ((files . ,(concat "find "
+				    dir
+				    " -type f")))
+	:format-results (.filename)
+	:sort-results ((.filename . string<))
+	:sort-groups string<
+	:group (if (= (mod (length .filename) 2) 0)
+		   "EVEN"
+		 "ODD")
+	:children  (( :group .!parent-dirs)))))
+#+end_src
+Or, you can put everything into a heirarchy and /then/ group the items further:
+#+begin_src emacs-lisp :results silent
+(defun reorg-drill-then-group (&optional dir)
+  (interactive "D")
+  (reorg-open-sidebar
+   `( :sources ((files . ,(concat "find "
+				  dir
+				  " -type f")))
+      :format-results (.filename)
+      :group .!parent-dirs
+      :sort-results ((.filename . string<))
+      :sort-groups string<
+      :children (( :group (if (= (mod (length .filename) 2) 0)
+			      "EVEN"
+			    "ODD"))))))
+#+end_src
+You can mix different groups of things, for example, you could mix your orgmode entries and your files by sorting them according to the same rules and have the results exist in the same outline. 
+
 
 
 **** :children 
@@ -328,7 +465,8 @@ Currently, groups can only sorted by a single function. But results can be multi
 #+end_src
 Result sorters are inherited through the subtree. If additional result sorters appear within a subtree, they are added to the previously declared sorters such that the previous declarations have a higher precedence. 
 
-**** :bullet 
+**** :bullet and :folded-bullet
+This are strings that are used to replace the leading stars for each heading. For example, youc could use "->" and "--" to show if a heading is folded or not. 
 **** hidden options
 ***** =:overrides= and =:post-overrides=
 ***** =:action-function=

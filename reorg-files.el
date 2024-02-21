@@ -10,14 +10,11 @@
 					     )
 				       t)
 		  collect (PARSER each))
- :keymap (("x" . (lambda () (interactive) (message "adf")))
-	  ("e" . (lambda ()
+ :keymap (("e" . (lambda ()
 		   (interactive)
 		   (let ((file (reorg--get-prop 'fullname)))
 		     (reorg--select-main-window)
 		     (find-file file))))
-
-	  ("y" . (lambda () (interactive) (message "yyyy")))
 	  ("d" . (lambda () (interactive) (dired (reorg--get-prop 'parent))))
 	  ("o" . (lambda () (interactive)
 		   (xdg-open (reorg--get-prop 'path))))))
@@ -43,8 +40,6 @@
  :name dirp
  :class files
  :parse (f-dir-p data))
-
-
 
 (reorg-create-data-type
  :name depth 

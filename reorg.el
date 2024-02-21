@@ -278,6 +278,11 @@ supplied, get that property from 'reorg-data'."
 
 ;;;; convenience functions
 
+(defun reorg--truncate-and-pad (string trunc pad &optional ellipsis padding)
+  "Truncate STRING to TRUNC and then add right padding to PAD." 
+  (->> (s-truncate trunc string (or ellipsis " "))
+       (s-pad-right pad (or padding " "))))
+
 (defmacro reorg--create-string-comparison-funcs ()
   "Create string comparison functions that ignore case:
 reorg-string<, reorg-string=, reorg-string>.  These functions
@@ -2309,8 +2314,9 @@ the buffer."
   (add-hook 'reorg--navigation-hook #'reorg-edits--update-box-overlay nil t)
   (add-hook 'reorg--navigation-hook #'reorg--render-maybe nil t)
   (reorg-bullets-mode 1)
-  (when (fboundp 'org-visual-indent-mode)
-    (org-visual-indent-mode 1))
+  (if (fboundp 'org-visual-indent-mode)
+      (org-visual-indent-mode)
+    (org-indent-mode))
   (global-set-key (kbd reorg-toggle-shortcut) #'reorg--toggle-tree-buffer)
   (reorg--goto-char 1)
   (run-hooks 'reorg-post-finalize-hook)
