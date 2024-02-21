@@ -50,67 +50,66 @@
 		   :children (( :group (reorg-org--format-time-string .ts-all-flat "%e %A")
 				:sort-groups string<)))))))
 
-
-(defun jrf/reorg-agenda-cases* ()
-  (interactive)
-  (reorg-org-capture-enable)
-  (reorg-open-sidebar
-   `( :sources ((org . ,reorg-test-org-file-list)
-		(files . 
-      :group (when (member "active" .tag-list) .root)
-      :sort-groups reorg-string<
-      :format-results ((s-pad-right 5 " " .priority)
-		       (s-pad-right 15 " " .todo)
-		       (if (or .ts-single-active .ts-active-range-first)
-			   (s-pad-right 50 "." .headline)
-			 .headline)
-		       (s-pad-right 35
-				    " "
-				    (cond (.ts-single-active
-					   (reorg-org--format-time-string
-					    .ts-single-active
-					    "%a, %b %d, %Y"
-					    "%a, %b %d, %Y at %-l:%M%p"))
-					  (.ts-active-range-first
-					    (reorg-org--format-time-string
-					     .ts-active-range-first
-					     "%a, %b %d, %Y"
-					     "%a, %b %d, %Y at %-l:%M%p"))
-					  (t ""))))
-      :children (( :group (when (and (member .todo '("TASK" "DELEGATED" "WAITING"))
-				     (not .archivedp))
-			    "--TASKS--")
-		   :sort-results ((.priority . reorg-string<)
-				  (.todo . (lambda (a b)
-						 (reorg--sort-by-list a b '("TASK"
-									    "DELEGATED"
-									    "WAITING"))))))
-		 ( :group (when (and (member .todo '("EVENT" "DEADLINE" "OPP_DUE"))
-				     (not .archivedp))
-			    "--CALENDAR--")
-		   :sort-results ((.ts-single-active . reorg-string<)))
-		 ( :group (when (and .archivedp
-				     .ts-all-flat)
-			    "--ARCHIVE--")
-		   :format-results ((s-pad-right 20 " "
-						 (if-let ((ts (or .ts-closed
-								  .ts-active-first
-								  .deadline 
-								  .ts-inactive-first)))
-						     (reorg-org--format-time-string
-						      ts "%b %e, %Y")
-						   " "))
-				    (->> .headline
-					 (s-truncate 47)
-					 (s-pad-right 50 " "))
-				    .clocked-time)
-		   :sort-results ((if-let ((tt (or .ts-closed
-						     .deadline
-						     .ts-active-first 
-						     (car .ts-inactive-all))))
-				      (substring tt 0 
+;; (defun jrf/reorg-agenda-cases* ()
+;;   (interactive)
+;;   (reorg-org-capture-enable)
+;;   (reorg-open-sidebar
+;;    `( :sources ((org . ,reorg-test-org-file-list)
+;; 		(files . 
+;;       :group (when (member "active" .tag-list) .root)
+;;       :sort-groups reorg-string<
+;;       :format-results ((s-pad-right 5 " " .priority)
+;; 		       (s-pad-right 15 " " .todo)
+;; 		       (if (or .ts-single-active .ts-active-range-first)
+;; 			   (s-pad-right 50 "." .headline)
+;; 			 .headline)
+;; 		       (s-pad-right 35
+;; 				    " "
+;; 				    (cond (.ts-single-active
+;; 					   (reorg-org--format-time-string
+;; 					    .ts-single-active
+;; 					    "%a, %b %d, %Y"
+;; 					    "%a, %b %d, %Y at %-l:%M%p"))
+;; 					  (.ts-active-range-first
+;; 					    (reorg-org--format-time-string
+;; 					     .ts-active-range-first
+;; 					     "%a, %b %d, %Y"
+;; 					     "%a, %b %d, %Y at %-l:%M%p"))
+;; 					  (t ""))))
+;;       :children (( :group (when (and (member .todo '("TASK" "DELEGATED" "WAITING"))
+;; 				     (not .archivedp))
+;; 			    "--TASKS--")
+;; 		   :sort-results ((.priority . reorg-string<)
+;; 				  (.todo . (lambda (a b)
+;; 						 (reorg--sort-by-list a b '("TASK"
+;; 									    "DELEGATED"
+;; 									    "WAITING"))))))
+;; 		 ( :group (when (and (member .todo '("EVENT" "DEADLINE" "OPP_DUE"))
+;; 				     (not .archivedp))
+;; 			    "--CALENDAR--")
+;; 		   :sort-results ((.ts-single-active . reorg-string<)))
+;; 		 ( :group (when (and .archivedp
+;; 				     .ts-all-flat)
+;; 			    "--ARCHIVE--")
+;; 		   :format-results ((s-pad-right 20 " "
+;; 						 (if-let ((ts (or .ts-closed
+;; 								  .ts-active-first
+;; 								  .deadline 
+;; 								  .ts-inactive-first)))
+;; 						     (reorg-org--format-time-string
+;; 						      ts "%b %e, %Y")
+;; 						   " "))
+;; 				    (->> .headline
+;; 					 (s-truncate 47)
+;; 					 (s-pad-right 50 " "))
+;; 				    .clocked-time)
+;; 		   :sort-results ((if-let ((tt (or .ts-closed
+;; 						     .deadline
+;; 						     .ts-active-first 
+;; 						     (car .ts-inactive-all))))
+;; 				      (substring tt 0 
 				    
-				       "") . reorg-string>)))))))
+;; 				       "") . reorg-string>)))))))))
 
 (defun jrf/reorg-agenda-cases ()
   (interactive)
@@ -194,14 +193,14 @@
 					      (lambda ()
 						(interactive)
 						(funcall
-						 #'jrf/reorg-today-agenda
+						 #'jrf/reorg-agenda-today
 						 (ts-format "%Y-%m-%d"
 						 (ts-dec 'day 1 (ts-parse ,now))))))
 					    (define-key map (kbd "F")
 					      (lambda ()
 						(interactive)
 						(funcall
-						 #'jrf/reorg-today-agenda
+						 #'jrf/reorg-agenda-today
 						 (ts-format "%Y-%m-%d"
 						 (ts-inc 'day 1 (ts-parse ,now))))))
 					    map)))
