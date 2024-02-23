@@ -941,7 +941,7 @@ if there is not one."
 	    ("A" "↗")
 	    ("B" "→")
 	    ("C" "↘")
-	    (_ " ")))
+	    (_   "  ")))
 
 (reorg-create-data-type
  :name body
