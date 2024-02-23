@@ -25,26 +25,26 @@
   "mark the current entry"
   (interactive)
   (if (reorg--at-leaf-p)
-      (let ((overlay (reorg-action--draw-overlay)))
+      (let ((overlay (reorg-actions--draw-overlay)))
 	(push overlay reorg-actions--overlay-stack)
 	(forward-line)
 	(run-hooks 'reorg--navigation-hook))
     (message "You can't mark a branch.")))
 
-(defun reorg-action--draw-overlay ()
+(defun reorg-actions--draw-overlay ()
   "draw a mark overlay"
   (let ((overlay (make-overlay (point-at-bol) (point-at-eol))))
     (overlay-put overlay 'font-lock-face 'reorg-actions-face)
     (overlay-put overlay 'reorg t)
     overlay))
 
-(defun reorg-action--marks-p ()
+(defun reorg-actions--marks-p ()
   "are entries in the buffer marked?"
   reorg-actions--overlay-stack)
 
-(defun reorg-action--multi-action-maybe (func)
+(defun reorg-actions--multi-action-maybe (func)
   "if there are marks active, run command for each one"
-  (if (reorg-action--marks-p)
+  (if (reorg-actions--marks-p)
       (reorg-actions--map-marks func)
     (funcall func)))
 
