@@ -3,6 +3,7 @@
 
 (require 'reorg)
 (require 'reorg-bullets)
+(require 'reorg-action)
 (require 'reorg-elisp)
 (require 'reorg-files)
 (require 'reorg-leo)
