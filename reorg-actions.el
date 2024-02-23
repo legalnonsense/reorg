@@ -38,8 +38,18 @@
     (overlay-put overlay 'reorg t)
     overlay))
 
-(define-key reorg-main-mode-map (kbd "m") #'reorg-actions-mark-entry)
-(define-key reorg-main-mode-map (kbd "M") #'reorg-actions-clear-overlays)
+(defun reorg-action--marks-p ()
+  "are entries in the buffer marked?"
+  reorg-actions--overlay-stack)
+
+(defun reorg-action--multi-action-maybe (func)
+  "if there are marks active, run command for each one"
+  (if (reorg-action--marks-p)
+      (reorg-actions--map-marks func)
+    (funcall func)))
+
+(define-key reorg-mode-map (kbd "m") #'reorg-actions-mark-entry)
+(define-key reorg-mode-map (kbd "M") #'reorg-actions-clear-overlays)
 
 
 (provide 'reorg-actions)
