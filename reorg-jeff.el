@@ -112,6 +112,13 @@
 				    
 ;; 				       "") . reorg-string>)))))))
 
+
+(defun jrf/reorg-agenda-cases--hide-archive ()
+  (interactive)
+  (reorg--map-buffer (lambda ()
+		       (when (reorg--get-prop 'archivedp)
+			 (reorg--hide-heading)))))
+
 (defun jrf/reorg-agenda-cases ()
   (interactive)
   (reorg-org-capture-enable)
@@ -164,12 +171,11 @@
 					 (s-truncate 47)
 					 (s-pad-right 50 " "))
 				    .clocked-time)
-		   :sort-results ((if-let ((tt (or .ts-closed
+		   :sort-results (((if-let ((tt (or .ts-closed
 						     .deadline
 						     .ts-active-first 
 						     (car .ts-inactive-all))))
-				      (substring tt 0 
-				    
+				      (substring tt 0 4)
 				       "") . reorg-string>)))))))
 
 (defun jrf/reorg-agenda-today (&optional date)
