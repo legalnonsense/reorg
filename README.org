@@ -27,7 +27,7 @@ The =reorg-org.el= file is messy. The parsers (i.e., those that call =reorg-crea
 
 If anyone hacks on one of the modules, beware that if you add or change a data type, you'll need to reevaluate the entire buffer, not just that single data type definition. (This is a workaround for a bug in the class and data creation macros.) 
 
-Anyone who uses Reorg will have to know some elisp. If, when writing a template, you get an invalid function error with a reference to a =.variable= always try ='.variable=. There are layers of macros and backquoted lambdas in this code and it sometimes gets confusing. The benefit is that the level of abstraction and customization allows you to focus on how exactly how you want data (including orgmode, files, emails, or anything for which a module has been written) to be sorted and displayed.
+Anyone who uses Reorg will have to know some elisp. If, when writing a template, you get an invalid function error with a reference to a =.variable= always try =(quote .variable)= or ='.variable=. There are layers of macros and backquoted lambdas in this code and it sometimes gets confusing. The benefit is that the level of abstraction and customization allows you to focus on how exactly how you want data (including orgmode, files, emails, or anything for which a module has been written) to be sorted and displayed.
 
 Module writing is harder when it comes to /interacting/ with the underlying data. See =reorg-org.el= as an example (and keep in mind that programatically parsing and editing orgmode files is, at best, tricky), which uses the =reorg-org--with-source-and-sync= macro. There are not similar macros written for other modules yet. 
 
