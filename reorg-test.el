@@ -328,6 +328,7 @@
       ;; :folded-bullet ,(svg-tag-make "CLOSED" 'default)
       ;; :group .!parent-dirs
       :group .!parent-dirs
+      :sort-results ((.filename . string>))
       :format-results ((make-string .depth ?\t)
 		       .filename))))
 

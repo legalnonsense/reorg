@@ -1605,6 +1605,10 @@ to the results."
 						 :folded-bullet folded-bullet
 						 :face face) 
 						t))
+			    (when sort-results
+			      (setf (alist-get nil groups)
+				    (reorg--multi-sort sort-results
+						       (alist-get nil groups))))
 			    (cl-loop
 			     for each in (alist-get nil groups)
 			     collect
