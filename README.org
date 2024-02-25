@@ -1,9 +1,27 @@
-THIS IS A WORK IN PROGRESS
-Unstable. Breaking changes.
-There may have been breaking changes since this README was written. 
-
-* Reorg: Re​organize your life
+* Reorg: Re​organize your lifeTHIS IS A WORK IN PROGRESS
 #+HTML: <img src="reorg.webp" align="right" width=300>
+
+Reorg allows you to highly customize the sorting, grouping, displaying, and interacting with /any/ type of data. 
+
+For now, Reorg is most useful if you use org-mode. It serves as a potential complete–and far more powerful–relacement for org-agenda (no disrepect to org-agenda).
+
+And as the example modules included here show, it can also be used for file heirarchies (/see, e.g./, =reorg-files.el=, .leo files (/see, e.g./, =reorg-leo.el=, json data (/see, e.g./, =reorg-json.el=), source code (/see, e.g./, =reorg-elisp.el=), and limitless other types (so long as someone writes a module). 
+
+I am still developing this package. With the exception of =reorg-org.el=, the modules I’ve supplied are minimal working examples.
+
+The =reorg-org.el= file is messy. The parsers (i.e., those that call =reorg-create-data-type=) change often, and contain many overlaps. I am convinced there is no good way to handle every type of timestamp the user might want to access. I am convinced there is no universal way to parse all data from an orgmode heading that serves all purposes. 
+
+If anyone hacks on one of the modules, beware that if you add or change a data type, you'll need to reevaluate the entire buffer, not just that single data type definition. (This is a workaround for a bug in the class and data creation macros.) 
+
+Anyone who uses Reorg will have to know some elisp. If, when writing a template, you get an invalid function error with a reference to a =.variable= always try ='.variable=. There are layers of macros and backquoted lambdas in this code and it sometimes gets confusing. The benefit is that the level of abstraction and customization allows you to focus on how exactly how you want data (including orgmode, files, emails, or anything for which a module has been written) to be sorted and displayed.
+
+Module writing is harder when it comes to /interacting/ with the underlying data. See =reorg-org.el= as an example (and keep in mind that programatically parsing and editing orgmode files is, at best, tricky), which uses the =reorg-org--with-source-and-sync= macro. There are not similar macros written for other modules yet. 
+
+The key is that once you have a piece of parsed data, reorg will delete the old entries and insert new ones without refreshing the entire outline. See the (poorly named) function =reorg--insert-new-heading=. 
+
+Though I would not advise it, because it is so easy to write a parser it would be simple to use Reorg to create your own custom markup language so that you could have your own plain text note taking system that can be parsed into usable outlines. 
+
+
 
 Dynamically, recursively, and intelligently reorganize and display any type data in custom outlines
 
@@ -57,7 +75,7 @@ If you select any of these headings and render the underlying data, you will be 
 
 *** Multi-valued data sets
 
-Note that some of the headlines in the above example contained multiple @name references. If Reorg encounters data that is a list, it can be told to clone those entries once for each piece of data in the list. That means that a heading that includes @Olivia and @Brian will appear under both of their headings. (This is explained further in the section on writing templates.)
+Note that some of the headlines in the above example contained multiple @name references. If Reorg encounters data that is a list, it can be told to clone those entries once for each piece of data in the list. That means that a heading that includes @Olivia and @Brian will appear under both of their headings. (This is explained further in the section on writing templates.) See below discussing the .@ operator (the fact that I used @names as an example and the operator being a =.@= prefix is purely a coincidence). 
 
 *** Not just for orgmode
 
@@ -744,9 +762,17 @@ When you define a keyboard shortcut in a class, it will apply any entry in the o
 ** Planned features  
 *** Changing views on the fly
 For example hoisting headings / inverting the outline / multiple views
+** TODOs
+*** Write a proper example functions showing using it to: view leo files, view file systems.
+*** Clean up reorg-org data types. (E.g., timestamps are a mess.)
+*** Allow the user to use nested dots referencing the class name, e.g., =.org.filename=  and =.files.filename= to allow the user (as it’s often desired behavior) to avoid collusions when grouping 
+*** Fix the capf functions 
 
+** Changelog 
+*** [2024-02-25 Sun]
+**** Added section about .! 
+**** 
 
+* Footnotes
 
-
-
-
+[fn:1] For all I know this could be a better back end; it was published as I was completing the core grouping and sorting functions and I was already on my own path. 

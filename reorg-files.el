@@ -37,6 +37,11 @@
 ;; 		    (reorg--parser each 'files))))
 
 (reorg-create-data-type
+ :name class
+ :class files
+ :parse 'files)
+
+(reorg-create-data-type
  :name dirp
  :class files
  :parse (f-dir-p data))
@@ -50,6 +55,11 @@
  :name path
  :class files
  :parse data)
+
+(reorg-create-data-type
+ :class files
+ :name client-parent-dirs
+ :parse (nthcdr 7 (s-split "/" data t)))
 
 (reorg-create-data-type
  :name parent-dirs

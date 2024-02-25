@@ -122,7 +122,8 @@
 
 (defvar reorg--render-func-list nil "")
 
-;;; reorg requires
+;;; utility functions 
+
 (defun reorg--create-symbol (&rest args)
   "Create a symbol from ARGS which can be
 numbers, strings, symbols."
@@ -136,9 +137,11 @@ numbers, strings, symbols."
 	   finally return (intern ret)))
 
 (defun reorg--get-prop (&optional property point)
-  "Get PROPERTY from the current heading.  If PROPERTY
-is omitted or nil, get the 'reorg-data' prop.  If it is
-supplied, get that property from 'reorg-data'."
+  "When in the *REORG* buffer, Get PROPERTY from the
+current heading.  If PROPERTY is omitted or nil, get
+the entire 'reorg-data' prop.  If PROPERTY supplied,
+get that property from 'reorg-data'.  If POINT is supplied,
+get the property at POINT; otherwise use the heading at point."
   (let ((props (get-text-property (or point (point)) 'reorg-data)))
     (if property
 	(alist-get property props)
@@ -1099,6 +1102,7 @@ locations."
 				 (let ((afterp (not (reorg--find-leaf-location leaf))))
 				   (reorg--insert-header-at-point
 				    leaf afterp))))))
+    ;; I don't know why I did this but there must have been a reason
     (goto-char point)
     (reorg--goto-same-id-after-insert final-leaf)))
 
@@ -1294,7 +1298,7 @@ function's code."
 		       results))))))))))
 
 (defun reorg--pre-parser-sort (parsers)
-  "sort. not sure what it does."
+  "Not sure what it does."
   (cl-loop for (class . rest) in (seq-uniq parsers)
 	   collect
 	   (cons class
@@ -1411,7 +1415,7 @@ a function, then call the function with a single argument.
 
 If FORM is not a function, then create an anonymous function
 that wraps FORM in a `let-alist' and makes all of the
-data in each element of SEQENCE available using
+data in each element of SEQUENCE available using
 dotted notation."
   (seq-reduce
    (lambda (acc elt)
@@ -1495,9 +1499,12 @@ to the results."
 		  (if (equal bullet "")
 		      (char-to-string 8203) ;; use a zero width space
 		    bullet)))
-	(folded-bullet (or (plist-get template :folded-bullet)
-			   (plist-get template :folded-bullets)
-			   (plist-get inherited-props :folded-bullet)))
+	(folded-bullet (when-let ((bullet (or (plist-get template :folded-bullet)
+					      (plist-get template :folded-bullets)
+					      (plist-get inherited-props :folded-bullet))))
+			 (if (equal bullet "")
+			     (char-to-string 8203) ;; use a zero width space
+			   bullet)))
 	(face (or (plist-get template :face)
 		  (plist-get inherited-props :face)
 		  reorg-default-face))
@@ -1531,12 +1538,13 @@ to the results."
 		    (cons 'id-path (append (-list parent-id)
 					   (-list id))))))
 		(drill!
+		 ;; .! references
 		 ;; DANGER.  
 		 (seq prop &optional n level inherited)
 		 (setq level (or level 1))
 		 (if-let ((groups (reorg--seq-group-by
 				   `(lambda (x)				      
-				      (eval
+				      (eval ;; I felt I had no choice.
 				       (reorg--walk-tree
 					(reorg--walk-tree 
 					 ',prop
@@ -1715,10 +1723,9 @@ to the results."
 					data)))
 	;; end .@
 	
-	;; begin .! 
+	;; if there is a .!, do that 
 	(if (reorg--dot-bang-search group)
 	    (drill! data group nil level inherited-props)
-	  ;;end .!
 
 	  ;; else we are ready to group
 	  (setq results

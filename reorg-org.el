@@ -1265,6 +1265,11 @@ if there is not one."
  :parse (reorg-org--ts-parser 'all))
 
 (reorg-create-data-type
+ :name case-dir
+ :class org
+ :parse (while (org-up-heading-safe) (org-entry-properties nil "CASE-DIR")))
+
+(reorg-create-data-type
  :name clocked-time
  :class org
  :parse (let ((mins (org-clock-sum-current-item)))
