@@ -941,36 +941,7 @@
 						 "\t\t"
 						 .subject))))))))
 
-(defun reorg-user--test-allums-view ()
-  (interactive)
-  (reorg-open-in-current-window
-   '( :sources ((org . "~/org/Allums.org")
-		(org . "~/tmp/tmp.org")
-		(email . "subject:allums")
-		(files . "find ~/legal/Dropbox/Allums\,\\ Matthew/docket -type f"))
-      :children (( :group "Allums"
-		   :children (( :group (when (and .todo
-						  (equal .category-inherited
-							 "Allums")
-						  (equal .todo "TASK"))
-					 "TASKS")
-				:format-results (.stars " " .task " " .headline))))
-		 ( :group (when (and (equal .category-inherited
-					    "Allums")
-				     .ts-ts)
-			    "CALENDAR")
-		   :format-results (.stars " " .headline))
-		 ( :group (when (eq .class 'files)
-			    "DOCKET")
-		   :format-results (.stars " " .filename))
-		 ( :group (when (eq .class 'email)
-			    "Emails")
-		   :format-results (.stars
-				    " "
-				    .date
-				    "\t\t"
-				    .subject)
-		   :sort-results ((.date . string>)))))))
+
 
 (defun reorg-user--leo ()
   (interactive)
