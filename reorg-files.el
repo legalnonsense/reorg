@@ -59,7 +59,7 @@
 (reorg-create-data-type
  :class files
  :name client-parent-dirs
- :parse (nthcdr 7 (s-split "/" data t)))
+ :parse (butlast (nthcdr 7 (s-split "/" data t))))
 
 (reorg-create-data-type
  :name parent-dirs

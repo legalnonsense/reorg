@@ -423,7 +423,6 @@
 	(org-metaright)
 	(insert "_TASKS_"))))
 
-
   (defun org-legal-calendar-capture-find-func (&optional file)
     "Prompt the user to select from the root headings in an agenda file, 
   then move to the first sub-heading called \"_CALENDAR_\"."

@@ -765,6 +765,7 @@ When you define a keyboard shortcut in a class, it will apply any entry in the o
 *** Changing views on the fly
 For example hoisting headings / inverting the outline / multiple views
 ** TODOs
+*** Fix that sorting results doesn’t work using .! prefix(!?)
 *** Write a proper example functions showing using it to: view leo files, view file systems.
 *** Clean up reorg-org data types. (E.g., timestamps are a mess.)
 *** Allow the user to use nested dots referencing the class name, e.g., =.org.filename=  and =.files.filename= to allow the user (as it’s often desired behavior) to avoid collusions when grouping 
