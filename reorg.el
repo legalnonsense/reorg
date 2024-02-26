@@ -529,7 +529,9 @@ text at point to see if it matches."
 	       (progn (goto-char pos)
 		      (if (and (< (point) limit)
 			       (if visible-only
-				   (not (org-invisible-p (point) t))
+				   (not
+				    (outline-invisible-p (point)))
+				    ;; (org-invisible-p (point) t))
 				 t)
 			       (funcall (or predicate #'equal)
 					value
@@ -595,7 +597,8 @@ text at point to see if it matches."
 				   (point)
 				   'reorg-data)))
 			       (if visible-only
-				   (not (org-invisible-p (point) t))
+				   (not (outline-invisible-p (point)))
+				   ;; (not (org-invisible-p (point) t))
 				 t))
 			  (progn 
 			    (setq done t)
