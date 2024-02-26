@@ -10,6 +10,5 @@
 (require 'reorg-json)
 (require 'reorg-email)
 (require 'reorg-org)
-(require 'reorg-jeff)
 
 (provide 'reorg-launch)

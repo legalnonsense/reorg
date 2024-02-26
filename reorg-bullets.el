@@ -235,7 +235,6 @@ This function searches the region for the headline regexp and calls
 		    (< (point) end)))))
     (run-hooks 'reorg--navigation-hook)))
 
-
 (defun reorg-bullets--fontify-buffer (&rest _)
   "Fontify the entire buffer."
   (reorg-bullets--fontify (point-min) (point-max)))
@@ -256,8 +255,7 @@ This function searches the region for the headline regexp and calls
 "Fontify the current heading only."
 (save-excursion
   (reorg-bullets--fontify (point-at-bol)
-				  (point-at-eol))))
-
+			  (point-at-eol))))
 
 ;; (defun reorg-bullets--fontify-heading-and-previous-sibling (&rest _)
 ;;   "Fontify the current heading and previous sibling."
@@ -283,7 +281,7 @@ This function searches the region for the headline regexp and calls
 ;; 		     (point))))
 ;; 	  (reorg-bullets--fontify beg end)))))
 
-(defun reorg-bullets--org-cycle-hook-func ()
+(defun reorg-bullets--org-cycle-hook-func (&optional _)
   "Called after `org-cyle'."
   (reorg-bullets--fontify-tree))
 

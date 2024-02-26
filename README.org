@@ -13,6 +13,9 @@ Mix different kinds of data (e.g., org-mode, email, files, etc.) in the same out
 
 Create modules to expand capabilities to display and interact with /any/ kind of data
 * Preface
+[2024-02-26 Mon]
+Emacs 29 has brought on some problems...
+
 [2024-02-25 Sun]
 
 Reorg allows you to highly customize the sorting, grouping, displaying, and interacting with /any/ type of data. 
