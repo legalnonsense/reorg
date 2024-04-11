@@ -29,7 +29,7 @@ update the heading at point."
 	   (let ((old-point (point))
 		 (search-invisible t))
 	     (widen)
-	     (ov-clear)
+	     ;; (ov-clear)
 	     (goto-char marker)
 	     ,@body
 	     (setq data (reorg--parser nil 'org reorg--temp-parser-list)))
@@ -540,7 +540,7 @@ the opening and closing dates for any time ranges."
 
 (defun reorg-org--map-entries (files func)
   "regular expression is faster than `org-map-entries'
-even if it doesn't make archives available"
+even if it doesn't make external archives available"
   (cl-loop for file in (ensure-list files)
 	   append (with-current-buffer (find-file-noselect file)
 		    (org-with-wide-buffer
@@ -792,8 +792,12 @@ if there is not one."
 (defun reorg-org--toggle-archive ()
   "archive the current heading"
   (interactive)
-  (reorg-org--with-source-and-sync
-    (org-toggle-archive-tag)))
+  (let ((point (point)))
+    (reorg-org--with-source-and-sync
+      (org-toggle-archive-tag))
+    (when (reorg--get-prop 'archivedp)
+      (goto-char point)
+      (run-hooks 'reorg--navigation-hook))))
 
 (defun reorg-org--archive-heading ()
   "archive"
