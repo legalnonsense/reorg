@@ -684,6 +684,13 @@ if there is not one."
     (reorg--select-main-window)
     (funcall-interactively #'org-todo arg)))
 
+(defun reorg-org--org-todo-done (&optional arg)
+  "Edit todo state at point"
+  (interactive "P")
+  (reorg-org--with-source-and-sync
+    (reorg--select-main-window)
+    (funcall-interactively #'org-todo 'done)))
+
 (defun reorg-org--org-set-tags-command (&optional arg)
   "set tags at point"
   (interactive "P")
@@ -810,6 +817,7 @@ if there is not one."
 	  ("d" . reorg-org--org-deadline)
 	  ("o" . reorg-org--clock-in)
 	  ("O" . reorg-org--clock-out)
+	  ("x" . reorg-org--org-todo-done)
 	  ("A" . reorg-org--archive-heading)   
 	  ("s" . reorg-org--org-schedule)
 	  ("r" . reorg-org--org-set-property)
