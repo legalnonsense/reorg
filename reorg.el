@@ -2152,8 +2152,7 @@ one of the sources."
 (defun reorg-capf ()
   "capf for reorg template"
   ;; This is horribly inefficient but it does not need to be fast. 
-  (let (start end collection props)
-    
+  (let (start end collection props)    
     (when (looking-back (rx "."
 			    (or "."
 				"@"

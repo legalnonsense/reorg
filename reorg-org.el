@@ -29,7 +29,7 @@ update the heading at point."
 	   (let ((old-point (point))
 		 (search-invisible t))
 	     (widen)
-	     (ov-clear)
+	     ;; (ov-clear)
 	     (goto-char marker)
 	     ,@body
 	     (setq data (reorg--parser nil 'org reorg--temp-parser-list)))
@@ -196,178 +196,6 @@ no HHMM specification.  TIME-FORMAT is used if there is an HHMM specification."
 					       value))
 					props)))))))))
       props)))
-
-
-;; (defun reorg-org--timestamp-parser (type &optional all clock planning no-ranges subtree)
-;;   "TYPE can be deadline, scheduled, closed, active,
-;; active-range, inactive, inactive-range.
-
-;; If active or inactive timestamps, return only the first result.
-;; If ALL is non-nil, then return a list of all results.
-
-;; Planning timestamps (i.e., deadline, scheduled, and closed) are not
-;; included in active or inactive timestamps.
-
-;; If TYPE is 'all, then return a list of all timestamps in the headling.
-
-;; If ALL is non-nil and TYPE is active or inactive, then also return
-;; the opening and closing dates for any time ranges."
-;;   (cl-flet ((end nil (if subtree
-;; 			 (org-end-of-subtree)
-;; 		       (org-entry-end-position)))
-;; 	    (process-timestamp-range (time-string)
-;; 				     (when-let ((x (s-split "--" time-string)))
-;; 				       (list :begin (car x)
-;; 					     :end (cadr x)))))
-;;     (process-timestamp-range "<2023-04-15 Sat>"))
-;;   (save-excursion
-;;     (org-back-to-heading)
-;;     (pcase type
-;;       (`deadline
-;;        (org-entry-get (point) "DEADLINE"))
-;;       (`scheduled
-;;        (org-entry-get (point) "SCHEDULED"))
-;;       (`closed
-;;        (org-entry-get (point) "CLOSED"))
-;;       (`active
-;;        (cl-loop while (re-search-forward
-;; 		       org-ts-regexp
-;; 		       (end)
-;; 		       t)
-;; 		if (or all
-;; 		       (or planning 
-;; 			   (save-match-data (not (eq (car (org-element-at-point))
-;; 						     'planning)))))
-;; 		collect (unless (and no-ranges
-
-;; 				     (save-match-data 
-;; 				       (s-split "--" (match-string-no-properties 0))))
-;; 			  (match-string-no-properties 0))
-;; 		into results
-;; 		else if (save-match-data (not (eq (car (org-element-at-point))
-;; 						  'planning)))
-;; 		return (car results)
-;; 		finally return results))
-;;       (`inactive
-;;        (cl-loop while (re-search-forward org-ts-regexp-inactive
-;; 					 (end)
-;; 					 t)
-;; 		if (and all
-;; 			(or clock (not (org-at-clock-log-p)))
-;; 			(or planning 
-;; 			    (save-match-data (not (eq (car (org-element-at-point))
-;; 						      'planning)))))
-;; 		collect (match-string-no-properties 0) into results
-;; 		else if (and
-;; 			 (if clock t (not (org-at-clock-log-p)))
-;; 			 (save-match-data (not (eq (car (org-element-at-point))
-;; 						   'planning))))
-;; 		return (match-string-no-properties 0)
-;; 		finally return results))
-;;       (`active-range
-;;        (cl-loop while (re-search-forward (rx (group-n 1
-;; 						      "<"
-;; 						      (= 4 digit)
-;; 						      "-"
-;; 						      (= 2 digit)
-;; 						      "-"
-;; 						      (= 2 digit)
-;; 						      (opt " " (*\? nonl))
-;; 						      ">")
-;; 					     (optional (or "-" "--"))
-;; 					     (optional
-;; 					      (group-n 2 "<"
-;; 						       (= 4 digit)
-;; 						       "-"
-;; 						       (= 2 digit)
-;; 						       "-"
-;; 						       (= 2 digit)
-;; 						       (opt " " (*\? nonl))
-;; 						       ">")))
-
-;; 					 (end)
-;; 					 t)
-;; 		if (and all
-;; 			(or planning 
-;; 			    (save-match-data
-;; 			      (not (eq (car (org-element-at-point))
-;; 				       'planning)))))
-;; 		collect 
-;; 		(let* ((r (match-string-no-properties 0))
-;; 		       (r (s-split "--" r)))
-;; 		  (if (= (length r) 1)
-;; 		      (list :beg (car r))
-;; 		    (list :beg (car r)
-;; 			  :end (cadr r))))
-;; 		else if (or planning
-;; 			    (save-match-data
-;; 			      (not (eq (car (org-element-at-point))
-;; 				       'planning))))
-;; 		return (let* ((r (match-string-no-properties 0))
-;; 			      (r (s-split "--" r)))
-;; 			 (if (= (length r) 1)
-;; 			     (list :beg (car r))
-;; 			   (list :beg (car r)
-;; 				 :end (cadr r))))))
-;;       (`inactive-range
-;;        (cl-loop while (re-search-forward (concat 
-;; 					  org-ts-regexp-inactive
-;; 					  "--?-?"
-;; 					  org-ts-regexp-inactive)
-;; 					 (end)
-;; 					 t)
-;; 		when (and (not (save-match-data (org-at-clock-log-p)))
-;; 			  (save-match-data
-;; 			    (not (eq (car (org-element-at-point))
-;; 				     'planning))))
-;; 		return (let* ((r (match-string-no-properties 0))
-;; 			      (r (s-split "--" r)))
-;; 			 (if (= (length r) 1)
-;; 			     (list :beg (car r))
-;; 			   (list :beg (car r)
-;; 				 :end (cadr r))))))
-;;       (`clocks
-;;        (let ((re (rx (seq bol
-;; 			  (zero-or-more (any "	 "))
-;; 			  (eval org-clock-string)
-;; 			  (zero-or-more (any "	 ")))
-;; 		     (group-n 1
-;; 			      (seq "["
-;; 				   (group (= 4 digit)
-;; 					  "-"
-;; 					  (= 2 digit)
-;; 					  "-"
-;; 					  (= 2 digit)
-;; 					  (opt " " (*\? nonl)))
-;; 				   "]"))
-;; 		     (optional (or "-" "--"))
-;; 		     (optional 
-;; 		      (group-n 2
-;; 			       (seq "["
-;; 				    (group (= 4 digit)
-;; 					   "-"
-;; 					   (= 2 digit)
-;; 					   "-"
-;; 					   (= 2 digit)
-;; 					   (opt " " (*\? nonl)))
-;; 				    "]"))))))	 
-;; 	 (cl-loop while (re-search-forward re
-;; 					   (end)
-;; 					   t)
-;; 		  when (save-match-data (org-at-clock-log-p))
-;; 		  collect (let* ((r (match-string 0))
-;; 				 (r (cadr
-;; 				     (s-split
-;; 				      (rx
-;; 				       (seq bol (zero-or-more (any "	 ")) "CLOCK:"
-;; 					    (zero-or-more (any "	 "))))
-;; 				      r)))
-;; 				 (r (s-split "--" r t)))
-;; 			    (if (= (length r) 1)
-;; 				(list :beg (org-no-properties (car r)))
-;; 			      (list :beg (org-no-properties (car r))
-;; 				    :end (org-no-properties (cadr r)))))))))))
-
 
 (defun reorg-org--timestamp-parser (type &optional all-or-inactive include-clocks subtree)
   "TYPE can be deadline, scheduled, closed, active,
@@ -540,7 +368,7 @@ the opening and closing dates for any time ranges."
 
 (defun reorg-org--map-entries (files func)
   "regular expression is faster than `org-map-entries'
-even if it doesn't make archives available"
+even if it doesn't make external archives available"
   (cl-loop for file in (ensure-list files)
 	   append (with-current-buffer (find-file-noselect file)
 		    (org-with-wide-buffer
@@ -799,8 +627,12 @@ if there is not one."
 (defun reorg-org--toggle-archive ()
   "archive the current heading"
   (interactive)
-  (reorg-org--with-source-and-sync
-    (org-toggle-archive-tag)))
+  (let ((point (point)))
+    (reorg-org--with-source-and-sync
+      (org-toggle-archive-tag))
+    (when (reorg--get-prop 'archivedp)
+      (goto-char point)
+      (run-hooks 'reorg--navigation-hook))))
 
 (defun reorg-org--archive-heading ()
   "archive"
