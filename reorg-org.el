@@ -15,6 +15,20 @@
 ;; 				     nil
 ;; 				     (reorg--get-prop 'class)))))
 
+(defun reorg-org--update-org-heading-at-point ()
+  "update heading from org buffer"
+  (interactive)
+  (save-excursion
+    (org-back-to-heading)
+    (let* ((data (reorg--parser nil 'org reorg--temp-parser-list))
+	   (id (org-id-get))
+	   (marker (point-marker))
+	   (buffer (marker-buffer marker)))
+      (with-current-buffer reorg-buffer-name
+	(reorg--delete-entries id)
+	(reorg--insert-new-heading data))))
+  (run-hooks 'reorg--navigation-hook))
+
 (defmacro reorg-org--with-source-and-sync (&rest body)
   "Execute BODY in the source buffer and
 update the heading at point."
