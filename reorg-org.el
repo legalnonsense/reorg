@@ -594,6 +594,7 @@ if there is not one."
   (reorg-org--with-source-and-sync))
 
 (defun reorg-org--edit-timestamp (&optional inactive)
+  "edit timestamp"
   (completing-read "Select timestamp to edit: "
 		   (reorg-org--with-point-at-orig-entry
 		    nil
@@ -673,6 +674,8 @@ if there is not one."
  (reorg-org--map-entries SOURCE #'PARSER))
 
 ;;; org data 
+
+
 
 (reorg-create-data-type
  :name buffer-file-name
