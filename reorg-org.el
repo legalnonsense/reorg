@@ -17,6 +17,7 @@
 
 (defun reorg-org--update-subtree-at-point ()
   "update the entire subtree"
+  (interactive)
   (org-map-tree #'reorg-org--update-org-heading-at-point))
 
 (defun reorg-org--update-org-heading-at-point ()
