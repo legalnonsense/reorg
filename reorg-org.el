@@ -701,6 +701,41 @@ if there is not one."
  :class org
  :parse (buffer-file-name))
 
+
+;; (defun reorg-org--get-file-level-properties ()
+;;   "Retrieve all file-level properties set with #+PROPERTY: in the current Org buffer."
+;;   (let (properties)
+;;     (save-excursion
+;;       (goto-char (point-min))
+;;       ;; Search for all #+PROPERTY: lines
+;;       (while (re-search-forward "^#\\+PROPERTY: \\(.*\\)$" nil t)
+;;         (let ((property (match-string 1)))
+;;           ;; Split the properties by spaces and store as a cons cell
+;;           (let* ((split (split-string property))
+;;                  (key (car split))
+;;                  (value (mapconcat 'identity (cdr split) " ")))
+;;             (push (cons key value) properties)))))
+;;     properties))
+
+(defun reorg-org--get-file-level-properties ()
+  "Retrieve all file-level properties from the current Org buffer."
+  (let (properties)
+    (org-element-map (org-element-parse-buffer 'element) 'keyword
+      (lambda (el)
+        (when (string= (org-element-property :key el) "PROPERTY")
+          (let* ((value (org-element-property :value el))
+                 (split (split-string value))
+                 (key (car split))
+                 (property-value (mapconcat 'identity (cdr split) " ")))
+            (push (cons key property-value) properties)))))
+    properties))
+
+(reorg-create-data-type
+ :name file-properties 
+ :doc "file properties"
+ :class org
+ :parse (reorg-org--get-file-level-properties))
+
 (reorg-create-data-type
  :name delegated
  :doc "Get the DELEGATED property."
@@ -1415,3 +1450,5 @@ and TIME2 and output a list of them as a string using FORMAT
 
 
 (provide 'reorg-org)
+
+

@@ -1,5 +1,8 @@
 ;; -*- lexical-binding: t; -*-
 (require 'reorg)
+
+
+
 (reorg-create-class-type
  :name files
  :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
@@ -59,7 +62,7 @@
 (reorg-create-data-type
  :class files
  :name client-parent-dirs
- :parse (butlast (nthcdr 7 (s-split "/" data t))))
+ :parse (car (butlast (nthcdr 6 (s-split "/" data t)))))
 
 (reorg-create-data-type
  :name parent-dirs
