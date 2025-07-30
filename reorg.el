@@ -237,6 +237,7 @@ get the property at POINT; otherwise use the heading at point."
 				     parse
 				     disable
 				     display
+				     inherit
 				     append)
   "Create a new type within a class"
   (let* ((parsing-func (reorg--create-symbol 'reorg--
@@ -258,13 +259,21 @@ get the property at POINT; otherwise use the heading at point."
 				      (alist-get
 				       ',class
 				       reorg--parser-list)))
-	      (if ',append		     
-		  (setf (alist-get ',class reorg--parser-list)
-			(append (alist-get ',class reorg--parser-list)
-				(list 
-				 (cons ',name #',parsing-func))))
-		(cl-pushnew (cons ',name #',parsing-func)
-			    (alist-get ',class reorg--parser-list)))
+	      (setf (alist-get ',class reorg--inherit-list)
+		    (assoc-delete-all ',name
+				      (alist-get
+				       ',class
+				       reorg--inherit-list)))
+	      (if ',inherit
+		  (cl-pushnew (cons ',name #',parsing-func)
+			      (alist-get ',class reorg--inherit-list))
+		(if ',append		     
+		    (setf (alist-get ',class reorg--parser-list)
+			  (append (alist-get ',class reorg--parser-list)
+				  (list 
+				   (cons ',name #',parsing-func))))
+		  (cl-pushnew (cons ',name #',parsing-func)
+			      (alist-get ',class reorg--parser-list))))
 	      (if ',display 
 		  (defun ,display-func (data)
 		    (let-alist data 
@@ -1991,6 +2000,10 @@ function created by the `reorg-create-data-type' macro."
     (_ elem)))
 
 (defvar reorg--cache nil "")
+
+(defvar reorg--inherit-list nil
+  "a list of data types that are only run once
+per invocation of the parser.")
 
 (defun reorg--create-headline-string (data
 				      format-string

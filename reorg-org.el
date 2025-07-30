@@ -390,15 +390,18 @@ the opening and closing dates for any time ranges."
 even if it doesn't make external archives available"
   (cl-loop for file in (ensure-list files)
 	   append (with-current-buffer (find-file-noselect file)
-		    (org-with-wide-buffer
-		     (goto-char (point-min))
-		     (cl-loop while (re-search-forward
-				     org-heading-regexp
-				     nil
-				     t)
-			      do (goto-char (match-beginning 0))
-			      collect (funcall func)
-			      do (goto-char (point-at-eol)))))))
+		    (let (results)
+		      (org-with-wide-buffer
+		       (cl-loop for (type . func) in (alist-get 'org reorg--inherit-list)
+				do (push (cons type (funcall func)) results))
+		       (goto-char (point-min))
+		       (cl-loop while (re-search-forward
+				       org-heading-regexp
+				       nil
+				       t)
+				collect (save-excursion (goto-char (match-beginning 0))
+							(append (funcall func) results))))))))
+
 
 ;;; macros 
 
@@ -696,45 +699,50 @@ if there is not one."
 
 
 
-(reorg-create-data-type
- :name buffer-file-name
- :doc "Path to buffer file."
- :class org
- :parse (buffer-file-name))
+;; (reorg-create-data-type
+;;  :name buffer-file-name
+;;  :doc "Path to buffer file."
+;;  :class org
+;;  :inherit t
+;;  :parse (buffer-file-name))
 
-
-;; (defun reorg-org--get-file-level-properties ()
-;;   "Retrieve all file-level properties set with #+PROPERTY: in the current Org buffer."
-;;   (let (properties)
-;;     (save-excursion
-;;       (goto-char (point-min))
-;;       ;; Search for all #+PROPERTY: lines
-;;       (while (re-search-forward "^#\\+PROPERTY: \\(.*\\)$" nil t)
-;;         (let ((property (match-string 1)))
-;;           ;; Split the properties by spaces and store as a cons cell
-;;           (let* ((split (split-string property))
-;;                  (key (car split))
-;;                  (value (mapconcat 'identity (cdr split) " ")))
-;;             (push (cons key value) properties)))))
-;;     properties))
 
 (defun reorg-org--get-file-level-properties ()
-  "Retrieve all file-level properties from the current Org buffer."
-  (let (properties)
-    (org-element-map (org-element-parse-buffer 'element) 'keyword
-      (lambda (el)
-        (when (string= (org-element-property :key el) "PROPERTY")
-          (let* ((value (org-element-property :value el))
-                 (split (split-string value))
-                 (key (car split))
-                 (property-value (mapconcat 'identity (cdr split) " ")))
-            (push (cons key property-value) properties)))))
-    properties))
+  "Retrieve all file-level properties set with #+PROPERTY: in the current Org buffer."
+  (cl-loop for (prop . val) in org-keyword-properties
+		 collect (cons (intern (downcase prop)) val)))
+
+  ;; (let (properties)
+  ;;   (save-excursion
+  ;;     (goto-char (point-min))
+  ;;     ;; Search for all #+PROPERTY: lines
+  ;;     (while (re-search-forward "^#\\+PROPERTY: \\(.*\\)$" nil t)
+  ;;       (let ((property (match-string 1)))
+  ;;         ;; Split the properties by spaces and store as a cons cell
+  ;;         (let* ((split (split-string property))
+  ;;                (key (car split))
+  ;;                (value (mapconcat 'identity (cdr split) " ")))
+  ;;           (push (cons key value) properties)))))
+  ;;   properties))
+
+;; (defun reorg-org--get-file-level-properties ()
+;;   "Retrieve all file-level properties from the current Org buffer."
+;;   (let (properties)
+;;     (org-element-map (org-element-parse-buffer 'element) 'keyword
+;;       (lambda (el)
+;;         (when (string= (org-element-property :key el) "PROPERTY")
+;;           (let* ((value (org-element-property :value el))
+;;                  (split (split-string value))
+;;                  (key (car split))
+;;                  (property-value (mapconcat 'identity (cdr split) " ")))
+;;             (push (cons key property-value) properties)))))
+;;     properties))
 
 (reorg-create-data-type
  :name file-properties 
  :doc "file properties"
  :class org
+ :inherit t
  :parse (reorg-org--get-file-level-properties))
 
 (reorg-create-data-type
@@ -923,14 +931,16 @@ if there is not one."
  :class org
  :parse (org-entry-is-done-p))
 
-(reorg-create-data-type
- :name category-inherited
- :class org
- :parse (org-entry-get-with-inheritance "CATEGORY"))
+;; (reorg-create-data-type
+;;  :name category-inherited
+;;  :class org
+;;  :parse (org-entry-get-with-inheritance "CATEGORY"))
+
 
 (reorg-create-data-type
  :name filename
  :class org
+ :inherit t
  :parse (f-filename (buffer-file-name)))
 
 (reorg-create-data-type
