@@ -5,14 +5,15 @@
 
 (reorg-create-class-type
  :name files
- :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
-					     ;; (concat 
-					     ;;  "find "
-					     SOURCE
-					     ;; " -type f"
-					     )
-				       t)
-		  collect (PARSER each))
+ :getter (cl-loop for each in (ensure-list SOURCE)
+		  append (cl-loop for file in (s-split "\n" (shell-command-to-string
+							     (concat 
+							      "find "
+							      (eshell-quote-argument each)
+							      " -type f"
+							      ))
+						       t)
+				  collect (PARSER file)))
  :keymap (("e" . (lambda ()
 		   (interactive)
 		   (let ((file (reorg--get-prop 'fullname)))
@@ -58,6 +59,11 @@
  :name path
  :class files
  :parse data)
+
+(reorg-create-data-type
+ :name path-list
+ :class files
+ :parse (seq-subseq (s-split "/" data t) 6))
 
 (reorg-create-data-type
  :class files
