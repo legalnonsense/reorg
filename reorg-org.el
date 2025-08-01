@@ -931,10 +931,10 @@ if there is not one."
  :class org
  :parse (org-entry-is-done-p))
 
-;; (reorg-create-data-type
-;;  :name category-inherited
-;;  :class org
-;;  :parse (org-entry-get-with-inheritance "CATEGORY"))
+(reorg-create-data-type
+ :name category
+ :class org
+ :parse (org-entry-get (point) "CATEGORY"))
 
 
 (reorg-create-data-type
