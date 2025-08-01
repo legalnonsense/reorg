@@ -76,6 +76,11 @@
  :parse (butlast (s-split "/" data t)))
 
 (reorg-create-data-type
+ :name client-dir
+ :class files 
+ :parse (nth 6 (s-split "/" data t)))
+
+(reorg-create-data-type
  :name extension
  :class files
  :parse (f-ext data))
