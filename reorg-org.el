@@ -66,7 +66,8 @@ recently captured heading belongs in the outline."
   (let (data)
     (with-current-buffer 
 	(reorg--org-capture-goto-last-stored)
-      (setq data (reorg--parser nil 'org reorg--temp-parser-list)))
+      (setq data (append (reorg--parser nil 'org reorg--temp-parser-list)
+			 (reorg--parser nil 'org reorg--inherit-list))))
     (with-current-buffer reorg-buffer-name
       ;; When the captured item belongs to a source
       ;; used to generate the outline
@@ -92,6 +93,14 @@ appropriat point(s)."
   "Disable org capture"
   (interactive)
   (reorg-org-capture-enable 'disable))
+
+(defun reorg-org-capture-enable-in-org-agenda-files ()
+  "Disable org capture"
+  (interactive)
+  (cl-loop for file in (org-agenda-files)
+	   do (with-current-buffer (find-file-noselect file)
+		(reorg-org-capture-enable))))
+
 
 (defun reorg--org-capture-goto-last-stored ()
   "Same as org-capture-goto-last-stored, except it call
@@ -699,12 +708,12 @@ if there is not one."
 
 
 
-;; (reorg-create-data-type
-;;  :name buffer-file-name
-;;  :doc "Path to buffer file."
-;;  :class org
-;;  :inherit t
-;;  :parse (buffer-file-name))
+(reorg-create-data-type
+ :name buffer-file-name
+ :doc "Path to buffer file."
+ :class org
+ :inherit t
+ :parse (buffer-file-name))
 
 
 (defun reorg-org--get-file-level-properties ()
