@@ -3,17 +3,35 @@
 
 (reorg-create-class-type
  :name email
- :render-func (lambda ()
-		(let ((data (reorg--get-prop 'mu4e-data)))
-		  (reorg--select-main-window)
-		  (mu4e-view data)
-		  (reorg--select-tree-window)))
- :getter (cl-loop for each in (s-split "\n" (shell-command-to-string
-					     (concat "mu find "
-						     SOURCE
-						     " --format=sexp"))
-				       'omit-nil)
-		  collect (PARSER (read each))))
+ :render-func reorg-email--render-source 
+ :getter (cl-loop for s in (ensure-list SOURCE)
+		  append (cl-loop for each in (s-split "\n" (shell-command-to-string
+							     (concat "mu find "
+								     s
+								     " --format=sexp"))
+						       'omit-nil)
+				  collect (PARSER (read each)))))
+
+(defun reorg-email--render-source ()
+  "Move to buffer and find heading with ID.  If NARROW is non-nil,
+then narrow to that heading and return t.  If no heading is found, don't move
+the point and return nil."
+  (let ((msg (reorg--get-prop 'mu4e-data)))   
+    (reorg--select-main-window (get-buffer-create "*REORG mu4e*"))
+    (let ((inhibit-read-only t))
+      (remove-overlays (point-min)(point-max) 'mu4e-overlay t)
+      (erase-buffer)
+      (insert-file-contents-literally
+       (mu4e-message-readable-path msg) nil nil nil t)
+      (setq-local mu4e--view-message msg)
+      (mu4e--view-render-buffer msg))    
+    (reorg--select-tree-window)))
+
+
+(reorg-create-data-type
+ :class email
+ :name class-name
+ :parse "email")
 
 (reorg-create-data-type
  :class email 

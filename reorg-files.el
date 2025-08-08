@@ -63,7 +63,7 @@
 (reorg-create-data-type
  :name path-list
  :class files
- :parse (seq-subseq (s-split "/" data t) 6))
+ :parse (seq-subseq (s-split "/" data t) 7 -1))
 
 (reorg-create-data-type
  :class files
