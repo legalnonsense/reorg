@@ -19,6 +19,14 @@
 		   (let ((file (reorg--get-prop 'fullname)))
 		     (reorg--select-main-window)
 		     (find-file file))))
+	  ("i" . (lambda ()
+		   (interactive)
+		   (let* ((path (reorg--get-prop 'path))
+			  (filename (f-filename path)))
+		     (reorg--select-main-window)
+		     (jrf/insert-with-leading-space
+		      (format "[[file:%s][%s]]."
+			      path filename)))))
 	  ("d" . (lambda () (interactive) (dired (reorg--get-prop 'parent))))
 	  ("o" . (lambda () (interactive)
 		   (xdg-open (reorg--get-prop 'path))))))
