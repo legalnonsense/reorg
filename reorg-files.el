@@ -1,8 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 (require 'reorg)
 
-
-
 (reorg-create-class-type
  :name files
  :getter (cl-loop for each in (ensure-list SOURCE)
@@ -15,11 +13,13 @@
 						       t)
 				  collect (PARSER file)))
  :keymap (("e" . (lambda ()
+		   ;; open in emacs
 		   (interactive)
 		   (let ((file (reorg--get-prop 'fullname)))
 		     (reorg--select-main-window)
 		     (find-file file))))
 	  ("i" . (lambda ()
+		   ;; insert link
 		   (interactive)
 		   (let* ((path (reorg--get-prop 'path))
 			  (filename (f-filename path)))
@@ -27,9 +27,11 @@
 		     (jrf/insert-with-leading-space
 		      (format "[[file:%s][%s]]."
 			      path filename)))))
-	  ("d" . (lambda () (interactive) (dired (reorg--get-prop 'parent))))
-	  ("o" . reorg-files--xdg-open)))
-
+	  ("d" . (lambda ()
+		   ;; open dired here 
+		   (interactive) (dired (reorg--get-prop 'parent))))
+	  ("o" . ;; open external
+	   reorg-files--xdg-open)))
 
 (defun reorg-files--xdg-open ()
   "open file at point with xdg-open"
@@ -43,25 +45,6 @@
      (format "nohup 1>/dev/null 2>/dev/null %s \"%s\""
              command
              (expand-file-name file)))))
-
-
-
-;; (defun reorg--files--get-from-source
-;;     (&rest sources) 
-;;   (cl-flet
-;;       ((PARSER
-;; 	(&optional d)
-;; 	(reorg--parser d 'files)))
-;;     ))
-
-;; (defun xxx-error (&rest sources)
-;;   (cl-loop for SOURCE in sources append
-;; 	   (cl-loop for each in
-;; 		    (s-split "\n"
-;; 			     (shell-command-to-string SOURCE)
-;; 			     t)
-;; 		    collect
-;; 		    (reorg--parser each 'files))))
 
 (reorg-create-data-type
  :name class
@@ -88,10 +71,10 @@
  :class files
  :parse (seq-subseq (s-split "/" data t) 7 -1))
 
-(reorg-create-data-type
- :class files
- :name client-parent-dirs
- :parse (car (butlast (nthcdr 6 (s-split "/" data t)))))
+;; (reorg-create-data-type
+;;  :class files
+;;  :name client-parent-dirs
+;;  :parse (car (butlast (nthcdr 6 (s-split "/" data t)))))
 
 (reorg-create-data-type
  :name parent-dirs
