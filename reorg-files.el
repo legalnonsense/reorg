@@ -28,8 +28,23 @@
 		      (format "[[file:%s][%s]]."
 			      path filename)))))
 	  ("d" . (lambda () (interactive) (dired (reorg--get-prop 'parent))))
-	  ("o" . (lambda () (interactive)
-		   (xdg-open (reorg--get-prop 'path))))))
+	  ("o" . reorg-files--xdg-open)))
+
+
+(defun reorg-files--xdg-open ()
+  "open file at point with xdg-open"
+  (interactive)
+  (let* ((file (reorg--get-prop 'path))
+	 (process-connection-type nil)
+         (command "xdg-open"))
+    (start-process
+     "" nil shell-file-name
+     shell-command-switch
+     (format "nohup 1>/dev/null 2>/dev/null %s \"%s\""
+             command
+             (expand-file-name file)))))
+
+
 
 ;; (defun reorg--files--get-from-source
 ;;     (&rest sources) 
