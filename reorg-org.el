@@ -25,7 +25,8 @@
   (interactive)
   (save-excursion
     (org-back-to-heading)
-    (let* ((data (reorg--parser nil 'org reorg--temp-parser-list))
+    (let* ((data (append (reorg--parser nil 'org reorg--temp-parser-list)
+			 (reorg--parser nil 'org reorg--inherit-list)))
 	   (id (org-id-get))
 	   (marker (point-marker))
 	   (buffer (marker-buffer marker)))
@@ -477,7 +478,9 @@ if there is not one."
 
 (defun reorg-org--source--narrow-to-heading ()
   "Narrow to the current heading only, i.e., no subtree."
-  (org-back-to-heading)     
+  (if (org-before-first-heading-p)
+      (org-next-visible-heading 1)
+    (org-back-to-heading))
   (unless (reorg-org--at-inline-task-p)
     (org-narrow-to-element))
   (reorg-org--goto-end-of-meta-data))
