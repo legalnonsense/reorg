@@ -7,7 +7,9 @@
  :getter (cl-loop for s in (ensure-list SOURCE)
 		  append (cl-loop for each in (s-split "\n" (shell-command-to-string
 							     (concat "mu find "
+								     "\""
 								     s
+								     "\""
 								     " --format=sexp"))
 						       'omit-nil)
 				  collect (PARSER (read each)))))
